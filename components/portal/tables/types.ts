@@ -1,0 +1,105 @@
+// ==========================================
+// WAITER TABLES PAGE TYPES
+// ==========================================
+
+import type { RestaurantTable, TableStatus, OrderStatus } from '@/types/portal';
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  price: number;
+  category_id: string;
+  category_name: string;
+  image_url?: string;
+  status: string;
+  is_featured?: boolean;
+  spicy_level?: number;
+  is_vegetarian?: boolean;
+  prep_time?: number;
+}
+
+export interface Deal {
+  id: string;
+  name: string;
+  description?: string;
+  deal_type: string;
+  discount_type: string;
+  discount_value: number;
+  original_price: number;
+  deal_price: number;
+  image_url?: string;
+  items: any[];
+  is_active: boolean;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  icon?: string;
+  items_count: number;
+}
+
+export interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  notes?: string;
+  isDeal?: boolean;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  loyalty_points?: number;
+  total_orders?: number;
+  is_verified?: boolean;
+}
+
+export interface WaiterTable extends RestaurantTable {
+  is_my_table?: boolean;
+  assigned_waiter?: {
+    id: string;
+    name: string;
+  } | null;
+  current_order?: {
+    id: string;
+    order_number: string;
+    status: OrderStatus;
+    total: number;
+    items_count: number;
+    created_at: string;
+  } | null;
+}
+
+export interface MenuData {
+  categories: Category[];
+  items: MenuItem[];
+  deals: Deal[];
+}
+
+export interface WaiterStats {
+  orders_today: number;
+  sales_today: number;
+  tips_today: number;
+  customers_today: number;
+}
+
+export interface OrderHistoryItem {
+  id: string;
+  order_number: string;
+  table_number: number;
+  customer_name?: string;
+  total_items: number;
+  total: number;
+  tip_amount: number;
+  payment_method: string;
+  is_registered_customer: boolean;
+  order_taken_at: string;
+}
