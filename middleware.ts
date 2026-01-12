@@ -70,17 +70,16 @@ export function middleware(request: NextRequest) {
 
   // Content Security Policy
   const cspHeader = [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "default-src 'self' https://zoirobroast.me",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live https://zoirobroast.me",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://zoirobroast.me",
     "img-src 'self' data: https: blob:",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.upstash.io https://www.google-analytics.com https://vercel.live wss://ws-us3.pusher.com",
-    "frame-src 'self' https://vercel.live https://www.google.com",
-    "frame-ancestors 'self'",
+    "connect-src 'self' http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:* https://zoirobroast.me https://*.zoirobroast.me https://*.supabase.co wss://*.supabase.co https://*.upstash.io https://www.google-analytics.com https://vercel.live wss://ws-us3.pusher.com https://api.brevo.com",
+    "frame-src 'self' https://vercel.live https://www.google.com https://zoirobroast.me",
+    "frame-ancestors 'self' https://zoirobroast.me",
     "base-uri 'self'",
-    "form-action 'self'",
-    "upgrade-insecure-requests",
+    "form-action 'self' https://zoirobroast.me",
   ].join('; ');
   response.headers.set('Content-Security-Policy', cspHeader);
 
