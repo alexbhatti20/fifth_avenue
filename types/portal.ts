@@ -84,6 +84,8 @@ export interface Employee {
   created_by?: string;
   created_at: string;
   updated_at: string;
+  // Computed/joined fields
+  attendance_this_month?: number;
 }
 
 export interface EmployeeDocument {
