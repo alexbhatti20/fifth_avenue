@@ -76,7 +76,7 @@ export function middleware(request: NextRequest) {
     "img-src 'self' data: https: blob:",
     "font-src 'self' https://fonts.gstatic.com data:",
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.upstash.io https://www.google-analytics.com https://vercel.live wss://ws-us3.pusher.com",
-    "frame-src 'self' https://vercel.live",
+    "frame-src 'self' https://vercel.live https://www.google.com",
     "frame-ancestors 'self'",
     "base-uri 'self'",
     "form-action 'self'",
