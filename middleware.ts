@@ -151,7 +151,7 @@ export function middleware(request: NextRequest) {
   const isPortalPath = portalPaths.some(path => pathname.startsWith(path));
   
   if (isPortalPath && !pathname.includes('/portal/login')) {
-    const authToken = request.cookies.get('portal-auth-token')?.value;
+    const authToken = request.cookies.get('auth-token')?.value;
     
     if (!authToken) {
       const loginUrl = new URL('/portal/login', request.url);

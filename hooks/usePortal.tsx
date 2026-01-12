@@ -86,7 +86,7 @@ export function usePortalAuth(): UsePortalAuthReturn {
         try {
           const parsed = JSON.parse(userData);
           
-          // Check portal access - try RPC first, then direct query
+          // Check portal access - try RPC first, then fallback to get_user_by_email RPC
           let portalEnabled = true;
           let blockReasonText: string | null = null;
 
@@ -99,15 +99,14 @@ export function usePortalAuth(): UsePortalAuthReturn {
             portalEnabled = accessData.portal_enabled;
             blockReasonText = accessData.block_reason;
           } else {
-            // Fallback: Direct query to employees table
-            const { data: empData } = await supabase
-              .from('employees')
-              .select('portal_enabled, block_reason')
-              .ilike('email', parsed.email)
-              .single();
+            // Fallback: Use get_user_by_email RPC to bypass RLS
+            const { data: rpcResult } = await supabase.rpc('get_user_by_email', {
+              p_email: parsed.email.toLowerCase()
+            });
             
-            if (empData) {
-              portalEnabled = empData.portal_enabled;
+            const empData = rpcResult?.[0];
+            if (empData && empData.user_type !== 'customer') {
+              portalEnabled = empData.portal_enabled ?? true;
               blockReasonText = empData.block_reason;
             }
           }
@@ -215,15 +214,15 @@ export function usePortalAuth(): UsePortalAuthReturn {
     // First, get the actual employee ID from the database
     const setupSubscription = async () => {
       try {
-        // Fetch actual employee record to get the real database ID
-        const { data: empRecord, error } = await supabase
-          .from('employees')
-          .select('id, portal_enabled, block_reason')
-          .ilike('email', employee.email)
-          .single();
+        // Use RPC function to bypass RLS and get employee record
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('get_user_by_email', {
+          p_email: employee.email.toLowerCase()
+        });
 
-        if (error || !empRecord) {
-          console.log('[BlockDetection] Could not find employee record');
+        const empRecord = rpcResult?.[0];
+
+        if (rpcError || !empRecord || empRecord.user_type === 'customer') {
+          console.log('[BlockDetection] Could not find employee record or user is a customer');
           return;
         }
 
