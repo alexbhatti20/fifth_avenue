@@ -493,7 +493,7 @@ export default function EditMenuItemPage({ params }: { params: Promise<{ id: str
                   ? 'border-primary bg-primary/10'
                   : 'border-transparent hover:border-zinc-300'
               )}
-              onClick={toggleHasVariants}
+              onClick={() => toggleHasVariants(!formData.has_variants)}
             >
               <CardContent className="p-4 flex items-center gap-4">
                 <div className={cn(
