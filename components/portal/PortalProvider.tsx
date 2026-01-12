@@ -321,13 +321,17 @@ interface SectionHeaderProps {
   title: React.ReactNode;
   description?: React.ReactNode;
   action?: React.ReactNode;
+  icon?: React.ReactNode;
 }
 
-export function SectionHeader({ title, description, action }: SectionHeaderProps) {
+export function SectionHeader({ title, description, action, icon }: SectionHeaderProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between mb-4 sm:mb-6">
       <div className="min-w-0">
-        <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-wide portal-heading truncate">{title}</h2>
+        <div className="flex items-center gap-2">
+          {icon && <span className="flex-shrink-0">{icon}</span>}
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-wide portal-heading truncate">{title}</h2>
+        </div>
         {description && (
           <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">{description}</p>
         )}
