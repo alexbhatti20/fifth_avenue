@@ -120,7 +120,7 @@ function PersonalSettings() {
         },
         body: JSON.stringify({
           id: employee?.id,
-          name: formData.name,
+          name: formData.full_name,
           phone: formData.phone,
           avatar_url: photoPreview,
         }),
