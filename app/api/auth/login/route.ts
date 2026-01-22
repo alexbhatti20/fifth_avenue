@@ -419,10 +419,11 @@ export async function POST(request: NextRequest) {
     });
 
     // Set secure HTTP-only cookie
+    const isSecure = process.env.NEXT_PUBLIC_APP_URL?.startsWith('https') || process.env.NODE_ENV === 'production';
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isSecure,
+      sameSite: 'strict',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });
@@ -431,8 +432,8 @@ export async function POST(request: NextRequest) {
     if (authData.session?.access_token) {
       response.cookies.set('sb-access-token', authData.session.access_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: isSecure,
+        sameSite: 'strict',
         maxAge: 60 * 60, // 1 hour (Supabase token expiry)
         path: '/',
       });

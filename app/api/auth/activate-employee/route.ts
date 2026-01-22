@@ -201,10 +201,11 @@ export async function POST(request: NextRequest) {
       });
 
       // Set auth cookie
+      const isSecure = process.env.NEXT_PUBLIC_APP_URL?.startsWith('https') || process.env.NODE_ENV === 'production';
       response.cookies.set('auth-token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: isSecure,
+        sameSite: 'strict',
         maxAge: 60 * 60 * 24 * 7,
         path: '/',
       });
