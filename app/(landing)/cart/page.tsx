@@ -593,12 +593,12 @@ export default function CartPage() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 }}
-                className="flex gap-2"
+                className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto"
               >
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="group border-destructive/30 hover:border-destructive hover:bg-destructive/5 text-destructive hover:text-destructive"
+                  className="group border-destructive/30 hover:border-destructive hover:bg-destructive/5 text-destructive hover:text-destructive w-full sm:w-auto"
                   onClick={() => {
                     clearCart();
                     toast({
@@ -610,8 +610,8 @@ export default function CartPage() {
                   <Trash2 className="w-4 h-4 mr-2" /> 
                   Clear Cart
                 </Button>
-                <Link href="/menu">
-                  <Button variant="outline" size="sm" className="group border-primary/30 hover:border-primary hover:bg-primary/5">
+                <Link href="/menu" className="w-full sm:w-auto">
+                  <Button variant="outline" size="sm" className="group border-primary/30 hover:border-primary hover:bg-primary/5 w-full">
                     <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> 
                     Continue Shopping
                   </Button>
@@ -662,55 +662,59 @@ export default function CartPage() {
                         variants={itemVariants}
                         layout
                         exit="exit"
-                        className="bg-card rounded-xl p-4 shadow-sm flex gap-4"
+                        className="bg-card rounded-xl p-3 sm:p-4 shadow-sm"
                       >
-                        {/* Image */}
-                        <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                          <Image
-                            src={item.image || "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=400&h=400&fit=crop&q=80"}
-                            alt={item.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-
-                        {/* Details */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-lg truncate">{item.name}</h3>
-                          <p className="text-primary font-bold">Rs. {item.price}</p>
-                          
-                          {/* Quantity Controls */}
-                          <div className="flex items-center gap-3 mt-2">
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              className="h-8 w-8 rounded-full"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            >
-                              <Minus className="h-4 w-4" />
-                            </Button>
-                            <span className="font-semibold w-8 text-center">{item.quantity}</span>
-                            <Button
-                              size="icon"
-                              className="h-8 w-8 rounded-full bg-primary hover:bg-primary/90"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
+                        {/* Mobile Layout */}
+                        <div className="flex gap-3 sm:gap-4">
+                          {/* Image */}
+                          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                            <Image
+                              src={item.image || "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=400&h=400&fit=crop&q=80"}
+                              alt={item.name}
+                              fill
+                              sizes="(max-width: 640px) 80px, 96px"
+                              className="object-cover"
+                            />
                           </div>
-                        </div>
 
-                        {/* Subtotal & Remove */}
-                        <div className="text-right flex flex-col justify-between">
-                          <p className="font-bold text-lg">Rs. {item.price * item.quantity}</p>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => removeFromCart(item.id)}
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </Button>
+                          {/* Details */}
+                          <div className="flex-1 min-w-0 flex flex-col">
+                            <div className="flex justify-between items-start gap-2">
+                              <h3 className="font-semibold text-base sm:text-lg line-clamp-2">{item.name}</h3>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 flex-shrink-0 -mt-1 -mr-1"
+                                onClick={() => removeFromCart(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <p className="text-primary font-bold text-sm sm:text-base">Rs. {item.price}</p>
+                            
+                            {/* Bottom row: Quantity Controls & Subtotal */}
+                            <div className="flex items-center justify-between mt-auto pt-2">
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-full"
+                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                >
+                                  <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                                </Button>
+                                <span className="font-semibold w-6 sm:w-8 text-center text-sm sm:text-base">{item.quantity}</span>
+                                <Button
+                                  size="icon"
+                                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary hover:bg-primary/90"
+                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                >
+                                  <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                                </Button>
+                              </div>
+                              <p className="font-bold text-base sm:text-lg">Rs. {item.price * item.quantity}</p>
+                            </div>
+                          </div>
                         </div>
                       </motion.div>
                     ))}
@@ -722,7 +726,7 @@ export default function CartPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="bg-card rounded-xl p-6 shadow-sm mt-6"
+                  className="bg-card rounded-xl p-4 sm:p-6 shadow-sm mt-6"
                 >
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bebas">Delivery Information</h2>
@@ -791,25 +795,27 @@ export default function CartPage() {
                     </motion.div>
                   ) : (
                     <>
-                      <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="name">Your Name *</Label>
+                          <Label htmlFor="name" className="text-sm sm:text-base">Your Name *</Label>
                           <Input
                             id="name"
                             placeholder="Enter your name"
                             value={customerInfo.name}
                             onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
+                            className="h-12 sm:h-10 text-base sm:text-sm"
                             required
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="phone">Phone Number *</Label>
+                          <Label htmlFor="phone" className="text-sm sm:text-base">Phone Number *</Label>
                           <Input
                             id="phone"
                             type="tel"
                             placeholder="+92 300 1234567"
                             value={customerInfo.phone}
                             onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                            className="h-12 sm:h-10 text-base sm:text-sm"
                             required
                           />
                         </div>
@@ -860,7 +866,7 @@ export default function CartPage() {
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="bg-card rounded-xl p-6 shadow-sm sticky top-24"
+                  className="bg-card rounded-xl p-4 sm:p-6 shadow-sm lg:sticky lg:top-24"
                 >
                   <h2 className="text-xl font-bebas mb-4">Order Summary</h2>
 
@@ -952,7 +958,7 @@ export default function CartPage() {
 
                   {/* Payment Method */}
                   <div className="mt-6">
-                    <Label className="mb-3 block">Payment Method</Label>
+                    <Label className="mb-3 block text-sm sm:text-base">Payment Method</Label>
                     <RadioGroup
                       value={paymentMethod}
                       onValueChange={(v) => {
@@ -966,9 +972,9 @@ export default function CartPage() {
                       className="space-y-2"
                     >
                       {/* Cash on Delivery */}
-                      <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-secondary transition-colors cursor-pointer">
+                      <div className="flex items-center space-x-3 p-3 sm:p-3 min-h-[52px] rounded-lg border hover:bg-secondary transition-colors cursor-pointer">
                         <RadioGroupItem value="cash" id="cash" />
-                        <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1">
+                        <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1 text-sm sm:text-base">
                           <Banknote className="w-5 h-5 text-green-600" />
                           Cash on Delivery
                         </Label>
@@ -976,7 +982,7 @@ export default function CartPage() {
 
                       {/* Card Payment - Coming Soon */}
                       <div 
-                        className="flex items-center space-x-3 p-3 rounded-lg border bg-secondary/50 cursor-not-allowed opacity-70"
+                        className="flex items-center space-x-3 p-3 sm:p-3 min-h-[52px] rounded-lg border bg-secondary/50 cursor-not-allowed opacity-70"
                         onClick={() => {
                           toast({
                             title: "Coming Soon!",
@@ -985,7 +991,7 @@ export default function CartPage() {
                         }}
                       >
                         <RadioGroupItem value="card" id="card" disabled />
-                        <Label htmlFor="card" className="flex items-center gap-2 cursor-not-allowed flex-1">
+                        <Label htmlFor="card" className="flex items-center gap-2 cursor-not-allowed flex-1 text-sm sm:text-base">
                           <CreditCard className="w-5 h-5 text-blue-600" />
                           <span>Card Payment</span>
                           <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
@@ -1005,9 +1011,9 @@ export default function CartPage() {
                         }}
                       >
                         <CollapsibleTrigger asChild>
-                          <div className={`flex items-center space-x-3 p-3 rounded-lg border hover:bg-secondary transition-colors cursor-pointer ${paymentMethod === "online" ? "border-primary bg-primary/5" : ""}`}>
+                          <div className={`flex items-center space-x-3 p-3 sm:p-3 min-h-[52px] rounded-lg border hover:bg-secondary transition-colors cursor-pointer ${paymentMethod === "online" ? "border-primary bg-primary/5" : ""}`}>
                             <RadioGroupItem value="online" id="online" />
-                            <Label htmlFor="online" className="flex items-center gap-2 cursor-pointer flex-1">
+                            <Label htmlFor="online" className="flex items-center gap-2 cursor-pointer flex-1 text-sm sm:text-base">
                               <Smartphone className="w-5 h-5 text-purple-600" />
                               Other Methods
                               <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${paymentMethod === "online" ? "rotate-180" : ""}`} />
