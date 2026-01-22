@@ -1,9 +1,8 @@
 import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Use NEXT_PUBLIC_ prefix for Next.js environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// Use VITE_ prefix (primary) or NEXT_PUBLIC_ prefix (fallback)
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseKey) {
   console.warn('Missing Supabase credentials - database features will be disabled');
@@ -15,15 +14,8 @@ export const supabase: SupabaseClient = createSupabaseClient(
   supabaseKey || 'placeholder-key'
 );
 
-// Admin client (bypasses RLS) - for server-side operations only
-export const supabaseAdmin: SupabaseClient = supabaseServiceKey 
-  ? createSupabaseClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-  : supabase; // Fallback to regular client if no service key
+// Admin client - same as regular client (no service key needed)
+export const supabaseAdmin: SupabaseClient = supabase;
 
 // Re-export createClient for components that need to create their own client
 export const createClient = () => supabase;
