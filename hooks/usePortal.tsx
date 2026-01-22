@@ -32,10 +32,16 @@ import {
 } from '@/lib/portal-queries';
 
 // =============================================
-// PORTAL AUTH HOOK
+// PORTAL AUTH HOOK - Re-exported from context
 // =============================================
 
-interface UsePortalAuthReturn {
+// This hook now re-exports from the PortalProvider context
+// to prevent duplicate API calls across components
+export { usePortalAuthContext as usePortalAuth } from '@/components/portal/PortalProvider';
+import { usePortalAuthContext } from '@/components/portal/PortalProvider';
+
+// Legacy interface for type compatibility
+export interface UsePortalAuthReturn {
   employee: Employee | null;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -46,266 +52,6 @@ interface UsePortalAuthReturn {
   refreshEmployee: () => Promise<void>;
   isBlocked: boolean;
   blockReason: string | null;
-}
-
-export function usePortalAuth(): UsePortalAuthReturn {
-  const [employee, setEmployee] = useState<Employee | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isBlocked, setIsBlocked] = useState(false);
-  const [blockReason, setBlockReason] = useState<string | null>(null);
-  const router = useRouter();
-  const isLoadingRef = useRef(false);
-  const hasLoadedRef = useRef(false);
-
-  const loadEmployee = useCallback(async () => {
-    // Prevent duplicate calls
-    if (isLoadingRef.current) return;
-    isLoadingRef.current = true;
-    
-    if (!isSupabaseConfigured) {
-      setIsLoading(false);
-      isLoadingRef.current = false;
-      return;
-    }
-
-    try {
-      // First try to get from database
-      const emp = await getCurrentEmployee();
-      if (emp) {
-        // Check if employee is blocked - show dialog but keep employee data for display
-        if (emp.portal_enabled === false) {
-          setIsBlocked(true);
-          setBlockReason(emp.block_reason || 'Your portal access has been disabled.');
-          // Keep employee data so dialog can show their name
-          setEmployee(emp);
-          return;
-        }
-        
-        setEmployee(emp);
-        return;
-      }
-
-      // Fallback: Check localStorage for user data (from unified auth)
-      const userData = localStorage.getItem('user_data');
-      const userType = localStorage.getItem('user_type');
-      
-      if (userData && (userType === 'admin' || userType === 'employee')) {
-        try {
-          const parsed = JSON.parse(userData);
-          
-          // Check portal access - try RPC first, then fallback to get_user_by_email RPC
-          let portalEnabled = true;
-          let blockReasonText: string | null = null;
-
-          // Try RPC function
-          const { data: accessData, error: rpcError } = await supabase.rpc('check_employee_portal_access', {
-            p_email: parsed.email
-          });
-          
-          if (!rpcError && accessData && accessData.found) {
-            portalEnabled = accessData.portal_enabled;
-            blockReasonText = accessData.block_reason;
-          } else {
-            // Fallback: Use get_user_by_email RPC to bypass RLS
-            const { data: rpcResult } = await supabase.rpc('get_user_by_email', {
-              p_email: parsed.email.toLowerCase()
-            });
-            
-            const empData = rpcResult?.[0];
-            if (empData && empData.user_type !== 'customer') {
-              portalEnabled = empData.portal_enabled ?? true;
-              blockReasonText = empData.block_reason;
-            }
-          }
-          
-          // Create a minimal employee object from localStorage first
-          const minimalEmployee = {
-            id: parsed.id,
-            auth_user_id: parsed.id,
-            employee_id: parsed.employee_id || `EMP-${parsed.id?.slice(0, 8)}`,
-            name: parsed.name || 'Employee',
-            email: parsed.email,
-            phone: parsed.phone || '',
-            role: parsed.role || userType,
-            status: 'active',
-            portal_enabled: portalEnabled,
-            block_reason: blockReasonText,
-            is_2fa_enabled: false,
-            permissions: parsed.permissions || {},
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          } as Employee;
-          
-          // If blocked, show dialog but keep employee data for display
-          if (!portalEnabled) {
-            setIsBlocked(true);
-            setBlockReason(blockReasonText || 'Your portal access has been disabled.');
-            setEmployee(minimalEmployee);
-            return;
-          }
-          
-          // Set employee for normal access
-          setEmployee(minimalEmployee);
-          return;
-        } catch (e) {
-          console.error('Error parsing user data:', e);
-        }
-      }
-
-      setEmployee(null);
-    } catch (error) {
-      console.error('Error loading employee:', error);
-      setEmployee(null);
-    } finally {
-      setIsLoading(false);
-      isLoadingRef.current = false;
-      hasLoadedRef.current = true;
-    }
-  }, []);
-
-  // Fast logout - synchronous, no API calls, immediate redirect
-  const fastLogout = useCallback(() => {
-    // Clear all localStorage data immediately
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('user_type');
-    localStorage.removeItem('portal_sidebar_collapsed');
-    
-    // Clear permissions cache
-    clearPermissionsCache();
-    
-    // Clear any cached data
-    sessionStorage.clear();
-    
-    // Clear employee state
-    setEmployee(null);
-    
-    // Sign out from Supabase in background (non-blocking)
-    supabase.auth.signOut().catch(() => {});
-    
-    // Call logout API in background (non-blocking)
-    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
-    
-    // Redirect immediately
-    window.location.href = '/auth';
-  }, []);
-
-  useEffect(() => {
-    loadEmployee();
-
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          setEmployee(null);
-          hasLoadedRef.current = false;
-          router.push('/auth');
-        } else if (event === 'SIGNED_IN' && session && !hasLoadedRef.current) {
-          // Only reload if not already loaded
-          await loadEmployee();
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [loadEmployee, router]);
-
-  // Real-time subscription to detect when user gets blocked (portal_enabled = false)
-  useEffect(() => {
-    // Only skip if no employee email - don't clear isBlocked here!
-    if (!employee?.email || !employee?.id || !isSupabaseConfigured) {
-      return;
-    }
-
-    // Use the employee ID we already have - no need for extra RPC call
-    const actualEmployeeId = employee.id;
-    let channel: any = null;
-
-    // Set up real-time subscription with existing employee ID
-    channel = supabase
-      .channel(`employee-block-${actualEmployeeId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'employees',
-          filter: `id=eq.${actualEmployeeId}`,
-        },
-        (payload) => {
-          console.log('[BlockDetection] Received real-time update:', payload);
-          const newData = payload.new as { portal_enabled?: boolean; block_reason?: string };
-          
-          if (newData.portal_enabled === false) {
-            console.log('[BlockDetection] Employee blocked! Showing dialog...');
-            setIsBlocked(true);
-            setBlockReason(newData.block_reason || 'Your portal access has been disabled by an administrator.');
-          }
-        }
-      )
-      .subscribe((status: string) => {
-        console.log('[BlockDetection] Subscription status:', status);
-      });
-
-    return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, [employee?.email, employee?.id]);
-
-  const logout = useCallback(async () => {
-    // Clear all localStorage data first for faster perceived logout
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('user_type');
-    localStorage.removeItem('portal_sidebar_collapsed');
-    
-    // Clear permissions cache
-    clearPermissionsCache();
-    
-    // Clear any cached data
-    sessionStorage.clear();
-    
-    // Clear employee state
-    setEmployee(null);
-    
-    // Redirect immediately (don't wait for API calls)
-    router.push('/auth');
-    
-    // Do API calls in background (non-blocking)
-    try {
-      await Promise.all([
-        fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}),
-        supabase.auth.signOut().catch(() => {}),
-      ]);
-    } catch (e) {
-      // Ignore errors
-    }
-  }, [router]);
-
-  const checkPermission = useCallback(
-    (permission: string) => {
-      if (!employee) return false;
-      return hasPermission(employee.role, permission);
-    },
-    [employee]
-  );
-
-  return {
-    employee,
-    isLoading,
-    isAuthenticated: !!employee,
-    role: employee?.role || null,
-    hasPermission: checkPermission,
-    logout,
-    fastLogout,
-    refreshEmployee: loadEmployee,
-    isBlocked,
-    blockReason,
-  };
 }
 
 // =============================================
@@ -819,7 +565,7 @@ interface UseNotificationsReturn {
 export function useNotifications(): UseNotificationsReturn {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { employee } = usePortalAuth();
+  const { employee } = usePortalAuthContext();
 
   const loadNotifications = useCallback(async () => {
     if (!employee) return;

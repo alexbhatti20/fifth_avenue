@@ -1,13 +1,57 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PortalSidebar, PortalAppbar, MobileSidebar } from './PortalLayout';
-import { usePortalAuth } from '@/hooks/usePortal';
 import { BlockedUserDialog } from './BlockedUserDialog';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { getCurrentEmployee } from '@/lib/portal-queries';
+import { clearPermissionsCache } from '@/lib/permissions';
+import type { Employee, EmployeeRole } from '@/types/portal';
+import { hasPermission as checkPermission } from '@/types/portal';
+
+// =============================================
+// PORTAL AUTH CONTEXT - Single source of truth
+// =============================================
+
+interface PortalAuthContextType {
+  employee: Employee | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  role: EmployeeRole | null;
+  hasPermission: (permission: string) => boolean;
+  logout: () => Promise<void>;
+  fastLogout: () => void;
+  refreshEmployee: () => Promise<void>;
+  isBlocked: boolean;
+  blockReason: string | null;
+}
+
+const PortalAuthContext = createContext<PortalAuthContextType | null>(null);
+
+// Hook to use the shared auth context
+export function usePortalAuthContext(): PortalAuthContextType {
+  const context = useContext(PortalAuthContext);
+  if (!context) {
+    // Return a default state if context is not available (for SSR or outside provider)
+    return {
+      employee: null,
+      isLoading: true,
+      isAuthenticated: false,
+      role: null,
+      hasPermission: () => false,
+      logout: async () => {},
+      fastLogout: () => {},
+      refreshEmployee: async () => {},
+      isBlocked: false,
+      blockReason: null,
+    };
+  }
+  return context;
+}
 
 interface PortalProviderProps {
   children: React.ReactNode;
@@ -35,12 +79,217 @@ export function PortalProvider({ children }: PortalProviderProps) {
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   
-  const { employee, isLoading, isAuthenticated, isBlocked, blockReason, fastLogout } = usePortalAuth();
+  // Auth state - managed here, shared via context
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockReason, setBlockReason] = useState<string | null>(null);
+  const isLoadingRef = useRef(false);
+  const hasLoadedRef = useRef(false);
+  
   const router = useRouter();
   const pathname = usePathname();
 
   // Check if current page is auth page (unified auth or old portal auth pages)
   const isAuthPage = pathname === '/portal/login' || pathname === '/portal/activate' || pathname === '/auth';
+
+  // Load employee data - only called once
+  const loadEmployee = useCallback(async () => {
+    if (isLoadingRef.current || hasLoadedRef.current) return;
+    isLoadingRef.current = true;
+    
+    if (!isSupabaseConfigured) {
+      setIsLoading(false);
+      isLoadingRef.current = false;
+      return;
+    }
+
+    try {
+      const emp = await getCurrentEmployee();
+      if (emp) {
+        if (emp.portal_enabled === false) {
+          setIsBlocked(true);
+          setBlockReason(emp.block_reason || 'Your portal access has been disabled.');
+        }
+        setEmployee(emp);
+        hasLoadedRef.current = true;
+        return;
+      }
+
+      // Fallback: Check localStorage
+      const userData = localStorage.getItem('user_data');
+      const userType = localStorage.getItem('user_type');
+      
+      if (userData && (userType === 'admin' || userType === 'employee')) {
+        try {
+          const parsed = JSON.parse(userData);
+          
+          let portalEnabled = true;
+          let blockReasonText: string | null = null;
+
+          const { data: accessData, error: rpcError } = await supabase.rpc('check_employee_portal_access', {
+            p_email: parsed.email
+          });
+          
+          if (!rpcError && accessData && accessData.found) {
+            portalEnabled = accessData.portal_enabled;
+            blockReasonText = accessData.block_reason;
+          }
+          
+          const minimalEmployee = {
+            id: parsed.id,
+            auth_user_id: parsed.id,
+            employee_id: parsed.employee_id || `EMP-${parsed.id?.slice(0, 8)}`,
+            name: parsed.name || 'Employee',
+            email: parsed.email,
+            phone: parsed.phone || '',
+            role: parsed.role || userType,
+            status: 'active',
+            portal_enabled: portalEnabled,
+            block_reason: blockReasonText,
+            is_2fa_enabled: false,
+            permissions: parsed.permissions || {},
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as Employee;
+          
+          if (!portalEnabled) {
+            setIsBlocked(true);
+            setBlockReason(blockReasonText || 'Your portal access has been disabled.');
+          }
+          
+          setEmployee(minimalEmployee);
+          hasLoadedRef.current = true;
+          return;
+        } catch (e) {
+          console.error('Error parsing user data:', e);
+        }
+      }
+
+      setEmployee(null);
+    } catch (error) {
+      console.error('Error loading employee:', error);
+      setEmployee(null);
+    } finally {
+      setIsLoading(false);
+      isLoadingRef.current = false;
+    }
+  }, []);
+
+  // Refresh employee data
+  const refreshEmployee = useCallback(async () => {
+    hasLoadedRef.current = false;
+    isLoadingRef.current = false;
+    await loadEmployee();
+  }, [loadEmployee]);
+
+  // Fast logout
+  const fastLogout = useCallback(() => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+    localStorage.removeItem('user_type');
+    localStorage.removeItem('portal_sidebar_collapsed');
+    clearPermissionsCache();
+    sessionStorage.clear();
+    setEmployee(null);
+    hasLoadedRef.current = false;
+    supabase.auth.signOut().catch(() => {});
+    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    window.location.href = '/auth';
+  }, []);
+
+  // Async logout
+  const logout = useCallback(async () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+    localStorage.removeItem('user_type');
+    localStorage.removeItem('portal_sidebar_collapsed');
+    clearPermissionsCache();
+    sessionStorage.clear();
+    setEmployee(null);
+    hasLoadedRef.current = false;
+    router.push('/auth');
+    try {
+      await Promise.all([
+        supabase.auth.signOut(),
+        fetch('/api/auth/logout', { method: 'POST' })
+      ]);
+    } catch (e) {
+      console.error('Logout error:', e);
+    }
+  }, [router]);
+
+  // Has permission check
+  const hasPermission = useCallback((permission: string): boolean => {
+    if (!employee) return false;
+    return checkPermission(employee.role, permission);
+  }, [employee]);
+
+  // Computed values
+  const isAuthenticated = !!employee;
+  const role = employee?.role || null;
+
+  // Load employee on mount
+  useEffect(() => {
+    loadEmployee();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event) => {
+        if (event === 'SIGNED_OUT') {
+          setEmployee(null);
+          hasLoadedRef.current = false;
+          router.push('/auth');
+        } else if (event === 'SIGNED_IN' && !hasLoadedRef.current) {
+          await loadEmployee();
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [loadEmployee, router]);
+
+  // Real-time block detection
+  useEffect(() => {
+    if (!employee?.id || !isSupabaseConfigured) return;
+
+    const channel = supabase
+      .channel(`employee-block-${employee.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'employees',
+          filter: `id=eq.${employee.id}`,
+        },
+        (payload) => {
+          const newData = payload.new as { portal_enabled?: boolean; block_reason?: string };
+          if (newData.portal_enabled === false) {
+            setIsBlocked(true);
+            setBlockReason(newData.block_reason || 'Your portal access has been disabled.');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [employee?.id]);
+
+  // Context value
+  const authContextValue: PortalAuthContextType = {
+    employee,
+    isLoading,
+    isAuthenticated,
+    role,
+    hasPermission,
+    logout,
+    fastLogout,
+    refreshEmployee,
+    isBlocked,
+    blockReason,
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -153,20 +402,33 @@ export function PortalProvider({ children }: PortalProviderProps) {
 
   // Don't render anything while loading
   if (!mounted || isLoading) {
-    return <LoadingSpinner />;
+    return (
+      <PortalAuthContext.Provider value={authContextValue}>
+        <LoadingSpinner />
+      </PortalAuthContext.Provider>
+    );
   }
 
   // Render auth pages without layout
   if (isAuthPage) {
-    return <>{children}</>;
+    return (
+      <PortalAuthContext.Provider value={authContextValue}>
+        {children}
+      </PortalAuthContext.Provider>
+    );
   }
 
   // Render full layout for authenticated users (either from hook or localStorage)
   if (!isAuthenticated && !hasLocalAuth) {
-    return <LoadingSpinner />;
+    return (
+      <PortalAuthContext.Provider value={authContextValue}>
+        <LoadingSpinner />
+      </PortalAuthContext.Provider>
+    );
   }
 
   return (
+    <PortalAuthContext.Provider value={authContextValue}>
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Blocked Account Dialog - Triggered when admin blocks employee in real-time */}
       <BlockedUserDialog
@@ -218,6 +480,7 @@ export function PortalProvider({ children }: PortalProviderProps) {
         </AnimatePresence>
       </main>
     </div>
+    </PortalAuthContext.Provider>
   );
 }
 
@@ -232,7 +495,7 @@ interface ProtectedPageProps {
 }
 
 export function ProtectedPage({ children, allowedRoles, permission }: ProtectedPageProps) {
-  const { role, hasPermission, isLoading } = usePortalAuth();
+  const { role, hasPermission, isLoading } = usePortalAuthContext();
   const router = useRouter();
 
   useEffect(() => {
