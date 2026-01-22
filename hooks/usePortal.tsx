@@ -215,77 +215,46 @@ export function usePortalAuth(): UsePortalAuthReturn {
   // Real-time subscription to detect when user gets blocked (portal_enabled = false)
   useEffect(() => {
     // Only skip if no employee email - don't clear isBlocked here!
-    if (!employee?.email || !isSupabaseConfigured) {
+    if (!employee?.email || !employee?.id || !isSupabaseConfigured) {
       return;
     }
 
-    let actualEmployeeId: string | null = null;
+    // Use the employee ID we already have - no need for extra RPC call
+    const actualEmployeeId = employee.id;
     let channel: any = null;
 
-    // First, get the actual employee ID from the database
-    const setupSubscription = async () => {
-      try {
-        // Use RPC function to bypass RLS and get employee record
-        const { data: rpcResult, error: rpcError } = await supabase.rpc('get_user_by_email', {
-          p_email: employee.email.toLowerCase()
-        });
-
-        const empRecord = rpcResult?.[0];
-
-        if (rpcError || !empRecord || empRecord.user_type === 'customer') {
-          console.log('[BlockDetection] Could not find employee record or user is a customer');
-          return;
+    // Set up real-time subscription with existing employee ID
+    channel = supabase
+      .channel(`employee-block-${actualEmployeeId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'employees',
+          filter: `id=eq.${actualEmployeeId}`,
+        },
+        (payload) => {
+          console.log('[BlockDetection] Received real-time update:', payload);
+          const newData = payload.new as { portal_enabled?: boolean; block_reason?: string };
+          
+          if (newData.portal_enabled === false) {
+            console.log('[BlockDetection] Employee blocked! Showing dialog...');
+            setIsBlocked(true);
+            setBlockReason(newData.block_reason || 'Your portal access has been disabled by an administrator.');
+          }
         }
-
-        actualEmployeeId = empRecord.id;
-        console.log('[BlockDetection] Found actual employee ID:', actualEmployeeId);
-
-        // Check if already blocked
-        if (empRecord.portal_enabled === false) {
-          console.log('[BlockDetection] Employee is already blocked!');
-          setIsBlocked(true);
-          setBlockReason(empRecord.block_reason || 'Your portal access has been disabled by an administrator.');
-          return;
-        }
-
-        // Now subscribe with the actual employee ID
-        channel = supabase
-          .channel(`employee-block-${actualEmployeeId}`)
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'employees',
-              filter: `id=eq.${actualEmployeeId}`,
-            },
-            (payload) => {
-              console.log('[BlockDetection] Received real-time update:', payload);
-              const newData = payload.new as { portal_enabled?: boolean; block_reason?: string };
-              
-              if (newData.portal_enabled === false) {
-                console.log('[BlockDetection] Employee blocked! Showing dialog...');
-                setIsBlocked(true);
-                setBlockReason(newData.block_reason || 'Your portal access has been disabled by an administrator.');
-              }
-            }
-          )
-          .subscribe((status: string) => {
-            console.log('[BlockDetection] Subscription status:', status);
-          });
-      } catch (err) {
-        console.error('[BlockDetection] Error setting up subscription:', err);
-      }
-    };
-
-    setupSubscription();
+      )
+      .subscribe((status: string) => {
+        console.log('[BlockDetection] Subscription status:', status);
+      });
 
     return () => {
       if (channel) {
         supabase.removeChannel(channel);
       }
     };
-  }, [employee?.email]);
+  }, [employee?.email, employee?.id]);
 
   const logout = useCallback(async () => {
     // Clear all localStorage data first for faster perceived logout

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, Customer } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 
@@ -47,6 +47,8 @@ export function useAuth(): UseAuthReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [isBanned, setIsBanned] = useState(false);
   const [banReason, setBanReason] = useState<string | null>(null);
+  const isFetchingRef = useRef(false);
+  const hasFetchedRef = useRef(false);
 
   // Load user from localStorage on mount (for persistence)
   const loadUserFromStorage = useCallback(() => {
@@ -70,6 +72,10 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   const fetchUser = useCallback(async () => {
+    // Prevent duplicate calls
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
     try {
       // First check localStorage for persisted user
       const hasStoredUser = loadUserFromStorage();
@@ -113,6 +119,8 @@ export function useAuth(): UseAuthReturn {
       }
     } finally {
       setIsLoading(false);
+      isFetchingRef.current = false;
+      hasFetchedRef.current = true;
     }
   }, [loadUserFromStorage]);
 
@@ -121,21 +129,23 @@ export function useAuth(): UseAuthReturn {
     loadUserFromStorage();
     setIsLoading(false);
     
-    // Then try to fetch fresh data
+    // Then try to fetch fresh data (only once)
     fetchUser();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
+      if (session && !hasFetchedRef.current) {
+        // Only fetch if not already fetched
         fetchUser();
-      } else {
+      } else if (!session) {
         // Check if we have a manual token before clearing
         const token = localStorage.getItem('auth_token');
         if (!token) {
           setUser(null);
           setAuthUser(null);
           localStorage.removeItem('user_data');
+          hasFetchedRef.current = false;
         }
       }
     });
