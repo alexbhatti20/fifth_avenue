@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 type AuthFlow = 
   | 'initial'           // Enter email to check user type
   | 'customer-login'    // Existing customer login
@@ -58,6 +59,7 @@ export default function UnifiedAuth() {
   const router = useRouter();
   const { toast } = useToast();
   const { sendLoginOTP, verifyLoginOTP, sendRegisterOTP, verifyRegisterOTP, user } = useAuth();
+  const shouldReduceMotion = useReducedMotion();
   
   const [flow, setFlow] = useState<AuthFlow>('initial');
   const [isLoading, setIsLoading] = useState(false);
@@ -564,62 +566,74 @@ export default function UnifiedAuth() {
           }}
         />
         
-        {/* Animated gradient orbs - Red/Black theme */}
-        <motion.div
-          className="absolute top-0 left-0 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-red-900/30 to-red-600/20 blur-3xl"
-          animate={{
-            x: [0, 100, 0],
-            y: [0, 50, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-red-800/25 to-orange-900/20 blur-3xl"
-          animate={{
-            x: [0, -80, 0],
-            y: [0, -60, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-gradient-to-r from-red-950/20 to-black/30 blur-3xl"
-          animate={{
-            scale: [1, 1.3, 1],
-            rotate: [0, 180, 360],
-          }}
-          transition={{
-            duration: 30,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-        />
+        {/* Animated gradient orbs - Red/Black theme - Only on desktop */}
+        {!shouldReduceMotion && (
+          <>
+            <motion.div
+              className="absolute top-0 left-0 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-red-900/30 to-red-600/20 blur-3xl"
+              animate={{
+                x: [0, 100, 0],
+                y: [0, 50, 0],
+                scale: [1, 1.1, 1],
+              }}
+              transition={{
+                duration: 20,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+            <motion.div
+              className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-red-800/25 to-orange-900/20 blur-3xl"
+              animate={{
+                x: [0, -80, 0],
+                y: [0, -60, 0],
+                scale: [1, 1.2, 1],
+              }}
+              transition={{
+                duration: 25,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+            <motion.div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-gradient-to-r from-red-950/20 to-black/30 blur-3xl"
+              animate={{
+                scale: [1, 1.3, 1],
+                rotate: [0, 180, 360],
+              }}
+              transition={{
+                duration: 30,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+            
+            {/* Additional Pulsing Orbs */}
+            <motion.div
+              className="absolute top-[20%] right-[20%] w-[300px] h-[300px] rounded-full bg-gradient-to-br from-yellow-600/10 to-orange-600/10 blur-3xl"
+              animate={{
+                scale: [1, 1.5, 1],
+                opacity: [0.3, 0.6, 0.3],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+          </>
+        )}
         
-        {/* Additional Pulsing Orbs */}
-        <motion.div
-          className="absolute top-[20%] right-[20%] w-[300px] h-[300px] rounded-full bg-gradient-to-br from-yellow-600/10 to-orange-600/10 blur-3xl"
-          animate={{
-            scale: [1, 1.5, 1],
-            opacity: [0.3, 0.6, 0.3],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
+        {/* Static background orbs for mobile */}
+        {shouldReduceMotion && (
+          <>
+            <div className="absolute top-0 left-0 w-[400px] h-[400px] rounded-full bg-gradient-to-br from-red-900/20 to-red-600/10 blur-3xl" />
+            <div className="absolute bottom-0 right-0 w-[300px] h-[300px] rounded-full bg-gradient-to-tl from-red-800/15 to-orange-900/10 blur-3xl" />
+          </>
+        )}
         
-        {/* Floating Particles - using fixed positions to avoid hydration mismatch */}
-        {[
+        {/* Floating Particles - Only on desktop */}
+        {!shouldReduceMotion && [
           { left: 10, top: 15, duration: 6, delay: 0.5 },
           { left: 25, top: 35, duration: 7, delay: 1.2 },
           { left: 45, top: 20, duration: 5.5, delay: 0.8 },
@@ -664,118 +678,120 @@ export default function UnifiedAuth() {
         ))}
       </div>
 
-      {/* Floating Broasted Chicken Images */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-10">
-        {/* Chicken Wings - Top Left */}
-        <motion.div
-          className="absolute top-[10%] left-[5%]"
-          animate={{ 
-            y: [0, -20, 0], 
-            rotate: [0, 10, 0],
-            scale: [1, 1.05, 1]
-          }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <Image 
-            src="/assets/wings.png" 
-            alt="Wings" 
-            width={120} 
-            height={120}
-            className="opacity-80 drop-shadow-2xl"
-          />
-        </motion.div>
+      {/* Floating Broasted Chicken Images - Only on desktop */}
+      {!shouldReduceMotion && (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden z-10">
+          {/* Chicken Wings - Top Left */}
+          <motion.div
+            className="absolute top-[10%] left-[5%]"
+            animate={{ 
+              y: [0, -20, 0], 
+              rotate: [0, 10, 0],
+              scale: [1, 1.05, 1]
+            }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <Image 
+              src="/assets/wings.png" 
+              alt="Wings" 
+              width={120} 
+              height={120}
+              className="opacity-80 drop-shadow-2xl"
+            />
+          </motion.div>
 
-        {/* Chicken Piece - Top Right */}
-        <motion.div
-          className="absolute top-[15%] right-[8%]"
-          animate={{ 
-            y: [0, 15, 0], 
-            rotate: [0, -15, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        >
-          <Image 
-            src="/assets/chicken-piece.png" 
-            alt="Chicken" 
-            width={100} 
-            height={100}
-            className="opacity-70 drop-shadow-2xl"
-          />
-        </motion.div>
+          {/* Chicken Piece - Top Right */}
+          <motion.div
+            className="absolute top-[15%] right-[8%]"
+            animate={{ 
+              y: [0, 15, 0], 
+              rotate: [0, -15, 0],
+              scale: [1, 1.1, 1]
+            }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          >
+            <Image 
+              src="/assets/chicken-piece.png" 
+              alt="Chicken" 
+              width={100} 
+              height={100}
+              className="opacity-70 drop-shadow-2xl"
+            />
+          </motion.div>
 
-        {/* Chicken Burger - Bottom Left */}
-        <motion.div
-          className="absolute bottom-[25%] left-[8%]"
-          animate={{ 
-            y: [0, -15, 0], 
-            rotate: [0, 8, 0],
-            scale: [1, 1.08, 1]
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-        >
-          <Image 
-            src="/assets/chicken-burger.png" 
-            alt="Burger" 
-            width={90} 
-            height={90}
-            className="opacity-70 drop-shadow-2xl"
-          />
-        </motion.div>
+          {/* Chicken Burger - Bottom Left */}
+          <motion.div
+            className="absolute bottom-[25%] left-[8%]"
+            animate={{ 
+              y: [0, -15, 0], 
+              rotate: [0, 8, 0],
+              scale: [1, 1.08, 1]
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          >
+            <Image 
+              src="/assets/chicken-burger.png" 
+              alt="Burger" 
+              width={90} 
+              height={90}
+              className="opacity-70 drop-shadow-2xl"
+            />
+          </motion.div>
 
-        {/* Fries - Bottom Right */}
-        <motion.div
-          className="absolute bottom-[15%] right-[10%]"
-          animate={{ 
-            y: [0, 20, 0], 
-            rotate: [0, -10, 0],
-            scale: [1, 1.05, 1]
-          }}
-          transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-        >
-          <Image 
-            src="/assets/fries.png" 
-            alt="Fries" 
-            width={80} 
-            height={80}
-            className="opacity-70 drop-shadow-2xl"
-          />
-        </motion.div>
+          {/* Fries - Bottom Right */}
+          <motion.div
+            className="absolute bottom-[15%] right-[10%]"
+            animate={{ 
+              y: [0, 20, 0], 
+              rotate: [0, -10, 0],
+              scale: [1, 1.05, 1]
+            }}
+            transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+          >
+            <Image 
+              src="/assets/fries.png" 
+              alt="Fries" 
+              width={80} 
+              height={80}
+              className="opacity-70 drop-shadow-2xl"
+            />
+          </motion.div>
 
-        {/* Drink - Middle Left */}
-        <motion.div
-          className="absolute top-[55%] left-[3%]"
-          animate={{ 
-            y: [0, -25, 0], 
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-        >
-          <Image 
-            src="/assets/drink.png" 
-            alt="Drink" 
-            width={70} 
-            height={70}
-            className="opacity-60 drop-shadow-2xl"
-          />
-        </motion.div>
+          {/* Drink - Middle Left */}
+          <motion.div
+            className="absolute top-[55%] left-[3%]"
+            animate={{ 
+              y: [0, -25, 0], 
+              scale: [1, 1.1, 1]
+            }}
+            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+          >
+            <Image 
+              src="/assets/drink.png" 
+              alt="Drink" 
+              width={70} 
+              height={70}
+              className="opacity-60 drop-shadow-2xl"
+            />
+          </motion.div>
 
-        {/* Floating Icons */}
-        <motion.div
-          className="absolute top-[40%] right-[5%] text-red-500/30"
-          animate={{ y: [0, 15, 0], rotate: [0, -15, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        >
-          <Flame className="w-10 h-10" />
-        </motion.div>
-        <motion.div
-          className="absolute bottom-[40%] left-[12%] text-red-600/25"
-          animate={{ y: [0, -15, 0], rotate: [0, 15, 0] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-        >
-          <Star className="w-8 h-8" />
-        </motion.div>
-      </div>
+          {/* Floating Icons */}
+          <motion.div
+            className="absolute top-[40%] right-[5%] text-red-500/30"
+            animate={{ y: [0, 15, 0], rotate: [0, -15, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          >
+            <Flame className="w-10 h-10" />
+          </motion.div>
+          <motion.div
+            className="absolute bottom-[40%] left-[12%] text-red-600/25"
+            animate={{ y: [0, -15, 0], rotate: [0, 15, 0] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          >
+            <Star className="w-8 h-8" />
+          </motion.div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="relative z-10 min-h-screen flex">
@@ -938,38 +954,14 @@ export default function UnifiedAuth() {
             transition={{ duration: 0.5 }}
             className="w-full max-w-md"
           >
-            {/* Mobile Logo - Animated Mascot */}
-            <motion.div 
-              className="lg:hidden flex flex-col items-center justify-center mb-8"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-            >
+            {/* Mobile Logo - Simplified for performance */}
+            <div className="lg:hidden flex flex-col items-center justify-center mb-8">
               <Link href="/" className="block">
-                <motion.div 
-                  className="relative w-32 h-32 mx-auto mb-2"
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                >
-                  {/* Mobile Glow Effect */}
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-br from-red-500/30 to-red-700/30 rounded-full blur-2xl"
-                    animate={{
-                      scale: [1, 1.2, 1],
-                      opacity: [0.4, 0.7, 0.4],
-                    }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  />
-                  {/* Mobile Logo */}
-                  <motion.div
-                    className="relative w-full h-full"
-                    animate={{
-                      y: [0, -5, 0],
-                    }}
-                    transition={{
-                      y: { duration: 2.5, repeat: Infinity, ease: "easeInOut" },
-                    }}
-                  >
+                <div className="relative w-32 h-32 mx-auto mb-2">
+                  {/* Static Glow Effect for Mobile */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-red-500/30 to-red-700/30 rounded-full blur-2xl opacity-50" />
+                  {/* Mobile Logo - Static */}
+                  <div className="relative w-full h-full">
                     <Image
                       src="/assets/zoiro-logo.png"
                       alt="Zoiro Broast"
@@ -977,10 +969,10 @@ export default function UnifiedAuth() {
                       className="object-contain drop-shadow-xl"
                       priority
                     />
-                  </motion.div>
-                </motion.div>
+                  </div>
+                </div>
               </Link>
-            </motion.div>
+            </div>
 
             {/* Form Card */}
             <motion.div 
