@@ -3,6 +3,7 @@
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { Star, Quote, Loader2 } from "lucide-react";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 interface Review {
   id: string;
@@ -99,6 +100,7 @@ export default function Reviews() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [stats, setStats] = useState<ReviewStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const shouldReduceMotion = useReducedMotion();
   
   const ref = useRef(null);
   const statsRef = useRef(null);
@@ -111,9 +113,12 @@ export default function Reviews() {
     offset: ["start end", "end start"],
   });
 
-  // Parallax transforms
-  const bgY = useTransform(scrollYProgress, [0, 1], [80, -80]);
-  const contentY = useTransform(scrollYProgress, [0, 1], [40, -40]);
+  // Parallax transforms - disabled on mobile
+  const bgY = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [0, 0] : [80, -80]);
+  const contentY = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [0, 0] : [40, -40]);
+
+  // Simplified animation config for mobile
+  const animationDuration = shouldReduceMotion ? 0.15 : 0.7;
 
   // Fetch reviews on mount
   useEffect(() => {
@@ -150,44 +155,46 @@ export default function Reviews() {
 
   return (
     <section className="section-padding bg-foreground text-background overflow-hidden relative" ref={containerRef}>
-      {/* Parallax Background Elements */}
-      <motion.div 
-        className="absolute inset-0 pointer-events-none overflow-hidden"
-        style={{ y: bgY }}
-      >
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
-      </motion.div>
+      {/* Parallax Background Elements - Hidden on mobile */}
+      {!shouldReduceMotion && (
+        <motion.div 
+          className="absolute inset-0 pointer-events-none overflow-hidden"
+          style={{ y: bgY }}
+        >
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
+        </motion.div>
+      )}
 
-      <motion.div className="container-custom relative z-10" style={{ y: contentY }} ref={ref}>
+      <motion.div className="container-custom relative z-10" style={shouldReduceMotion ? {} : { y: contentY }} ref={ref}>
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: shouldReduceMotion ? 10 : 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ duration: animationDuration, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="text-center mb-12"
         >
           <motion.span
             className="text-primary font-semibold uppercase tracking-wider text-sm inline-block"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: shouldReduceMotion ? 5 : 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: shouldReduceMotion ? 0.02 : 0.1, duration: animationDuration }}
           >
             Testimonials
           </motion.span>
           <motion.h2
             className="text-4xl sm:text-5xl font-bebas mt-2 mb-4"
-            initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
+            initial={{ opacity: 0, y: shouldReduceMotion ? 5 : 30, filter: shouldReduceMotion ? "blur(0px)" : "blur(10px)" }}
             animate={isInView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-            transition={{ delay: 0.2, duration: 0.6 }}
+            transition={{ delay: shouldReduceMotion ? 0.05 : 0.2, duration: animationDuration }}
           >
             What Our Customers Say
           </motion.h2>
           <motion.p
             className="text-background/70 max-w-2xl mx-auto"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: shouldReduceMotion ? 5 : 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: shouldReduceMotion ? 0.08 : 0.3, duration: animationDuration }}
           >
             Real reviews from real customers. See what people love about ZOIRO.
           </motion.p>
@@ -205,47 +212,69 @@ export default function Reviews() {
         ) : (
           <motion.div
             className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
-            variants={containerVariants}
+            variants={shouldReduceMotion ? {
+              hidden: { opacity: 0 },
+              visible: { opacity: 1, transition: { staggerChildren: 0.02 } }
+            } : containerVariants}
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
           >
             {reviews.map((review, index) => (
               <motion.div
                 key={review.id}
-                variants={cardVariants}
+                variants={shouldReduceMotion ? {
+                  hidden: { opacity: 0, y: 10 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.15 } }
+                } : cardVariants}
                 className="bg-background/10 backdrop-blur-sm rounded-2xl p-6 relative group"
-                whileHover={{ 
+                whileHover={shouldReduceMotion ? undefined : { 
                   y: -8, 
                   scale: 1.02,
                   backgroundColor: "rgba(255, 255, 255, 0.15)",
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
-                <motion.div
-                  initial={{ opacity: 0, rotate: -20, scale: 0 }}
-                  animate={isInView ? { opacity: 0.3, rotate: 0, scale: 1 } : {}}
-                  transition={{ delay: 0.5 + index * 0.1 }}
-                >
+                {!shouldReduceMotion && (
+                  <motion.div
+                    initial={{ opacity: 0, rotate: -20, scale: 0 }}
+                    animate={isInView ? { opacity: 0.3, rotate: 0, scale: 1 } : {}}
+                    transition={{ delay: 0.5 + index * 0.1 }}
+                  >
+                    <Quote className="absolute top-4 right-4 h-8 w-8 text-primary/30 group-hover:text-primary/50 transition-colors" />
+                  </motion.div>
+                )}
+                {shouldReduceMotion && (
                   <Quote className="absolute top-4 right-4 h-8 w-8 text-primary/30 group-hover:text-primary/50 transition-colors" />
-                </motion.div>
+                )}
                 
                 {/* Rating */}
                 <div className="flex gap-1 mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                      transition={{ delay: 0.6 + index * 0.1 + i * 0.05 }}
-                    >
+                    shouldReduceMotion ? (
                       <Star
+                        key={i}
                         className={`h-4 w-4 ${
                           i < review.rating
                             ? "text-accent fill-accent"
                             : "text-background/30"
                         }`}
                       />
-                    </motion.div>
+                    ) : (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                        transition={{ delay: 0.6 + index * 0.1 + i * 0.05 }}
+                      >
+                        <Star
+                          className={`h-4 w-4 ${
+                            i < review.rating
+                              ? "text-accent fill-accent"
+                              : "text-background/30"
+                          }`}
+                        />
+                      </motion.div>
+                    )
                   ))}
                 </div>
 
@@ -258,7 +287,7 @@ export default function Reviews() {
                 <div className="flex items-center gap-3">
                   <motion.div
                     className="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-semibold text-primary-foreground"
-                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    whileHover={shouldReduceMotion ? undefined : { scale: 1.1, rotate: 5 }}
                   >
                     {review.customer.initial}
                   </motion.div>
@@ -276,29 +305,44 @@ export default function Reviews() {
         <motion.div
           ref={statsRef}
           className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
-          variants={containerVariants}
+          variants={shouldReduceMotion ? {
+            hidden: { opacity: 0 },
+            visible: { opacity: 1, transition: { staggerChildren: 0.02 } }
+          } : containerVariants}
           initial="hidden"
           animate={statsInView ? "visible" : "hidden"}
         >
-          <motion.div variants={statsVariants} whileHover={{ scale: 1.05 }}>
+          <motion.div 
+            variants={shouldReduceMotion ? { hidden: { opacity: 0 }, visible: { opacity: 1 } } : statsVariants} 
+            whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+          >
             <p className="text-5xl font-bebas text-primary">
               {stats ? <AnimatedCounter value={stats.total_reviews} suffix="+" /> : '-'}
             </p>
             <p className="text-background/70 mt-1">Total Reviews</p>
           </motion.div>
-          <motion.div variants={statsVariants} whileHover={{ scale: 1.05 }}>
+          <motion.div 
+            variants={shouldReduceMotion ? { hidden: { opacity: 0 }, visible: { opacity: 1 } } : statsVariants} 
+            whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+          >
             <p className="text-5xl font-bebas text-primary">
               {stats ? <AnimatedCounter value={stats.average_rating} decimals={1} /> : '-'}
             </p>
             <p className="text-background/70 mt-1">Average Rating</p>
           </motion.div>
-          <motion.div variants={statsVariants} whileHover={{ scale: 1.05 }}>
+          <motion.div 
+            variants={shouldReduceMotion ? { hidden: { opacity: 0 }, visible: { opacity: 1 } } : statsVariants} 
+            whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+          >
             <p className="text-5xl font-bebas text-primary">
               <AnimatedCounter value={3000} suffix="+" />
             </p>
             <p className="text-background/70 mt-1">Happy Customers</p>
           </motion.div>
-          <motion.div variants={statsVariants} whileHover={{ scale: 1.05 }}>
+          <motion.div 
+            variants={shouldReduceMotion ? { hidden: { opacity: 0 }, visible: { opacity: 1 } } : statsVariants} 
+            whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+          >
             <p className="text-5xl font-bebas text-primary">
               <AnimatedCounter value={99} suffix="%" />
             </p>
@@ -309,14 +353,14 @@ export default function Reviews() {
         {/* View All Link */}
         <motion.div
           className="text-center mt-12"
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: shouldReduceMotion ? 5 : 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: shouldReduceMotion ? 0.1 : 0.6, duration: animationDuration }}
         >
           <motion.a
             href="/reviews"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+            whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
             className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-semibold"
           >
             View All Reviews

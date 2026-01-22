@@ -295,45 +295,47 @@ export default function Hero() {
           alt=""
           className="absolute bottom-[20%] right-[1%] sm:right-[2%] w-16 sm:w-24 lg:w-32 drop-shadow-2xl hidden sm:block"
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ 
+          animate={!isMobileDevice && !reduceMotion ? { 
             opacity: 1, 
             scale: [1, 1.08, 1],
             y: [0, -8, 0]
-          }}
-          transition={{ 
+          } : { opacity: 1 }}
+          transition={!isMobileDevice && !reduceMotion ? { 
             opacity: { duration: 0.8, delay: 1.1 },
             scale: { duration: 5, repeat: Infinity, ease: "easeInOut" },
             y: { duration: 4, repeat: Infinity, ease: "easeInOut" }
-          }}
+          } : { duration: 0.3, delay: 0.3 }}
         />
 
-        {/* Extra Burger - Bottom Right */}
-        <motion.div
-          className="absolute bottom-16 right-[25%] hidden xl:block"
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 0.8, scale: 1 }}
-          transition={{ duration: 0.8, delay: 1.3 }}
-        >
-          <motion.img
-            src={chickenBurger}
-            alt=""
-            className="w-24 drop-shadow-xl opacity-80"
-            animate={{ 
-              rotate: [0, -10, 0],
-              y: [0, 10, 0]
-            }}
-            transition={{ 
-              duration: 5,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
-        </motion.div>
+        {/* Extra Burger - Bottom Right - Hidden on mobile */}
+        {!isMobileDevice && !reduceMotion && (
+          <motion.div
+            className="absolute bottom-16 right-[25%] hidden xl:block"
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 0.8, scale: 1 }}
+            transition={{ duration: 0.8, delay: 1.3 }}
+          >
+            <motion.img
+              src={chickenBurger}
+              alt=""
+              className="w-24 drop-shadow-xl opacity-80"
+              animate={{ 
+                rotate: [0, -10, 0],
+                y: [0, 10, 0]
+              }}
+              transition={{ 
+                duration: 5,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+          </motion.div>
+        )}
 
-        {/* ===== SPARKLE & PARTICLE EFFECTS ===== */}
+        {/* ===== SPARKLE & PARTICLE EFFECTS - Only on desktop ===== */}
         
         {/* Primary Sparkles - Right Side */}
-        {SPARKLE_RIGHT_POSITIONS.map((pos, i) => (
+        {!isMobileDevice && !reduceMotion && SPARKLE_RIGHT_POSITIONS.map((pos, i) => (
           <motion.div
             key={`sparkle-right-${i}`}
             className="absolute w-1.5 sm:w-2 h-1.5 sm:h-2 bg-primary rounded-full"
@@ -356,7 +358,7 @@ export default function Hero() {
         ))}
 
         {/* Secondary Sparkles - Left Side */}
-        {SPARKLE_LEFT_POSITIONS.map((pos, i) => (
+        {!isMobileDevice && !reduceMotion && SPARKLE_LEFT_POSITIONS.map((pos, i) => (
           <motion.div
             key={`sparkle-left-${i}`}
             className="absolute w-1 sm:w-1.5 h-1 sm:h-1.5 bg-accent rounded-full hidden lg:block"
@@ -378,42 +380,46 @@ export default function Hero() {
           />
         ))}
 
-        {/* Floating Circles/Orbs */}
-        <motion.div
-          className="absolute top-1/4 right-1/4 w-4 h-4 bg-primary/30 rounded-full blur-sm hidden md:block"
-          animate={{ 
-            y: [0, -30, 0],
-            x: [0, 15, 0],
-            scale: [1, 1.5, 1],
-            opacity: [0.3, 0.6, 0.3]
-          }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute bottom-1/3 right-1/3 w-3 h-3 bg-accent/40 rounded-full blur-sm hidden md:block"
-          animate={{ 
-            y: [0, 20, 0],
-            x: [0, -10, 0],
-            scale: [1, 1.3, 1],
-            opacity: [0.4, 0.7, 0.4]
-          }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        />
-        <motion.div
-          className="absolute top-1/3 left-[10%] w-3 h-3 bg-primary/20 rounded-full blur-sm hidden lg:block"
-          animate={{ 
-            y: [0, -20, 0],
-            scale: [1, 1.4, 1],
-            opacity: [0.2, 0.5, 0.2]
-          }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-        />
+        {/* Floating Circles/Orbs - Only on desktop */}
+        {!isMobileDevice && !reduceMotion && (
+          <>
+            <motion.div
+              className="absolute top-1/4 right-1/4 w-4 h-4 bg-primary/30 rounded-full blur-sm hidden md:block"
+              animate={{ 
+                y: [0, -30, 0],
+                x: [0, 15, 0],
+                scale: [1, 1.5, 1],
+                opacity: [0.3, 0.6, 0.3]
+              }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="absolute bottom-1/3 right-1/3 w-3 h-3 bg-accent/40 rounded-full blur-sm hidden md:block"
+              animate={{ 
+                y: [0, 20, 0],
+                x: [0, -10, 0],
+                scale: [1, 1.3, 1],
+                opacity: [0.4, 0.7, 0.4]
+              }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            />
+            <motion.div
+              className="absolute top-1/3 left-[10%] w-3 h-3 bg-primary/20 rounded-full blur-sm hidden lg:block"
+              animate={{ 
+                y: [0, -20, 0],
+                scale: [1, 1.4, 1],
+                opacity: [0.2, 0.5, 0.2]
+              }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+            />
+          </>
+        )}
       </div>
 
-      {/* Content with Parallax */}
+      {/* Content with Parallax - Simplified on mobile */}
       <motion.div 
         className="container-custom relative z-10 pt-16 sm:pt-20 lg:pt-24"
-        style={{ y: contentY, opacity: contentOpacity, x: smoothMouseX, rotateY: smoothMouseX }}
+        style={isMobileDevice || reduceMotion ? {} : { y: contentY, opacity: contentOpacity, x: smoothMouseX, rotateY: smoothMouseX }}
       >
         <div className="max-w-2xl px-2 sm:px-0">
           {/* Animated Badge */}
@@ -421,33 +427,37 @@ export default function Hero() {
             variants={floatingBadgeVariants}
             initial="initial"
             animate="animate"
-            whileHover="hover"
+            whileHover={isMobileDevice ? undefined : "hover"}
             className="inline-flex items-center gap-2 bg-primary/20 backdrop-blur-md border border-primary/30 rounded-full px-3 sm:px-4 py-1.5 sm:py-2 mb-4 sm:mb-6 cursor-pointer"
           >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            >
+            {!isMobileDevice && !reduceMotion ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              >
+                <Star className="h-3 w-3 sm:h-4 sm:w-4 text-accent fill-accent" />
+              </motion.div>
+            ) : (
               <Star className="h-3 w-3 sm:h-4 sm:w-4 text-accent fill-accent" />
-            </motion.div>
+            )}
             <span className="text-primary-foreground text-xs sm:text-sm font-medium">
               #1 Broast in Vehari City
             </span>
-            <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-accent animate-pulse" />
+            <Sparkles className={`h-3 w-3 sm:h-4 sm:w-4 text-accent ${!isMobileDevice && !reduceMotion ? 'animate-pulse' : ''}`} />
           </motion.div>
 
           {/* Logo and Brand Section */}
           <div className="flex items-center gap-4 mb-4 sm:mb-6">
             <motion.div
-              initial={{ opacity: 0, scale: 0, rotate: -180 }}
+              initial={{ opacity: 0, scale: isMobileDevice ? 1 : 0, rotate: isMobileDevice ? 0 : -180 }}
               animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              transition={{ 
+              transition={isMobileDevice || reduceMotion ? { duration: 0.2 } : { 
                 type: "spring", 
                 stiffness: 200, 
                 damping: 15,
                 delay: 0.2 
               }}
-              whileHover={{ scale: 1.1, rotate: 5 }}
+              whileHover={isMobileDevice ? undefined : { scale: 1.1, rotate: 5 }}
               className="relative"
             >
               <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20">
@@ -457,12 +467,14 @@ export default function Hero() {
                   className="w-full h-full object-cover"
                 />
               </div>
-              {/* Animated ring around logo */}
-              <motion.div
-                className="absolute -inset-2 border-2 border-dashed border-primary/40 rounded-3xl"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-              />
+              {/* Animated ring around logo - only on desktop */}
+              {!isMobileDevice && !reduceMotion && (
+                <motion.div
+                  className="absolute -inset-2 border-2 border-dashed border-primary/40 rounded-3xl"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                />
+              )}
             </motion.div>
           </div>
 
@@ -473,13 +485,13 @@ export default function Hero() {
             >
               <motion.span 
                 className="text-primary inline-block"
-                initial={{ opacity: 0, x: -100, rotateY: -90 }}
+                initial={{ opacity: 0, x: isMobileDevice ? 0 : -100, rotateY: isMobileDevice ? 0 : -90 }}
                 animate={{ 
                   opacity: 1, 
                   x: 0, 
                   rotateY: 0
                 }}
-                transition={{ 
+                transition={isMobileDevice || reduceMotion ? { duration: 0.2 } : { 
                   duration: 0.8, 
                   ease: [0.6, -0.05, 0.01, 0.99]
                 }}
@@ -491,43 +503,56 @@ export default function Hero() {
                 className="inline-block text-2xl sm:text-3xl md:text-4xl lg:text-5xl"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
+                transition={{ delay: isMobileDevice ? 0.1 : 0.5, duration: isMobileDevice ? 0.15 : 0.5 }}
               >
                 INJECTED BROAST
               </motion.span>
             </motion.h1>
           </div>
 
-          {/* Animated Punchline - Saucy. Juicy. Crispy. - LOOPED APPEAR ANIMATION */}
+          {/* Animated Punchline - Saucy. Juicy. Crispy. - Static on mobile */}
           <motion.div
             className="mb-4 sm:mb-6 overflow-hidden relative"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: isMobileDevice ? 5 : 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
+            transition={{ duration: isMobileDevice ? 0.15 : 0.6, delay: isMobileDevice ? 0.1 : 0.3 }}
           >
             <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-              {["Saucy", "Juicy", "Crispy"].map((word, index) => (
-                <motion.span
-                  key={word}
-                  className={`punch-word punch-word-${word.toLowerCase()} text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl`}
-                  initial={{ opacity: 0, y: 30, scale: 0.5 }}
-                  animate={{ 
-                    opacity: [0, 1, 1, 0],
-                    y: [30, 0, 0, -20],
-                    scale: [0.5, 1, 1, 0.8],
-                  }}
-                  transition={{ 
-                    duration: 3,
-                    delay: index * 1,
-                    repeat: Infinity,
-                    repeatDelay: 6,
-                    times: [0, 0.15, 0.85, 1],
-                    ease: "easeInOut"
-                  }}
-                >
-                  {word}<span className="punch-dot">.</span>
-                </motion.span>
-              ))}
+              {isMobileDevice || reduceMotion ? (
+                // Static version for mobile
+                ["Saucy", "Juicy", "Crispy"].map((word, index) => (
+                  <span
+                    key={word}
+                    className={`punch-word punch-word-${word.toLowerCase()} text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl`}
+                  >
+                    {word}<span className="punch-dot">.</span>
+                  </span>
+                ))
+              ) : (
+                // Animated version for desktop
+                ["Saucy", "Juicy", "Crispy"].map((word, index) => (
+                  <motion.span
+                    key={word}
+                    className={`punch-word punch-word-${word.toLowerCase()} text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl`}
+                    initial={{ opacity: 0, y: 30, scale: 0.5 }}
+                    animate={{ 
+                      opacity: [0, 1, 1, 0],
+                      y: [30, 0, 0, -20],
+                      scale: [0.5, 1, 1, 0.8],
+                    }}
+                    transition={{ 
+                      duration: 3,
+                      delay: index * 1,
+                      repeat: Infinity,
+                      repeatDelay: 6,
+                      times: [0, 0.15, 0.85, 1],
+                      ease: "easeInOut"
+                    }}
+                  >
+                    {word}<span className="punch-dot">.</span>
+                  </motion.span>
+                ))
+              )}
             </div>
             
             {/* Animated underline */}
@@ -535,57 +560,63 @@ export default function Hero() {
               className="h-1 sm:h-1.5 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 rounded-full mt-3"
               initial={{ scaleX: 0, originX: 0 }}
               animate={{ scaleX: 1 }}
-              transition={{ duration: 1, delay: 0.8, ease: "easeOut" }}
+              transition={{ duration: isMobileDevice ? 0.3 : 1, delay: isMobileDevice ? 0.1 : 0.8, ease: "easeOut" }}
               style={{ maxWidth: "350px" }}
             />
           </motion.div>
 
           {/* Subtitle with Staggered Animation */}
           <motion.p
-            initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
+            initial={{ opacity: 0, y: isMobileDevice ? 10 : 30, filter: isMobileDevice ? "blur(0px)" : "blur(10px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            transition={{ duration: isMobileDevice ? 0.15 : 0.6, delay: isMobileDevice ? 0.15 : 0.4 }}
             className="text-sm sm:text-base md:text-lg lg:text-xl text-primary-foreground/80 mb-6 sm:mb-8 max-w-lg leading-relaxed"
           >
             Experience the perfect crunch. Our signature broast is marinated with
             secret spices and cooked to golden perfection. 
-            <motion.span 
-              className="text-primary font-semibold"
-              animate={{ opacity: [1, 0.5, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              {" "}Taste the difference.
-            </motion.span>
+            {isMobileDevice || reduceMotion ? (
+              <span className="text-primary font-semibold"> Taste the difference.</span>
+            ) : (
+              <motion.span 
+                className="text-primary font-semibold"
+                animate={{ opacity: [1, 0.5, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                {" "}Taste the difference.
+              </motion.span>
+            )}
           </motion.p>
 
           {/* CTA Buttons with Enhanced Animation */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: isMobileDevice ? 10 : 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
+            transition={{ duration: isMobileDevice ? 0.15 : 0.6, delay: isMobileDevice ? 0.2 : 0.5 }}
             className="flex flex-col sm:flex-row gap-3 sm:gap-4"
           >
             <Link href="/menu" className="w-full sm:w-auto">
               <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={isMobileDevice ? undefined : { scale: 1.05 }}
+                whileTap={isMobileDevice ? undefined : { scale: 0.95 }}
                 className="relative overflow-hidden"
               >
                 <Button className="btn-zoiro w-full sm:w-auto group relative overflow-hidden">
-                  <motion.span
-                    className="absolute inset-0 bg-white/20"
-                    initial={{ x: "-100%", skewX: -15 }}
-                    whileHover={{ x: "100%" }}
-                    transition={{ duration: 0.5 }}
-                  />
-                  <Flame className="h-4 w-4 sm:h-5 sm:w-5 mr-1 animate-pulse" />
+                  {!isMobileDevice && !reduceMotion && (
+                    <motion.span
+                      className="absolute inset-0 bg-white/20"
+                      initial={{ x: "-100%", skewX: -15 }}
+                      whileHover={{ x: "100%" }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  )}
+                  <Flame className={`h-4 w-4 sm:h-5 sm:w-5 mr-1 ${!isMobileDevice && !reduceMotion ? 'animate-pulse' : ''}`} />
                   Order Now
                   <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 transition-transform group-hover:translate-x-2" />
                 </Button>
               </motion.div>
             </Link>
             <Link href="/menu" className="w-full sm:w-auto">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <motion.div whileHover={isMobileDevice ? undefined : { scale: 1.05 }} whileTap={isMobileDevice ? undefined : { scale: 0.95 }}>
                 <Button variant="outline" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 font-semibold text-lg rounded-full transition-all duration-300 bg-transparent border-2 border-white text-white hover:bg-white hover:text-foreground">
                   <ChefHat className="h-4 w-4 sm:h-5 sm:w-5 mr-1" />
                   View Menu

@@ -4,6 +4,7 @@ import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import Link from "next/link";
 import { MapPin, Phone, Clock, Facebook, Instagram, Twitter } from "lucide-react";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -29,28 +30,53 @@ const itemVariants = {
   },
 };
 
+// Simplified variants for mobile
+const simplifiedContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.02,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+const simplifiedItemVariants = {
+  hidden: { opacity: 0, y: 5 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.15 },
+  },
+};
+
 export default function Footer() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const shouldReduceMotion = useReducedMotion();
+
+  const activeContainerVariants = shouldReduceMotion ? simplifiedContainerVariants : containerVariants;
+  const activeItemVariants = shouldReduceMotion ? simplifiedItemVariants : itemVariants;
 
   return (
     <footer className="bg-foreground text-background overflow-hidden" ref={ref}>
       <div className="container-custom py-12 sm:py-16 md:py-20">
         <motion.div
           className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 lg:gap-12"
-          variants={containerVariants}
+          variants={activeContainerVariants}
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
         >
           {/* Brand */}
-          <motion.div variants={itemVariants} className="col-span-2 md:col-span-1">
+          <motion.div variants={activeItemVariants} className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-3 mb-3 sm:mb-4">
               <motion.div
                 className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden shadow-lg"
-                initial={{ opacity: 0, scale: 0 }}
+                initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0 }}
                 animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                transition={{ delay: 0.1, type: "spring" }}
-                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={shouldReduceMotion ? { duration: 0.15 } : { delay: 0.1, type: "spring" }}
+                whileHover={shouldReduceMotion ? undefined : { scale: 1.1, rotate: 5 }}
               >
                 <img 
                   src="/assets/zoiro-logo.png" 
@@ -60,9 +86,9 @@ export default function Footer() {
               </motion.div>
               <motion.h3
                 className="text-3xl sm:text-4xl font-bebas text-primary"
-                initial={{ opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.8 }}
                 animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                transition={{ delay: 0.1, type: "spring" }}
+                transition={shouldReduceMotion ? { duration: 0.15 } : { delay: 0.1, type: "spring" }}
               >
                 ZOIRO
               </motion.h3>
@@ -77,11 +103,11 @@ export default function Footer() {
                   key={index}
                   href="#"
                   className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary/20 hover:bg-primary flex items-center justify-center transition-colors"
-                  whileHover={{ scale: 1.2, rotate: 5 }}
-                  whileTap={{ scale: 0.95 }}
-                  initial={{ opacity: 0, scale: 0 }}
+                  whileHover={shouldReduceMotion ? undefined : { scale: 1.2, rotate: 5 }}
+                  whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
+                  initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0 }}
                   animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                  transition={{ delay: 0.3 + index * 0.1 }}
+                  transition={shouldReduceMotion ? { duration: 0.15 } : { delay: 0.3 + index * 0.1 }}
                 >
                   <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </motion.a>
@@ -90,7 +116,7 @@ export default function Footer() {
           </motion.div>
 
           {/* Quick Links */}
-          <motion.div variants={itemVariants}>
+          <motion.div variants={activeItemVariants}>
             <h4 className="text-lg sm:text-xl font-bebas mb-3 sm:mb-4">Quick Links</h4>
             <ul className="space-y-2 sm:space-y-3">
               {[
@@ -103,15 +129,15 @@ export default function Footer() {
               ].map((link, index) => (
                 <motion.li
                   key={link.href}
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
                   animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ delay: 0.4 + index * 0.05 }}
+                  transition={shouldReduceMotion ? { duration: 0.1 } : { delay: 0.4 + index * 0.05 }}
                 >
                   <Link
                     href={link.href}
                     className="text-background/70 hover:text-primary transition-colors inline-block text-sm sm:text-base"
                   >
-                    <motion.span whileHover={{ x: 5 }} className="inline-block">
+                    <motion.span whileHover={shouldReduceMotion ? undefined : { x: 5 }} className="inline-block">
                       {link.label}
                     </motion.span>
                   </Link>
@@ -121,7 +147,7 @@ export default function Footer() {
           </motion.div>
 
           {/* Contact Info */}
-          <motion.div variants={itemVariants}>
+          <motion.div variants={activeItemVariants}>
             <h4 className="text-lg sm:text-xl font-bebas mb-3 sm:mb-4">Contact Info</h4>
             <ul className="space-y-3 sm:space-y-4">
               {[
@@ -132,12 +158,12 @@ export default function Footer() {
                 <motion.li
                   key={index}
                   className="flex items-start gap-2 sm:gap-3"
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
                   animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ delay: 0.5 + index * 0.1 }}
-                  whileHover={{ x: 5 }}
+                  transition={shouldReduceMotion ? { duration: 0.1 } : { delay: 0.5 + index * 0.1 }}
+                  whileHover={shouldReduceMotion ? undefined : { x: 5 }}
                 >
-                  <motion.div whileHover={{ scale: 1.2, rotate: 10 }}>
+                  <motion.div whileHover={shouldReduceMotion ? undefined : { scale: 1.2, rotate: 10 }}>
                     <item.Icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0 mt-0.5" />
                   </motion.div>
                   <span className="text-background/70 text-sm sm:text-base">{item.text}</span>
@@ -147,7 +173,7 @@ export default function Footer() {
           </motion.div>
 
           {/* Opening Hours */}
-          <motion.div variants={itemVariants}>
+          <motion.div variants={activeItemVariants}>
             <h4 className="text-lg sm:text-xl font-bebas mb-3 sm:mb-4">Opening Hours</h4>
             <ul className="space-y-2 sm:space-y-3 text-background/70 text-sm sm:text-base">
               {[
@@ -158,9 +184,9 @@ export default function Footer() {
                 <motion.li
                   key={index}
                   className="flex justify-between gap-2"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 10 }}
                   animate={isInView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ delay: 0.6 + index * 0.1 }}
+                  transition={shouldReduceMotion ? { duration: 0.1 } : { delay: 0.6 + index * 0.1 }}
                 >
                   <span className="text-xs sm:text-sm">{item.days}</span>
                   <span className="text-xs sm:text-sm font-medium">{item.hours}</span>

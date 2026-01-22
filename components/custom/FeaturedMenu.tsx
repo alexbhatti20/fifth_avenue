@@ -7,6 +7,7 @@ import { ArrowRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MenuItem, useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -90,15 +91,16 @@ export default function FeaturedMenu({ menuItems }: FeaturedMenuProps) {
   const ref = useRef(null);
   const containerRef = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const shouldReduceMotion = useReducedMotion();
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start end", "end start"],
   });
 
-  // Parallax transforms for different layers
-  const bgY = useTransform(scrollYProgress, [0, 1], [100, -100]);
-  const cardsY = useTransform(scrollYProgress, [0, 1], [50, -50]);
+  // Parallax transforms for different layers - disabled on mobile
+  const bgY = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [0, 0] : [100, -100]);
+  const cardsY = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [0, 0] : [50, -50]);
 
   const handleAddToCart = (item: typeof featuredItems[0]) => {
     addToCart(item);
@@ -108,28 +110,34 @@ export default function FeaturedMenu({ menuItems }: FeaturedMenuProps) {
     });
   };
 
+  // Simplified animation config for mobile
+  const animationDuration = shouldReduceMotion ? 0.15 : 0.7;
+  const staggerDelay = shouldReduceMotion ? 0.02 : 0.1;
+
   return (
     <section className="section-padding bg-secondary overflow-hidden relative" ref={containerRef}>
-      {/* Parallax Background Elements */}
-      <motion.div 
-        className="absolute inset-0 pointer-events-none overflow-hidden"
-        style={{ y: bgY }}
-      >
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-accent/5 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
-      </motion.div>
+      {/* Parallax Background Elements - Hidden on mobile for performance */}
+      {!shouldReduceMotion && (
+        <motion.div 
+          className="absolute inset-0 pointer-events-none overflow-hidden"
+          style={{ y: bgY }}
+        >
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-accent/5 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
+        </motion.div>
+      )}
 
       <div className="container-custom relative z-10" ref={ref}>
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: shouldReduceMotion ? 10 : 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ duration: animationDuration, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="text-center mb-8 sm:mb-12 px-2"
         >
           <motion.span
             className="text-primary font-semibold uppercase tracking-wider text-xs sm:text-sm inline-block"
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.8 }}
             animate={isInView ? { opacity: 1, scale: 1 } : {}}
             transition={{ delay: 0.1 }}
           >
@@ -145,9 +153,9 @@ export default function FeaturedMenu({ menuItems }: FeaturedMenuProps) {
           </motion.h2>
           <motion.p
             className="text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base leading-relaxed"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: shouldReduceMotion ? 5 : 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: shouldReduceMotion ? 0.1 : 0.3, duration: animationDuration }}
           >
             Explore our most loved dishes, crafted with premium ingredients and
             our signature spices that keep customers coming back for more.
@@ -157,16 +165,22 @@ export default function FeaturedMenu({ menuItems }: FeaturedMenuProps) {
         {/* Menu Grid */}
         <motion.div
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12 perspective-1000"
-          variants={containerVariants}
+          variants={shouldReduceMotion ? {
+            hidden: { opacity: 0 },
+            visible: { opacity: 1, transition: { staggerChildren: staggerDelay } }
+          } : containerVariants}
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
         >
           {featuredItems.map((item, index) => (
             <motion.div
               key={item.id}
-              variants={cardVariants}
+              variants={shouldReduceMotion ? {
+                hidden: { opacity: 0, y: 10 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.15 } }
+              } : cardVariants}
               className="group card-elevated overflow-hidden"
-              whileHover={{ 
+              whileHover={shouldReduceMotion ? undefined : { 
                 y: -10, 
                 scale: 1.02,
                 boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
@@ -179,15 +193,15 @@ export default function FeaturedMenu({ menuItems }: FeaturedMenuProps) {
                   src={item.image}
                   alt={item.name}
                   className="w-full h-full object-cover"
-                  whileHover={{ scale: 1.15 }}
-                  transition={{ duration: 0.5 }}
+                  whileHover={shouldReduceMotion ? undefined : { scale: 1.15 }}
+                  transition={{ duration: shouldReduceMotion ? 0.15 : 0.5 }}
                 />
                 {item.isPopular && (
                   <motion.span
                     className="absolute top-2 sm:top-3 left-2 sm:left-3 bg-primary text-primary-foreground text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full"
-                    initial={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 + index * 0.1 }}
+                    transition={{ delay: shouldReduceMotion ? 0.1 : 0.5 + index * 0.1 }}
                   >
                     🔥 Popular
                   </motion.span>
@@ -195,9 +209,9 @@ export default function FeaturedMenu({ menuItems }: FeaturedMenuProps) {
                 {item.originalPrice && (
                   <motion.span
                     className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-accent text-accent-foreground text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full"
-                    initial={{ opacity: 0, x: 20 }}
+                    initial={{ opacity: 0, x: shouldReduceMotion ? 0 : 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 + index * 0.1 }}
+                    transition={{ delay: shouldReduceMotion ? 0.1 : 0.5 + index * 0.1 }}
                   >
                     -{Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}%
                   </motion.span>
@@ -223,7 +237,7 @@ export default function FeaturedMenu({ menuItems }: FeaturedMenuProps) {
                       </span>
                     )}
                   </div>
-                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                  <motion.div whileHover={shouldReduceMotion ? undefined : { scale: 1.1 }} whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}>
                     <Button
                       size="icon"
                       className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
@@ -240,13 +254,13 @@ export default function FeaturedMenu({ menuItems }: FeaturedMenuProps) {
 
         {/* View All Button */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: shouldReduceMotion ? 10 : 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ delay: 0.8, duration: 0.5 }}
+          transition={{ delay: shouldReduceMotion ? 0.2 : 0.8, duration: animationDuration }}
           className="text-center px-4"
         >
           <Link href="/menu">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
+            <motion.div whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }} whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}>
               <Button className="btn-zoiro group w-full sm:w-auto">
                 View Full Menu
                 <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 transition-transform group-hover:translate-x-1" />

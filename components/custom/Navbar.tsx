@@ -13,6 +13,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { BlockedCustomerDialog } from "./BlockedCustomerDialog";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import dynamic from "next/dynamic";
 
 // Dynamically import Lottie to avoid SSR issues
@@ -38,6 +39,7 @@ export default function Navbar() {
   const router = useRouter();
   const { totalItems } = useCart();
   const { user, signOut, fastSignOut, isBanned, banReason } = useAuth();
+  const shouldReduceMotion = useReducedMotion();
 
   // Dynamic nav links - show Features only for non-logged-in users
   const navLinks = useMemo(() => {
@@ -118,8 +120,8 @@ export default function Navbar() {
               <div className="flex items-center justify-center gap-4 text-xs text-white/90">
                 <motion.div 
                   className="flex items-center gap-1"
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
+                  animate={shouldReduceMotion ? undefined : { scale: [1, 1.05, 1] }}
+                  transition={shouldReduceMotion ? undefined : { duration: 2, repeat: Infinity }}
                 >
                   <Sparkles className="w-3 h-3 text-yellow-300" />
                   <span>Free delivery on orders above Rs. 1500</span>
@@ -140,15 +142,15 @@ export default function Navbar() {
           {/* Logo with Image */}
           <Link href="/" className="flex items-center gap-2">
             <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
               className="flex items-center gap-2"
             >
               {/* Logo Image */}
               <motion.div 
                 className="w-12 h-12 md:w-14 md:h-14 relative rounded-xl overflow-hidden shadow-lg"
-                animate={{ rotate: [0, 2, -2, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                animate={shouldReduceMotion ? undefined : { rotate: [0, 2, -2, 0] }}
+                transition={shouldReduceMotion ? undefined : { duration: 3, repeat: Infinity, ease: "easeInOut" }}
               >
                 <img 
                   src="/assets/zoiro-logo.png" 
@@ -452,9 +454,9 @@ export default function Navbar() {
               {navLinks.map((link, index) => (
                 <motion.div
                   key={link.path}
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  transition={shouldReduceMotion ? { duration: 0.1 } : { delay: index * 0.1 }}
                 >
                   <Link
                     href={link.path}
@@ -486,9 +488,9 @@ export default function Navbar() {
                   {userMenuItems.map((item, index) => (
                     <motion.div
                       key={item.href}
-                      initial={{ opacity: 0, x: -20 }}
+                      initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: (navLinks.length + index) * 0.1 }}
+                      transition={shouldReduceMotion ? { duration: 0.1 } : { delay: (navLinks.length + index) * 0.1 }}
                     >
                       <Link
                         href={item.href}
@@ -500,9 +502,9 @@ export default function Navbar() {
                     </motion.div>
                   ))}
                   <motion.div
-                    initial={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: (navLinks.length + userMenuItems.length) * 0.1 }}
+                    transition={shouldReduceMotion ? { duration: 0.1 } : { delay: (navLinks.length + userMenuItems.length) * 0.1 }}
                   >
                     <button
                       onClick={handleSignOut}
@@ -516,9 +518,9 @@ export default function Navbar() {
               )}
 
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
+                transition={shouldReduceMotion ? { duration: 0.1 } : { delay: 0.4 }}
                 className="pt-2"
               >
                 <Link href="/menu">
@@ -532,9 +534,9 @@ export default function Navbar() {
               {/* Login Button - Mobile (when not logged in) */}
               {!user && (
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 }}
+                  transition={shouldReduceMotion ? { duration: 0.1 } : { delay: 0.5 }}
                 >
                   <Link href="/auth">
                     <Button variant="outline" className="w-full rounded-xl py-6 text-lg">
