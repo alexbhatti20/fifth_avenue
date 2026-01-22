@@ -308,7 +308,7 @@ export function PortalSidebar({ collapsed, onCollapse }: PortalSidebarProps) {
               (item.path !== '/portal' && pathname.startsWith(item.path));
 
             return (
-              <Link key={item.path} href={item.path}>
+              <Link key={item.path} href={item.path} prefetch={false}>
                 <motion.div
                   whileHover={{ x: 4 }}
                   className={cn(
@@ -571,13 +571,13 @@ export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProp
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/portal/settings" className="cursor-pointer">
+              <Link href="/portal/settings" className="cursor-pointer" prefetch={false}>
                 <User className="h-4 w-4 mr-2" />
                 Profile Settings
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/portal/settings/security" className="cursor-pointer">
+              <Link href="/portal/settings/security" className="cursor-pointer" prefetch={false}>
                 <Settings className="h-4 w-4 mr-2" />
                 Security
               </Link>
@@ -689,7 +689,7 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
                 (item.path !== '/portal' && pathname.startsWith(item.path));
 
               return (
-                <Link key={item.path} href={item.path} onClick={onClose}>
+                <Link key={item.path} href={item.path} onClick={onClose} prefetch={false}>
                   <div
                     className={cn(
                       'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
