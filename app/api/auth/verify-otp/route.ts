@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
           response.cookies.set('auth-token', token, {
             httpOnly: true,
             secure: isSecure,
-            sameSite: 'strict',
+            sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 7,
             path: '/',
           });
@@ -314,7 +314,7 @@ export async function POST(request: NextRequest) {
     response.cookies.set('auth-token', token, {
       httpOnly: true,
       secure: isSecure,
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });

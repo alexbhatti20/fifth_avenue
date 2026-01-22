@@ -423,7 +423,7 @@ export async function POST(request: NextRequest) {
     response.cookies.set('auth-token', token, {
       httpOnly: true,
       secure: isSecure,
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });
@@ -433,7 +433,7 @@ export async function POST(request: NextRequest) {
       response.cookies.set('sb-access-token', authData.session.access_token, {
         httpOnly: true,
         secure: isSecure,
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: 60 * 60, // 1 hour (Supabase token expiry)
         path: '/',
       });

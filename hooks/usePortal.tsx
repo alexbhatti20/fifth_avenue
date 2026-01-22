@@ -54,10 +54,17 @@ export function usePortalAuth(): UsePortalAuthReturn {
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const router = useRouter();
+  const isLoadingRef = useRef(false);
+  const hasLoadedRef = useRef(false);
 
   const loadEmployee = useCallback(async () => {
+    // Prevent duplicate calls
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+    
     if (!isSupabaseConfigured) {
       setIsLoading(false);
+      isLoadingRef.current = false;
       return;
     }
 
@@ -151,6 +158,8 @@ export function usePortalAuth(): UsePortalAuthReturn {
       setEmployee(null);
     } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
+      hasLoadedRef.current = true;
     }
   }, []);
 
@@ -189,8 +198,10 @@ export function usePortalAuth(): UsePortalAuthReturn {
       async (event, session) => {
         if (event === 'SIGNED_OUT') {
           setEmployee(null);
+          hasLoadedRef.current = false;
           router.push('/auth');
-        } else if (event === 'SIGNED_IN' && session) {
+        } else if (event === 'SIGNED_IN' && session && !hasLoadedRef.current) {
+          // Only reload if not already loaded
           await loadEmployee();
         }
       }
