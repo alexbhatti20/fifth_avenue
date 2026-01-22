@@ -755,6 +755,7 @@ export default function MenuPage() {
                                 src={deal.image_url}
                                 alt={deal.name}
                                 fill
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                 className="object-cover transition-transform duration-500 group-hover:scale-110"
                               />
                             ) : deal.items?.[0]?.image ? (
@@ -762,6 +763,7 @@ export default function MenuPage() {
                                 src={deal.items[0].image}
                                 alt={deal.name}
                                 fill
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                 className="object-cover transition-transform duration-500 group-hover:scale-110 opacity-80"
                               />
                             ) : (
@@ -890,6 +892,7 @@ export default function MenuPage() {
                             src={item.images?.[0] || "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&h=600&fit=crop&q=80"}
                             alt={item.name}
                             fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-cover transition-transform duration-500 group-hover:scale-110"
                           />
                           {item.is_featured && (
@@ -1010,6 +1013,7 @@ export default function MenuPage() {
                   src={selectedItem.images?.[0] || "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&h=600&fit=crop&q=80"}
                   alt={selectedItem.name}
                   fill
+                  sizes="(max-width: 768px) 100vw, 600px"
                   className="object-cover"
                 />
               </div>
@@ -1194,6 +1198,7 @@ export default function MenuPage() {
                     src={selectedDeal.image_url}
                     alt={selectedDeal.name}
                     fill
+                    sizes="(max-width: 768px) 100vw, 600px"
                     className="object-cover"
                   />
                 ) : selectedDeal.items?.[0]?.image ? (
@@ -1201,6 +1206,7 @@ export default function MenuPage() {
                     src={selectedDeal.items[0].image}
                     alt={selectedDeal.name}
                     fill
+                    sizes="(max-width: 768px) 100vw, 600px"
                     className="object-cover opacity-80"
                   />
                 ) : (

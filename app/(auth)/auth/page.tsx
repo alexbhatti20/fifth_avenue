@@ -1242,7 +1242,7 @@ export default function UnifiedAuth() {
                     </div>
 
                     {/* Passwords */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-2">
                         <Label htmlFor="password" className="text-zinc-300 font-medium text-sm">Password <span className="text-red-500">*</span></Label>
                         <div className="relative group">
@@ -1250,38 +1250,44 @@ export default function UnifiedAuth() {
                           <Input
                             id="password"
                             type={showPassword ? "text" : "password"}
-                            placeholder="••••••"
+                            placeholder="Enter password"
                             value={formData.password}
                             onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                            className="pl-10 h-11 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-red-500 focus:ring-red-500/20 text-sm placeholder:text-zinc-600"
+                            className="pl-10 pr-10 h-12 sm:h-11 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-red-500 focus:ring-red-500/20 text-base sm:text-sm placeholder:text-zinc-600"
                             required
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-red-500 transition-colors p-1"
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="confirmPassword" className="text-zinc-300 font-medium text-sm">Confirm <span className="text-red-500">*</span></Label>
+                        <Label htmlFor="confirmPassword" className="text-zinc-300 font-medium text-sm">Confirm Password <span className="text-red-500">*</span></Label>
                         <div className="relative group">
                           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-red-500 transition-colors" />
                           <Input
                             id="confirmPassword"
                             type={showPassword ? "text" : "password"}
-                            placeholder="••••••"
+                            placeholder="Confirm password"
                             value={formData.confirmPassword}
                             onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                            className="pl-10 h-11 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-red-500 focus:ring-red-500/20 text-sm placeholder:text-zinc-600"
+                            className="pl-10 pr-10 h-12 sm:h-11 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-red-500 focus:ring-red-500/20 text-base sm:text-sm placeholder:text-zinc-600"
                             required
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-red-500 transition-colors p-1"
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
                         </div>
                       </div>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-xs text-zinc-500 hover:text-red-500 transition-colors"
-                    >
-                      {showPassword ? "Hide passwords" : "Show passwords"}
-                    </button>
 
                     <Button
                       type="submit"
@@ -1412,9 +1418,16 @@ export default function UnifiedAuth() {
                               placeholder="Create a strong password"
                               value={formData.password}
                               onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                              className="pl-12 h-12 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20 placeholder:text-zinc-600"
+                              className="pl-12 pr-12 h-14 sm:h-12 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20 placeholder:text-zinc-600 text-base"
                               required
                             />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-emerald-500 transition-colors p-1"
+                            >
+                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
                           </div>
                         </div>
                         <div className="space-y-2">
@@ -1427,18 +1440,18 @@ export default function UnifiedAuth() {
                               placeholder="Confirm your password"
                               value={formData.confirmPassword}
                               onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                              className="pl-12 h-12 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20 placeholder:text-zinc-600"
+                              className="pl-12 pr-12 h-14 sm:h-12 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20 placeholder:text-zinc-600 text-base"
                               required
                             />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-emerald-500 transition-colors p-1"
+                            >
+                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="text-xs text-zinc-500 hover:text-emerald-500 transition-colors"
-                        >
-                          {showPassword ? "Hide passwords" : "Show passwords"}
-                        </button>
                       </>
                     )}
 
