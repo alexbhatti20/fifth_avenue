@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -949,7 +949,7 @@ function BillingDashboard() {
           });
         }
       } catch (err) {
-        console.error('Error fetching billing stats:', err);
+        
       }
     };
     fetchStats();
@@ -983,7 +983,7 @@ function BillingDashboard() {
           }
         }
       } catch (err) {
-        console.error('Error fetching pending orders:', err);
+        
       } finally {
         setIsLoadingOrders(false);
       }
@@ -1206,7 +1206,7 @@ function DeliveryDashboard() {
           });
         }
       } catch (err) {
-        console.error('Error fetching delivery stats:', err);
+        
       }
     };
     if (employee?.id) fetchStats();

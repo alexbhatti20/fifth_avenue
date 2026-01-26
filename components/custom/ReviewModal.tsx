@@ -198,7 +198,6 @@ export default function ReviewModal({
       onOpenChange(false);
       onReviewSubmitted?.();
     } catch (error: any) {
-      console.error('Error submitting review:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to submit review. Please try again.",

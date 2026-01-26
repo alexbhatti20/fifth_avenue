@@ -165,7 +165,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (authError || !authData.user) {
-      console.error('Auth creation error:', authError);
       return NextResponse.json(
         { error: authError?.message || 'Failed to create account' },
         { status: 500 }
@@ -187,11 +186,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (customerError) {
-      console.error('Customer creation error:', customerError);
-      console.error('Customer creation error code:', customerError.code);
-      console.error('Customer creation error details:', customerError.details);
-      console.error('Customer creation error hint:', customerError.hint);
-      
       // Check for duplicate email or phone
       if (customerError.code === '23505') {
         // Unique violation - customer may already exist
@@ -243,8 +237,6 @@ export async function POST(request: NextRequest) {
       }
       
       // Note: Cannot cleanup auth user without admin access - user will need to re-register
-      console.error('Customer creation failed - auth user may be orphaned:', authData.user.id);
-      
       return NextResponse.json(
         { error: `Failed to create customer profile: ${customerError.message}` },
         { status: 500 }
@@ -322,10 +314,10 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error) {
-    console.error('OTP verification error:', error);
     return NextResponse.json(
       { error: 'Verification failed. Please try again.' },
       { status: 500 }
     );
   }
 }
+

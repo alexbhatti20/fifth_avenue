@@ -33,13 +33,9 @@ export async function POST(request: NextRequest) {
     let isAdmin = false;
     let supabase = anonSupabase;
 
-    console.log('[Auth Debug] Token received (first 20 chars):', accessToken.substring(0, 20) + '...');
-
     // Try Supabase token first
     const supabaseClient = createAuthenticatedClient(accessToken);
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    
-    console.log('[Auth Debug] Supabase getUser result:', { user: user?.id, authError: authError?.message });
     
     if (!authError && user) {
       // Valid Supabase token - check admin status
@@ -50,22 +46,16 @@ export async function POST(request: NextRequest) {
         .eq('auth_user_id', user.id)
         .single();
       
-      console.log('[Auth Debug] Employee lookup:', { employee, empErr: empErr?.message });
       isAdmin = employee?.role === 'admin';
     } else {
       // Try custom JWT token
-      console.log('[Auth Debug] Trying custom JWT verification...');
       const decoded = verifyToken(accessToken);
-      
-      console.log('[Auth Debug] Custom JWT result:', decoded ? { userId: decoded.userId, role: decoded.role, userType: decoded.userType } : 'null');
       
       if (decoded) {
         isAdmin = decoded.userType === 'admin' || decoded.role === 'admin';
-        console.log('[Auth Debug] isAdmin from JWT:', isAdmin);
         // Use anon client for RPC (SECURITY DEFINER handles permissions)
         supabase = anonSupabase;
       } else {
-        console.log('[Auth Debug] Both auth methods failed');
         return NextResponse.json({ 
           error: 'Session expired. Please log in again.',
           code: 'TOKEN_EXPIRED'
@@ -151,7 +141,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (rpcError) {
-      console.error('RPC error:', rpcError);
       return NextResponse.json({ error: rpcError.message || 'Failed to create employee' }, { status: 500 });
     }
 
@@ -166,13 +155,13 @@ export async function POST(request: NextRequest) {
       to: email, employeeName: full_name, employeeId: employeeData.employee_id,
       licenseId: employeeData.license_id, role, salary: base_salary,
       hireDate: hired_date || new Date().toISOString(), portalEnabled: portal_enabled ?? true,
-    }).catch(console.error);
+    }).catch(() => {});
 
-    redis.del('portal:employees:list').catch(console.error);
+    redis.del('portal:employees:list').catch(() => {});
 
     return NextResponse.json({ success: true, data: employeeData });
   } catch (error: any) {
-    console.error('Create employee error:', error);
     return NextResponse.json({ error: error.message || 'Failed to create employee' }, { status: 500 });
   }
 }
+

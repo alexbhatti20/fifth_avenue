@@ -137,8 +137,7 @@ export default function ForgotPasswordPage() {
 
       // Dev mode - show OTP in console
       if (data.devOtp) {
-        console.log('🔐 DEV MODE - OTP:', data.devOtp);
-      }
+        }
 
       setStep('otp');
     } catch (error: any) {
@@ -180,8 +179,7 @@ export default function ForgotPasswordPage() {
       });
 
       if (data.devOtp) {
-        console.log('🔐 DEV MODE - New OTP:', data.devOtp);
-      }
+        }
     } catch (error: any) {
       toast({
         variant: "destructive",

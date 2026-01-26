@@ -1,6 +1,10 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+// Validate JWT_SECRET exists at startup
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET && typeof window === 'undefined') {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 const JWT_EXPIRY = '7d'; // 7 days
 
 export interface JWTPayload {
@@ -28,10 +32,10 @@ export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string 
  */
 export function verifyToken(token: string): JWTPayload | null {
   try {
+    if (!JWT_SECRET) return null;
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
     return decoded;
-  } catch (error) {
-    console.error('JWT verification failed:', error);
+  } catch {
     return null;
   }
 }

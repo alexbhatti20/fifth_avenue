@@ -66,7 +66,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (error) {
-      console.error('Upload error:', error);
       return NextResponse.json(
         { error: 'Failed to upload image' },
         { status: 500 }
@@ -84,7 +83,6 @@ export async function POST(request: NextRequest) {
       path: data.path,
     });
   } catch (error) {
-    console.error('Image upload error:', error);
     return NextResponse.json(
       { error: 'Upload failed' },
       { status: 500 }
@@ -111,7 +109,6 @@ export async function DELETE(request: NextRequest) {
       .remove([path]);
 
     if (error) {
-      console.error('Delete error:', error);
       return NextResponse.json(
         { error: 'Failed to delete image' },
         { status: 500 }
@@ -123,10 +120,10 @@ export async function DELETE(request: NextRequest) {
       message: 'Image deleted successfully',
     });
   } catch (error) {
-    console.error('Image delete error:', error);
     return NextResponse.json(
       { error: 'Delete failed' },
       { status: 500 }
     );
   }
 }
+

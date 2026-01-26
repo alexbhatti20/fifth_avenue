@@ -114,10 +114,10 @@ export async function POST(request: NextRequest) {
       message: 'Password changed successfully',
     });
   } catch (error: any) {
-    console.error('Change password error:', error);
     return NextResponse.json(
       { error: 'Failed to change password' },
       { status: 500 }
     );
   }
 }
+

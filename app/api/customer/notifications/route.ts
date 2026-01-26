@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
     const { data: notifications, error, count } = await query;
 
     if (error) {
-      console.error('Notifications fetch error:', error);
       return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
     }
 
@@ -69,7 +68,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Notifications fetch error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -136,7 +134,6 @@ export async function PATCH(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Notification update error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -203,7 +200,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Notification delete error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

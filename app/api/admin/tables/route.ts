@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Get tables error:', error);
     return NextResponse.json({ error: 'Failed to fetch tables' }, { status: 500 });
   }
 }
@@ -35,7 +34,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Create table error:', error);
     return NextResponse.json({ error: 'Failed to create table' }, { status: 500 });
   }
 }
@@ -62,7 +60,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Assign table error:', error);
     return NextResponse.json({ error: 'Failed to assign table' }, { status: 500 });
   }
 }
@@ -90,7 +87,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Release table error:', error);
     return NextResponse.json({ error: 'Failed to release table' }, { status: 500 });
   }
 }
+

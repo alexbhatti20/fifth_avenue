@@ -499,7 +499,6 @@ export default function ReviewsPage() {
         setOffset(newOffset + 20);
       }
     } catch (error) {
-      console.error('Error fetching reviews:', error);
       // Show empty state on error
       if (reset) {
         setReviews([]);

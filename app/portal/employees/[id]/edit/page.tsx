@@ -155,7 +155,6 @@ export default function EditEmployeePage() {
         });
         
       } catch (error) {
-        console.error('Error loading employee:', error);
         toast.error('Failed to load employee data');
         router.push('/portal/employees');
       } finally {
@@ -214,14 +213,12 @@ export default function EditEmployeePage() {
       
       if (!response.ok) {
         const error = await response.json();
-        console.error('File upload failed:', error);
         return null;
       }
       
       const result = await response.json();
       return result.url || null;
     } catch (error) {
-      console.error('File upload error:', error);
       return null;
     }
   };
@@ -326,7 +323,6 @@ export default function EditEmployeePage() {
       router.push(`/portal/employees/${employeeId}`);
       
     } catch (error) {
-      console.error('Error updating employee:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to update employee');
     } finally {
       setIsSubmitting(false);

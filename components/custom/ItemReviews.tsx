@@ -40,8 +40,7 @@ export default function ItemReviews({ item }: ItemReviewsProps) {
         setTotalReviews(data.stats?.total_reviews || 0);
       }
     } catch (error) {
-      console.error('Error loading reviews:', error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   }, [item.id]);

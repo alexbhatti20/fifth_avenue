@@ -115,8 +115,7 @@ export async function getFromCache<T>(key: string): Promise<T | null> {
   try {
     const cached = await redis.get<T>(key);
     return cached;
-  } catch (error) {
-    console.error("Redis GET error:", error);
+  } catch {
     return null;
   }
 }
@@ -129,8 +128,8 @@ export async function setInCache<T>(
   if (!redis) return; // Skip on client-side or if Redis not configured
   try {
     await redis.set(key, value, { ex: expirationSeconds });
-  } catch (error) {
-    console.error("Redis SET error:", error);
+  } catch {
+    // Silently fail - caching is non-critical
   }
 }
 
@@ -138,8 +137,8 @@ export async function invalidateCache(key: string): Promise<void> {
   if (!redis) return; // Skip on client-side or if Redis not configured
   try {
     await redis.del(key);
-  } catch (error) {
-    console.error("Redis DEL error:", error);
+  } catch {
+    // Silently fail - cache invalidation is non-critical
   }
 }
 
@@ -150,8 +149,8 @@ export async function invalidateCachePattern(pattern: string): Promise<void> {
     if (keys.length > 0) {
       await redis.del(...keys);
     }
-  } catch (error) {
-    console.error("Redis pattern DEL error:", error);
+  } catch {
+    // Silently fail - cache invalidation is non-critical
   }
 }
 

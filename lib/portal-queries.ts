@@ -185,7 +185,6 @@ export async function getAdminDashboardStats(): Promise<DashboardStats | null> {
 
   // Check authentication before making direct queries
   if (!(await isAuthenticated())) {
-    console.log('getAdminDashboardStats: Skipping - not authenticated');
     return null;
   }
 
@@ -196,7 +195,6 @@ export async function getAdminDashboardStats(): Promise<DashboardStats | null> {
   const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
 
   if (error || !data) {
-    console.error('Error fetching dashboard stats:', error);
     return null;
   }
 
@@ -215,7 +213,6 @@ export async function getSalesAnalytics(
 
   // Check authentication before making direct queries
   if (!(await isAuthenticated())) {
-    console.log('getSalesAnalytics: Skipping - not authenticated');
     return [];
   }
 
@@ -226,7 +223,6 @@ export async function getSalesAnalytics(
   });
 
   if (error) {
-    console.error('Error fetching sales analytics:', error);
     return [];
   }
 
@@ -258,7 +254,6 @@ export async function getHourlySalesToday(): Promise<HourlySales[]> {
 
   // Check authentication before making direct queries
   if (!(await isAuthenticated())) {
-    console.log('getHourlySalesToday: Skipping - not authenticated');
     return [];
   }
 
@@ -269,7 +264,6 @@ export async function getHourlySalesToday(): Promise<HourlySales[]> {
   const { data, error } = await supabase.rpc('get_hourly_sales_today');
 
   if (error) {
-    console.error('Error fetching hourly sales:', error);
     return [];
   }
 
@@ -287,14 +281,12 @@ export async function getHourlySalesAdvanced(): Promise<HourlySalesAdvanced | nu
   if (!isSupabaseConfigured) return null;
 
   if (!(await isAuthenticated())) {
-    console.log('getHourlySalesAdvanced: Skipping - not authenticated');
     return null;
   }
 
   const { data, error } = await supabase.rpc('get_hourly_sales_today');
 
   if (error) {
-    console.error('Error fetching advanced hourly sales:', error);
     return null;
   }
 
@@ -306,14 +298,12 @@ export async function getWaiterDashboard(): Promise<WaiterDashboard | null> {
 
   // Check authentication before making direct queries
   if (!(await isAuthenticated())) {
-    console.log('getWaiterDashboard: Skipping - not authenticated');
     return null;
   }
 
   const { data, error } = await supabase.rpc('get_waiter_dashboard');
 
   if (error) {
-    console.error('Error fetching waiter dashboard:', error);
     return null;
   }
 
@@ -329,7 +319,6 @@ export async function getAllEmployees(): Promise<Employee[]> {
 
   // Check authentication before making queries
   if (!(await isAuthenticated())) {
-    console.log('getAllEmployees: Skipping - not authenticated');
     return [];
   }
 
@@ -352,7 +341,6 @@ export async function getEmployeeById(id: string): Promise<Employee | null> {
 
   // Check authentication before making queries
   if (!(await isAuthenticated())) {
-    console.log('getEmployeeById: Skipping - not authenticated');
     return null;
   }
 
@@ -383,7 +371,6 @@ export async function createEmployee(formData: EmployeeFormData): Promise<{ succ
   });
 
   if (error) {
-    console.error('Error creating employee:', error);
     return { success: false, error: error.message };
   }
 
@@ -405,7 +392,6 @@ export async function getEmployeeAnalytics(employeeId: string): Promise<any> {
   });
 
   if (error) {
-    console.error('Error fetching employee analytics:', error);
     return null;
   }
 
@@ -466,7 +452,6 @@ export async function getEmployeesPaginated(
   if (!isSupabaseConfigured) return emptyResponse;
 
   if (!(await isAuthenticated())) {
-    console.log('getEmployeesPaginated: Skipping - not authenticated');
     return emptyResponse;
   }
 
@@ -479,7 +464,6 @@ export async function getEmployeesPaginated(
   });
 
   if (error) {
-    console.error('Error fetching paginated employees:', error);
     return emptyResponse;
   }
 
@@ -501,7 +485,6 @@ export async function getEmployeeComplete(employeeId: string): Promise<any> {
   if (!isSupabaseConfigured) return null;
 
   if (!(await isAuthenticated())) {
-    console.log('getEmployeeComplete: Skipping - not authenticated');
     return null;
   }
 
@@ -510,7 +493,6 @@ export async function getEmployeeComplete(employeeId: string): Promise<any> {
   });
 
   if (error) {
-    console.error('Error fetching employee details:', error);
     return null;
   }
 
@@ -522,14 +504,12 @@ export async function getEmployeesDashboardStats(): Promise<any> {
   if (!isSupabaseConfigured) return null;
 
   if (!(await isAuthenticated())) {
-    console.log('getEmployeesDashboardStats: Skipping - not authenticated');
     return null;
   }
 
   const { data, error } = await supabase.rpc('get_employees_dashboard_stats');
 
   if (error) {
-    console.error('Error fetching employees stats:', error);
     return null;
   }
 
@@ -566,7 +546,6 @@ export async function blockEmployee(
   });
 
   if (error) {
-    console.error('Error blocking employee:', error);
     return { success: false, error: error.message };
   }
 
@@ -593,7 +572,6 @@ export async function activateEmployee(
   });
 
   if (error) {
-    console.error('Error activating employee:', error);
     return { success: false, error: error.message };
   }
 
@@ -625,7 +603,6 @@ export async function toggleBlockEmployee(
   });
 
   if (error) {
-    console.error('Error toggling block status:', error);
     return { success: false, error: error.message };
   }
 
@@ -655,7 +632,6 @@ export async function deleteEmployeeCascade(
   });
 
   if (error) {
-    console.error('Error deleting employee:', error);
     return { success: false, error: error.message };
   }
 
@@ -680,7 +656,6 @@ export async function toggleEmployeePortal(
   });
 
   if (error) {
-    console.error('Error toggling portal access:', error);
     return { success: false, error: error.message };
   }
 
@@ -695,7 +670,6 @@ export async function getEmployeePayrollSummary(employeeId: string): Promise<any
   if (!isSupabaseConfigured) return null;
 
   if (!(await isAuthenticated())) {
-    console.log('getEmployeePayrollSummary: Skipping - not authenticated');
     return null;
   }
 
@@ -704,7 +678,6 @@ export async function getEmployeePayrollSummary(employeeId: string): Promise<any
   });
 
   if (error) {
-    console.error('Error fetching payroll summary:', error);
     return null;
   }
 
@@ -732,7 +705,6 @@ export async function addEmployeeDocument(
   });
 
   if (error) {
-    console.error('Error adding document:', error);
     return { success: false, error: error.message };
   }
 
@@ -754,7 +726,6 @@ export async function removeEmployeeDocument(
   });
 
   if (error) {
-    console.error('Error removing document:', error);
     return { success: false, error: error.message };
   }
 
@@ -768,12 +739,10 @@ export async function deleteStorageFile(bucketName: string, filePath: string): P
   try {
     const { error } = await supabase.storage.from(bucketName).remove([filePath]);
     if (error) {
-      console.error('Error deleting file from storage:', error);
       return false;
     }
     return true;
   } catch (err) {
-    console.error('Error in deleteStorageFile:', err);
     return false;
   }
 }
@@ -787,7 +756,6 @@ export async function getTablesStatus(): Promise<RestaurantTable[]> {
 
   // Check authentication before making direct queries
   if (!(await isAuthenticated())) {
-    console.log('getTablesStatus: Skipping - not authenticated');
     return [];
   }
 
@@ -798,7 +766,6 @@ export async function getTablesStatus(): Promise<RestaurantTable[]> {
   const { data, error } = await supabase.rpc('get_tables_status');
 
   if (error) {
-    console.error('Error fetching tables:', error);
     return [];
   }
 
@@ -846,7 +813,6 @@ export async function getOrders(filters?: {
   
   // Check authentication before making queries
   if (!(await isAuthenticated())) {
-    console.log('getOrders: Skipping - not authenticated');
     return [];
   }
 
@@ -862,7 +828,6 @@ export async function getOrders(filters?: {
     });
 
     if (error) {
-      console.error('Error fetching orders via RPC:', error);
       return [];
     }
 
@@ -874,7 +839,6 @@ export async function getOrders(filters?: {
       waiter: order.waiter ? { id: order.waiter.id, name: order.waiter.name } : null,
     }));
   } catch (err) {
-    console.error('Error in getOrders:', err);
     return [];
   }
 }
@@ -896,7 +860,6 @@ export async function getOrdersAdvanced(filters?: {
 
   // Check authentication before making direct queries
   if (!(await isAuthenticated())) {
-    console.log('getOrdersAdvanced: Skipping - not authenticated');
     return emptyResponse;
   }
 
@@ -910,7 +873,6 @@ export async function getOrdersAdvanced(filters?: {
   });
 
   if (error) {
-    console.error('Error fetching advanced orders:', error);
     // Fallback to basic getOrders - don't pass orderType to avoid enum errors
     const basicOrders = await getOrders({
       status: filters?.status,
@@ -934,7 +896,6 @@ export async function getOrderFullDetails(orderId: string): Promise<OrderAdvance
 
   // Check authentication before making direct queries
   if (!(await isAuthenticated())) {
-    console.log('getOrderFullDetails: Skipping - not authenticated');
     return null;
   }
 
@@ -943,7 +904,6 @@ export async function getOrderFullDetails(orderId: string): Promise<OrderAdvance
   });
 
   if (error) {
-    console.error('Error fetching order details:', error);
     return null;
   }
 
@@ -955,14 +915,12 @@ export async function getOrdersStats(): Promise<OrdersStats | null> {
 
   // Check authentication before making direct queries
   if (!(await isAuthenticated())) {
-    console.log('getOrdersStats: Skipping - not authenticated');
     return null;
   }
 
   const { data, error } = await supabase.rpc('get_orders_stats');
 
   if (error) {
-    console.error('Error fetching orders stats:', error);
     return null;
   }
 
@@ -1022,7 +980,6 @@ export async function getAvailableDeliveryRiders(): Promise<DeliveryRider[]> {
   const { data, error } = await supabase.rpc('get_available_delivery_riders');
 
   if (error) {
-    console.error('Error fetching delivery riders:', error);
     return [];
   }
 
@@ -1054,14 +1011,12 @@ export async function getKitchenOrders(): Promise<Order[]> {
 
   // Check authentication before making direct queries
   if (!(await isAuthenticated())) {
-    console.log('getKitchenOrders: Skipping - not authenticated');
     return [];
   }
 
   const { data, error } = await supabase.rpc('get_kitchen_orders');
 
   if (error) {
-    console.error('Error fetching kitchen orders:', error);
     return [];
   }
 
@@ -1204,7 +1159,6 @@ export async function getInvoices(filters?: {
   const { data, error } = await query;
 
   if (error) {
-    console.error('Error fetching invoices:', error);
     return [];
   }
 
@@ -1306,7 +1260,6 @@ export async function getAttendanceRecords(filters?: {
   const { data, error } = await query;
 
   if (error) {
-    console.error('Error fetching attendance:', error);
     return [];
   }
 
@@ -1329,7 +1282,6 @@ export async function getMyNotifications(
   });
 
   if (error) {
-    console.error('Error fetching notifications:', error);
     return [];
   }
 
@@ -1400,7 +1352,6 @@ export async function generateSalesReport(
   });
 
   if (error) {
-    console.error('Error generating sales report:', error);
     return null;
   }
 
@@ -1419,7 +1370,6 @@ export async function generateEmployeeReport(
   });
 
   if (error) {
-    console.error('Error generating employee report:', error);
     return null;
   }
 
@@ -1439,7 +1389,6 @@ export async function getWebsiteContent(): Promise<WebsiteContent[]> {
     .order('section', { ascending: true });
 
   if (error) {
-    console.error('Error fetching website content:', error);
     return [];
   }
 
@@ -1479,7 +1428,6 @@ export async function getPromoCodes(): Promise<PromoCode[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching promo codes:', error);
     return [];
   }
 
@@ -1567,7 +1515,6 @@ export async function getDeliveryOrders(): Promise<Order[]> {
   const { data, error } = await supabase.rpc('get_delivery_orders');
 
   if (error) {
-    console.error('Error fetching delivery orders:', error);
     return [];
   }
 
@@ -1758,7 +1705,6 @@ export async function getInventoryItems(): Promise<InventoryItem[]> {
   const { data, error } = await supabase.rpc('get_inventory_items');
 
   if (error) {
-    console.error('Error fetching inventory:', error);
     return [];
   }
 
@@ -1903,7 +1849,6 @@ export async function getInventoryTransactions(
   });
 
   if (error) {
-    console.error('Error fetching inventory transactions:', error);
     return [];
   }
 
@@ -1936,7 +1881,6 @@ export async function getInventorySummary(): Promise<InventorySummary | null> {
   const { data, error } = await supabase.rpc('get_inventory_summary');
 
   if (error) {
-    console.error('Error fetching inventory summary:', error);
     return null;
   }
 
@@ -1950,7 +1894,6 @@ export async function getLowStockItems(): Promise<LowStockItem[]> {
   const { data, error } = await supabase.rpc('get_low_stock_items');
 
   if (error) {
-    console.error('Error fetching low stock items:', error);
     return [];
   }
 
@@ -1970,7 +1913,6 @@ export async function getInventoryMovementReport(
   });
 
   if (error) {
-    console.error('Error fetching inventory movement report:', error);
     return null;
   }
 
@@ -1986,7 +1928,6 @@ export async function getExpiringItems(days: number = 30): Promise<InventoryItem
   });
 
   if (error) {
-    console.error('Error fetching expiring items:', error);
     return [];
   }
 
@@ -2000,7 +1941,6 @@ export async function getInventorySuppliers(): Promise<InventorySupplier[]> {
   const { data, error } = await supabase.rpc('get_inventory_suppliers');
 
   if (error) {
-    console.error('Error fetching suppliers:', error);
     return [];
   }
 
@@ -2053,7 +1993,6 @@ export async function getInventoryAlerts(unreadOnly: boolean = true): Promise<In
   });
 
   if (error) {
-    console.error('Error fetching inventory alerts:', error);
     return [];
   }
 
@@ -2127,7 +2066,6 @@ export async function getReorderSuggestions(): Promise<LowStockItem[]> {
   const { data, error } = await supabase.rpc('generate_reorder_suggestions');
 
   if (error) {
-    console.error('Error generating reorder suggestions:', error);
     return [];
   }
 
@@ -2141,7 +2079,6 @@ export async function getInventoryValueByCategory(): Promise<CategoryValue[]> {
   const { data, error } = await supabase.rpc('get_inventory_value_by_category');
 
   if (error) {
-    console.error('Error fetching inventory value by category:', error);
     return [];
   }
 
@@ -2192,7 +2129,6 @@ export async function getDeals(): Promise<Deal[]> {
   const { data, error } = await supabase.rpc('get_all_deals_with_items');
 
   if (error) {
-    console.error('Error fetching deals:', error);
     return [];
   }
 
@@ -2215,7 +2151,6 @@ export async function getDealById(dealId: string): Promise<Deal | null> {
   });
 
   if (error) {
-    console.error('Error fetching deal:', error);
     return null;
   }
 
@@ -2390,7 +2325,6 @@ export async function getAuditLogs(
   });
 
   if (error) {
-    console.error('Error fetching audit logs:', error);
     return [];
   }
 
@@ -2485,7 +2419,6 @@ export async function getPayslips(
   });
 
   if (error) {
-    console.error('Error fetching payslips:', error);
     return [];
   }
 
@@ -2571,7 +2504,6 @@ export async function getPayrollSummary(
   });
 
   if (error) {
-    console.error('Error fetching payroll summary:', error);
     return null;
   }
 
@@ -2640,7 +2572,6 @@ export async function getAdminReviews(
   });
 
   if (error) {
-    console.error('Error fetching admin reviews:', error);
     return [];
   }
 
@@ -2711,7 +2642,6 @@ export async function getReviewStats(): Promise<ReviewStats | null> {
   const { data, error } = await supabase.rpc('get_review_stats');
 
   if (error) {
-    console.error('Error fetching review stats:', error);
     return null;
   }
 
@@ -2852,7 +2782,6 @@ export async function getAdminReviewsAdvanced(
   });
 
   if (error) {
-    console.error('Error fetching admin reviews:', error);
     return { success: false, error: error.message, reviews: [], total_count: 0, has_more: false };
   }
 
@@ -2865,14 +2794,12 @@ export async function getAllReviewStats(): Promise<AllReviewStats | null> {
 
   // Check authentication
   if (!(await isAuthenticated())) {
-    console.log('getAllReviewStats: Skipping - not authenticated');
     return null;
   }
 
   const { data, error } = await supabase.rpc('get_all_review_stats');
 
   if (error) {
-    console.error('Error fetching all review stats:', error);
     return null;
   }
 
@@ -2993,7 +2920,6 @@ export async function getNotifications(
   });
 
   if (error) {
-    console.error('Error fetching notifications:', error);
     return [];
   }
 
@@ -3076,7 +3002,6 @@ export async function getUnreadNotificationCount(
   });
 
   if (error) {
-    console.error('Error fetching notification count:', error);
     return 0;
   }
 
@@ -3139,7 +3064,6 @@ export async function getCategorySalesReport(
   });
 
   if (error) {
-    console.error('Error fetching category sales:', error);
     return [];
   }
 
@@ -3158,7 +3082,6 @@ export async function getEmployeePerformanceReport(
   });
 
   if (error) {
-    console.error('Error fetching employee performance:', error);
     return [];
   }
 
@@ -3171,7 +3094,6 @@ export async function getInventoryReport(): Promise<InventoryReport | null> {
   const { data, error } = await supabase.rpc('get_inventory_report');
 
   if (error) {
-    console.error('Error fetching inventory report:', error);
     return null;
   }
 

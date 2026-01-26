@@ -56,8 +56,7 @@ const invalidateMenuCache = async () => {
       body: JSON.stringify({ type: 'menu' }),
     });
   } catch (error) {
-    console.error('Failed to invalidate cache:', error);
-  }
+    }
 };
 
 interface SizeVariant {
@@ -126,7 +125,6 @@ export default function ViewMenuItemPage({ params }: { params: Promise<{ id: str
       if (error) throw error;
       setItem(data);
     } catch (error) {
-      console.error('Error fetching menu item:', error);
       toast.error('Failed to load menu item');
     } finally {
       setIsLoading(false);
@@ -152,8 +150,7 @@ export default function ViewMenuItemPage({ params }: { params: Promise<{ id: str
               await supabase.storage.from('images').remove([urlParts[1]]);
             }
           } catch (imgError) {
-            console.error('Failed to delete image:', imgError);
-          }
+            }
         }
       }
 

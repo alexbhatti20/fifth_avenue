@@ -52,7 +52,6 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.rpc('get_active_payment_methods');
 
     if (error) {
-      console.error('Error fetching payment methods:', error);
       return NextResponse.json(
         { success: false, error: 'Failed to fetch payment methods' },
         { status: 500 }
@@ -86,10 +85,10 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Payment methods API error:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
+

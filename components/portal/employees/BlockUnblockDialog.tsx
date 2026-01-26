@@ -89,8 +89,6 @@ export function BlockUnblockDialog({
 
     setLoading(true);
     try {
-      console.log(`[BlockUnblock] Starting ${isBlocking ? 'block' : 'unblock'} for employee:`, employee.id);
-      
       // Use the RPC function with SECURITY DEFINER to bypass RLS
       // The function toggles status - if blocked, it unblocks; if active, it blocks
       const { data, error } = await supabase.rpc('toggle_block_employee', {
@@ -98,10 +96,7 @@ export function BlockUnblockDialog({
         p_reason: isBlocking ? reason : null,
       });
       
-      console.log('[BlockUnblock] RPC response:', { data, error });
-      
       if (error) {
-        console.error('[BlockUnblock] RPC Error:', error);
         throw new Error(error.message || `Failed to ${isBlocking ? 'block' : 'unblock'} employee`);
       }
       
@@ -110,8 +105,6 @@ export function BlockUnblockDialog({
         throw new Error(data?.error || `Failed to ${isBlocking ? 'block' : 'unblock'} employee`);
       }
       
-      console.log('[BlockUnblock] Update successful:', data);
-
       // Send email notification if enabled (via API to access server-side env vars)
       if (sendEmail && employee.email) {
         const actionDate = new Date().toLocaleDateString('en-GB', {
@@ -134,10 +127,8 @@ export function BlockUnblockDialog({
           
           if (!emailResponse.ok) {
             const emailError = await emailResponse.json();
-            console.error('Failed to send email:', emailError);
-          }
+            }
         } catch (emailErr) {
-          console.error('Failed to send email:', emailErr);
           // Don't fail the whole operation if email fails
         }
       }

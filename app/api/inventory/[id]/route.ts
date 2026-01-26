@@ -24,7 +24,6 @@ export async function GET(
 
     return NextResponse.json({ success: true, data: transactions });
   } catch (error: any) {
-    console.error('Inventory item GET error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: 500 }
@@ -66,7 +65,6 @@ export async function PUT(
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Inventory item PUT error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: 500 }
@@ -92,7 +90,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Inventory item DELETE error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: 500 }

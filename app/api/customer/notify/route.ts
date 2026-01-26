@@ -39,10 +39,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Customer notification error:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to send notification' },
       { status: 500 }
     );
   }
 }
+

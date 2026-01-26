@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -257,7 +257,7 @@ function TodayAttendance() {
           setAttendance(data.attendance || []);
         }
       } catch (error) {
-        console.error('Error fetching attendance:', error);
+        
       } finally {
         setIsLoading(false);
       }
@@ -346,7 +346,7 @@ function AttendanceHistory() {
           setHistory(data.attendance || []);
         }
       } catch (error) {
-        console.error('Error fetching history:', error);
+        
       } finally {
         setIsLoading(false);
       }
@@ -460,7 +460,7 @@ export default function AttendancePage() {
           });
         }
       } catch (error) {
-        console.error('Error fetching attendance stats:', error);
+        
       }
     };
 

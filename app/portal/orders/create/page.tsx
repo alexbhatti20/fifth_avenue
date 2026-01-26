@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -162,7 +162,7 @@ export default function CreateOrderPage() {
         const { data, error } = await supabase.rpc('get_order_creation_data');
         
         if (error) {
-          console.error('RPC error:', error);
+          
           toast.error('Failed to load menu data');
           return;
         }
@@ -194,12 +194,12 @@ export default function CreateOrderPage() {
             status: t.status,
           })));
           
-          console.log('Loaded:', itemsWithCategory.length, 'items,', categoryNames.length, 'categories,', (data.tables || []).length, 'tables');
+          
         } else {
           toast.error(data?.error || 'Failed to load menu data');
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        
         toast.error('Failed to load menu data');
       } finally {
         setIsLoadingMenu(false);
@@ -226,7 +226,7 @@ export default function CreateOrderPage() {
       });
       
       if (error) {
-        console.error('Customer search error:', error);
+        
         setCustomerSearchResults([]);
         return;
       }
@@ -248,7 +248,7 @@ export default function CreateOrderPage() {
         setCustomerSearchResults([]);
       }
     } catch (error) {
-      console.error('Error searching customer:', error);
+      
       setCustomerSearchResults([]);
     } finally {
       setIsSearchingCustomer(false);
@@ -405,7 +405,7 @@ export default function CreateOrderPage() {
       }
       
     } catch (error: any) {
-      console.error('Error creating order:', error);
+      
       toast.error(error.message || 'Failed to create order');
     } finally {
       setIsSubmitting(false);

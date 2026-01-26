@@ -69,14 +69,12 @@ export async function POST(request: NextRequest) {
 
     // Check if email exists (customer or employee)
     // Using get_user_by_email RPC to bypass RLS and handle both tables
-    console.log('Forgot Password: Checking user', normalizedEmail);
     const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('get_user_by_email', {
       p_email: normalizedEmail
     });
 
     if (rpcError) {
-      console.error('RPC error in send-otp:', rpcError);
-    }
+      }
 
     let userRecord = null;
     let userName = 'User';
@@ -84,11 +82,9 @@ export async function POST(request: NextRequest) {
     if (!rpcError && rpcResult && rpcResult.length > 0) {
       userRecord = rpcResult[0];
       userName = userRecord.name || 'User';
-      console.log('User found via RPC:', { type: userRecord.user_type, name: userName });
-    }
+      }
 
     if (!userRecord) {
-      console.log('RPC found nothing, trying direct query (prioritizing employees):', normalizedEmail);
       // Fallback: direct query prioritizing employees for staff login compatibility
       const { data: employee } = await supabaseAdmin
         .from('employees')
@@ -99,8 +95,7 @@ export async function POST(request: NextRequest) {
       if (employee) {
         userRecord = employee;
         userName = employee.name;
-        console.log('User found in employees table:', userName);
-      } else {
+        } else {
         const { data: customer } = await supabaseAdmin
           .from('customers')
           .select('id, name, email')
@@ -110,13 +105,11 @@ export async function POST(request: NextRequest) {
         if (customer) {
           userRecord = customer;
           userName = customer.name;
-          console.log('User found in customers table:', userName);
-        }
+          }
       }
     }
 
     if (!userRecord) {
-      console.log('No user record found in any table for:', normalizedEmail);
       // Don't reveal if email exists or not for security
       return NextResponse.json({
         success: true,
@@ -125,8 +118,6 @@ export async function POST(request: NextRequest) {
         resendIn: RESEND_COOLDOWN_SECONDS
       });
     }
-
-    console.log('Generating OTP for:', normalizedEmail);
 
     // Check rate limit attempts
     const attempts = await redis?.get<number>(FORGOT_PASSWORD_ATTEMPTS_KEY(normalizedEmail)) || 0;
@@ -183,8 +174,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (!emailResult.success) {
-      console.log('📧 DEV MODE - Forgot Password OTP:', otp);
-    }
+      }
 
     return NextResponse.json({
       success: true,
@@ -194,10 +184,10 @@ export async function POST(request: NextRequest) {
       devOtp: process.env.NODE_ENV === 'development' ? otp : undefined,
     });
   } catch (error: any) {
-    console.error('Send forgot password OTP error:', error);
     return NextResponse.json(
       { error: 'Failed to send verification code' },
       { status: 500 }
     );
   }
 }
+

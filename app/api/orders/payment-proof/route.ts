@@ -104,7 +104,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
       return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
     }
 
@@ -132,7 +131,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (paymentError) {
-      console.error('Payment record error:', paymentError);
       // Still continue - the proof is uploaded
     }
 
@@ -146,7 +144,6 @@ export async function POST(request: NextRequest) {
       .eq('id', orderId);
 
     if (updateError) {
-      console.error('Order update error:', updateError);
       return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
     }
 
@@ -181,7 +178,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Payment proof upload error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

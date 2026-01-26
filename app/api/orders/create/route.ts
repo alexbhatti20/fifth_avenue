@@ -196,8 +196,7 @@ async function validatePromoCode(code: string, customerId: string, subtotal: num
 
   // RPC doesn't exist or failed - fall back to direct query
   if (rpcError) {
-    console.log('apply_promo_code RPC not available, falling back to direct query:', rpcError.message);
-  }
+    }
   
   const now = new Date();
   
@@ -491,7 +490,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (orderError) {
-      console.error('Order creation RPC error:', orderError);
       return NextResponse.json({ error: orderError.message || 'Failed to create order' }, { status: 500 });
     }
 
@@ -499,7 +497,6 @@ export async function POST(request: NextRequest) {
     const rpcResult = order as { success: boolean; id?: string; error?: string };
     
     if (!rpcResult.success) {
-      console.error('Order creation failed:', rpcResult.error);
       return NextResponse.json({ error: rpcResult.error || 'Failed to create order' }, { status: 500 });
     }
 
@@ -515,7 +512,7 @@ export async function POST(request: NextRequest) {
             p_order_id: orderId,
             p_discount: promoDiscount
           });
-        } catch (e) { console.error('Promo usage record error:', e); }
+        } catch (e) { }
       })();
     }
 
@@ -529,7 +526,7 @@ export async function POST(request: NextRequest) {
             p_points: loyaltyPointsUsed,
             p_order_number: orderNumber
           });
-        } catch (e) { console.error('Loyalty points deduction error:', e); }
+        } catch (e) { }
       })();
     }
 
@@ -543,7 +540,7 @@ export async function POST(request: NextRequest) {
           p_type: 'order_update',
           p_reference_id: orderId
         });
-      } catch (e) { console.error('Notification creation error:', e); }
+      } catch (e) { }
     })();
 
     // Determine if payment proof is needed
@@ -573,7 +570,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Order creation error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

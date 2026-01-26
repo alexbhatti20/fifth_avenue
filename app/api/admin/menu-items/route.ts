@@ -15,7 +15,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Get menu items error:', error);
     return NextResponse.json({ error: 'Failed to fetch menu items' }, { status: 500 });
   }
 }
@@ -44,7 +43,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Create menu item error:', error);
     return NextResponse.json({ error: 'Failed to create menu item' }, { status: 500 });
   }
 }
@@ -74,7 +72,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Update menu item error:', error);
     return NextResponse.json({ error: 'Failed to update menu item' }, { status: 500 });
   }
 }
@@ -110,7 +107,6 @@ export async function DELETE(request: NextRequest) {
             await supabase.storage.from('images').remove([urlParts[1]]);
           }
         } catch (imgError) {
-          console.error('Failed to delete image:', imgError);
           // Continue even if image deletion fails
         }
       }
@@ -120,7 +116,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, deletedImages: data?.images || [] });
   } catch (error) {
-    console.error('Delete menu item error:', error);
     return NextResponse.json({ error: 'Failed to delete menu item' }, { status: 500 });
   }
 }
+

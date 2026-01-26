@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
@@ -132,7 +132,6 @@ export default function InventoryPage() {
       }
 
     } catch (error) {
-      console.error('Failed to fetch inventory:', error)
       toast({
         title: 'Error',
         description: 'Failed to load inventory data',
@@ -154,7 +153,7 @@ export default function InventoryPage() {
         setTransactions(Array.isArray(txns) ? txns : [])
       }
     } catch (error) {
-      console.error('Failed to fetch transactions:', error)
+      // Failed to fetch transactions - silent fail
     }
   }, [])
 

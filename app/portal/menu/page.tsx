@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -84,7 +84,7 @@ const invalidateMenuCache = async () => {
       body: JSON.stringify({ type: 'menu' }),
     });
   } catch (error) {
-    console.error('Failed to invalidate cache:', error);
+    
   }
 };
 
@@ -671,7 +671,7 @@ function CategoryManager({
           success = true;
         }
       } catch (rpcError) {
-        console.log('RPC fallback: Using direct update');
+        
       }
       if (!success) {
         const { error } = await supabase
@@ -974,7 +974,7 @@ export default function MenuManagementPage() {
       
       if (error) {
         // Fallback to direct queries if RPC not available
-        console.warn('RPC not available, using fallback queries');
+        
         const [itemsRes, categoriesRes] = await Promise.all([
           supabase.from('menu_items').select('*').order('created_at', { ascending: false }),
           supabase.from('menu_categories').select('*').order('display_order'),
@@ -987,7 +987,7 @@ export default function MenuManagementPage() {
         setCategories(data.categories || []);
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      
       toast.error('Failed to load menu data');
     } finally {
       setIsLoading(false);
@@ -1076,7 +1076,7 @@ export default function MenuManagementPage() {
               await supabase.storage.from('images').remove([urlParts[1]]);
             }
           } catch (imgError) {
-            console.error('Failed to delete image:', imgError);
+            
             // Continue even if image deletion fails
           }
         }

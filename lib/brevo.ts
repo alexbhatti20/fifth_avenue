@@ -59,9 +59,9 @@ export function generateOTP(): string {
 // Base email sending function
 export async function sendEmail({ to, subject, htmlContent }: EmailParams) {
   try {
-    console.log('Sending email to:', to);
-    console.log('Using sender:', SENDER_EMAIL);
-    console.log('API Key prefix:', BREVO_API_KEY?.substring(0, 15) + '...');
+    if (!BREVO_API_KEY) {
+      return { success: false, error: 'Email service not configured' };
+    }
     
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
@@ -78,16 +78,9 @@ export async function sendEmail({ to, subject, htmlContent }: EmailParams) {
     });
     
     const data = await response.json();
-    console.log('Brevo response status:', response.status);
-    console.log('Brevo response:', JSON.stringify(data));
-    
-    if (!response.ok) {
-      console.error('Brevo error:', data);
-    }
     
     return { success: response.ok, data };
   } catch (error) {
-    console.error('Brevo email error:', error);
     return { success: false, error };
   }
 }

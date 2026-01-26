@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -170,7 +170,7 @@ export default function EmployeesPage() {
       
       setEmployees(result.employees || []);
     } catch (error) {
-      console.error('Error fetching employees:', error);
+      
       toast.error('Failed to fetch employees');
     } finally {
       setIsLoading(false);

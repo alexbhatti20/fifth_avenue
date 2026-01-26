@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -862,7 +862,7 @@ export default function AdminReviewsPage() {
         setStats(statsResponse);
       }
     } catch (error) {
-      console.error('Error fetching reviews:', error);
+      
       toast.error('Failed to load reviews');
     } finally {
       setIsLoading(false);

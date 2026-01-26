@@ -96,8 +96,7 @@ export default function OrderHistoryPage() {
         })) || []
       );
     } catch (error) {
-      console.error("Error fetching order history:", error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   };
@@ -111,7 +110,6 @@ export default function OrderHistoryPage() {
       });
 
       if (error) {
-        console.error("RPC error:", error);
         throw error;
       }
 
@@ -128,11 +126,9 @@ export default function OrderHistoryPage() {
         };
         setOrderDetails(transformedData);
       } else {
-        console.warn("No order details found for order:", orderId);
         setOrderDetails(null);
       }
     } catch (error) {
-      console.error("Error fetching order details:", error);
       setOrderDetails(null);
     }
   };

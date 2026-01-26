@@ -83,10 +83,7 @@ export async function POST(request: NextRequest) {
       p_email: normalizedEmail
     });
 
-    console.log('RPC get_user_by_email result:', { rpcResult, rpcError, normalizedEmail });
-
     if (rpcError) {
-      console.error('RPC error details:', JSON.stringify(rpcError, null, 2));
       return NextResponse.json(
         { error: `Database error: ${rpcError.message}`, details: rpcError },
         { status: 500 }
@@ -94,7 +91,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!rpcResult || rpcResult.length === 0) {
-      console.error('User not found for email:', normalizedEmail);
       return NextResponse.json(
         { error: 'User not found. Please register first or check your email.' },
         { status: 404 }
@@ -156,10 +152,10 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Login verification error:', error);
     return NextResponse.json(
       { error: 'Verification failed' },
       { status: 500 }
     );
   }
 }
+

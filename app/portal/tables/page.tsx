@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -74,7 +74,7 @@ export default function TablesPage() {
         setTables(tablesData || []);
       }
     } catch (error) {
-      console.error('Error fetching tables:', error);
+      
       // Direct fallback
       const { data } = await supabase
         .from('restaurant_tables')
@@ -130,7 +130,7 @@ export default function TablesPage() {
 
       fetchTables();
     } catch (error: any) {
-      console.error('Claim table error:', error);
+      
       toast.error(error.message || 'Failed to claim table');
     }
   };

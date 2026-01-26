@@ -145,7 +145,6 @@ export default function GenerateInvoicePage() {
         router.push('/portal/billing');
       }
     } catch (error: any) {
-      console.error('Error loading order:', error);
       toast.error('Failed to load order details');
       router.push('/portal/billing');
     } finally {
@@ -277,11 +276,9 @@ export default function GenerateInvoicePage() {
               toast.success(`Invoice sent to ${billingData.customer.email}!${promoIncluded}`);
             } else {
               const emailError = await emailResponse.json();
-              console.error('Failed to send invoice email:', emailError);
               toast.error('Invoice generated but email failed to send');
             }
           } catch (emailError) {
-            console.error('Failed to send invoice email:', emailError);
             toast.error('Invoice generated but email failed to send');
           }
         }

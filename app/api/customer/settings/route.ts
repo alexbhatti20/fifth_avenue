@@ -56,7 +56,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Settings fetch error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -104,7 +103,6 @@ export async function PATCH(request: NextRequest) {
       .eq('id', decoded.userId);
 
     if (error) {
-      console.error('Settings update error:', error);
       return NextResponse.json({ error: 'Failed to update setting' }, { status: 500 });
     }
 
@@ -117,7 +115,6 @@ export async function PATCH(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Settings update error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -287,7 +284,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('2FA settings error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

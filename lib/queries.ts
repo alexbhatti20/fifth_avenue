@@ -27,7 +27,6 @@ export const getMenuCategories = unstable_cache(
             .order('display_order', { ascending: true });
 
           if (error) {
-            console.error('Error fetching menu categories:', error);
             return [];
           }
           return data || [];
@@ -35,7 +34,6 @@ export const getMenuCategories = unstable_cache(
         CACHE_DURATIONS.MENU_CATEGORIES
       );
     } catch (error) {
-      console.error('getMenuCategories error:', error);
       return [];
     }
   },
@@ -68,7 +66,6 @@ export const getMenuItemsByCategory = unstable_cache(
           const { data, error } = await query.order('name');
 
           if (error) {
-            console.error('Error fetching menu items:', error);
             return [];
           }
           return data || [];
@@ -76,7 +73,6 @@ export const getMenuItemsByCategory = unstable_cache(
         CACHE_DURATIONS.MENU_ITEMS
       );
     } catch (error) {
-      console.error('getMenuItemsByCategory error:', error);
       return [];
     }
   },
@@ -105,7 +101,6 @@ export const getActiveDeals = unstable_cache(
             .order('created_at', { ascending: false });
 
           if (error) {
-            console.error('Error fetching deals:', error);
             return [];
           }
           return data || [];
@@ -113,7 +108,6 @@ export const getActiveDeals = unstable_cache(
         CACHE_DURATIONS.DEALS
       );
     } catch (error) {
-      console.error('getActiveDeals error:', error);
       return [];
     }
   },
@@ -143,7 +137,6 @@ export const getSiteContent = unstable_cache(
             .single();
 
           if (error) {
-            console.error('Error fetching site content:', error);
             return null;
           }
           return data;
@@ -151,7 +144,6 @@ export const getSiteContent = unstable_cache(
         CACHE_DURATIONS.SITE_CONTENT
       );
     } catch (error) {
-      console.error('getSiteContent error:', error);
       return null;
     }
   },
@@ -178,12 +170,10 @@ export const getVisibleReviews = unstable_cache(
         .limit(limit);
 
       if (error) {
-        console.error('Error fetching reviews:', error);
         return [];
       }
       return data || [];
     } catch (error) {
-      console.error('getVisibleReviews error:', error);
       return [];
     }
   },
@@ -213,12 +203,10 @@ export async function getOrderDetails(orderId: string) {
       .single();
 
     if (error) {
-      console.error('Error fetching order details:', error);
       return null;
     }
     return data;
   } catch (error) {
-    console.error('getOrderDetails error:', error);
     return null;
   }
 }
@@ -235,12 +223,10 @@ export async function getCustomerOrders(customerId: string, limit = 10, offset =
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('Error fetching customer orders:', error);
       return [];
     }
     return data || [];
   } catch (error) {
-    console.error('getCustomerOrders error:', error);
     return [];
   }
 }
@@ -254,12 +240,10 @@ export async function getDashboardStats() {
     if (!supabase) return null;
     const { data, error } = await supabase.rpc('get_admin_dashboard_stats');
     if (error) {
-      console.error('Error fetching dashboard stats:', error);
       return null;
     }
     return data;
   } catch (error) {
-    console.error('getDashboardStats error:', error);
     return null;
   }
 }
@@ -272,12 +256,10 @@ export async function getSalesByDateRange(startDate: string, endDate: string) {
       p_end_date: endDate,
     });
     if (error) {
-      console.error('Error fetching sales by date range:', error);
       return [];
     }
     return data;
   } catch (error) {
-    console.error('getSalesByDateRange error:', error);
     return [];
   }
 }
@@ -289,12 +271,10 @@ export async function getTopSellingItems(limit = 10) {
       p_limit: limit,
     });
     if (error) {
-      console.error('Error fetching top selling items:', error);
       return [];
     }
     return data;
   } catch (error) {
-    console.error('getTopSellingItems error:', error);
     return [];
   }
 }
@@ -312,12 +292,10 @@ export async function getUserNotifications(userId: string, userType: 'customer' 
       .limit(20);
 
     if (error) {
-      console.error('Error fetching notifications:', error);
       return [];
     }
     return data || [];
   } catch (error) {
-    console.error('getUserNotifications error:', error);
     return [];
   }
 }
@@ -333,12 +311,11 @@ export async function getAvailableTables() {
       .order('table_number');
 
     if (error) {
-      console.error('Error fetching available tables:', error);
       return [];
     }
     return data || [];
   } catch (error) {
-    console.error('getAvailableTables error:', error);
     return [];
   }
 }
+

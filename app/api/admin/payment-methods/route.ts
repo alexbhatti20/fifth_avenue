@@ -65,7 +65,6 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.rpc('get_all_payment_methods');
 
     if (error) {
-      console.error('Error fetching payment methods:', error);
       return NextResponse.json(
         { success: false, error: 'Failed to fetch payment methods' },
         { status: 500 }
@@ -85,7 +84,6 @@ export async function GET(request: NextRequest) {
       stats: data.stats || {},
     });
   } catch (error) {
-    console.error('Payment methods GET error:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -131,7 +129,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.error('Error creating payment method:', error);
       return NextResponse.json(
         { success: false, error: 'Failed to create payment method' },
         { status: 500 }
@@ -154,7 +151,6 @@ export async function POST(request: NextRequest) {
       message: data.message,
     });
   } catch (error) {
-    console.error('Payment methods POST error:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -201,7 +197,6 @@ export async function PUT(request: NextRequest) {
     });
 
     if (error) {
-      console.error('Error updating payment method:', error);
       return NextResponse.json(
         { success: false, error: 'Failed to update payment method' },
         { status: 500 }
@@ -223,7 +218,6 @@ export async function PUT(request: NextRequest) {
       message: data.message,
     });
   } catch (error) {
-    console.error('Payment methods PUT error:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -254,7 +248,6 @@ export async function DELETE(request: NextRequest) {
     });
 
     if (error) {
-      console.error('Error deleting payment method:', error);
       return NextResponse.json(
         { success: false, error: 'Failed to delete payment method' },
         { status: 500 }
@@ -276,7 +269,6 @@ export async function DELETE(request: NextRequest) {
       message: data.message,
     });
   } catch (error) {
-    console.error('Payment methods DELETE error:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -308,7 +300,6 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (error) {
-      console.error('Error toggling payment method:', error);
       return NextResponse.json(
         { success: false, error: 'Failed to toggle payment method status' },
         { status: 500 }
@@ -331,10 +322,10 @@ export async function PATCH(request: NextRequest) {
       message: data.message,
     });
   } catch (error) {
-    console.error('Payment methods PATCH error:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
+

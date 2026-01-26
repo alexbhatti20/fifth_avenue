@@ -121,7 +121,6 @@ export default function EmployeeDetailsPage() {
         setPayroll(payrollData);
         setLoading(false);
       }).catch((err) => {
-        console.error('Error fetching employee details:', err);
         toast.error('Failed to load employee details');
         setLoading(false);
       });

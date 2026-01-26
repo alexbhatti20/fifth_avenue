@@ -104,10 +104,10 @@ export async function POST(request: NextRequest) {
       token: verifiedToken
     });
   } catch (error: any) {
-    console.error('Verify forgot password OTP error:', error);
     return NextResponse.json(
       { error: 'Failed to verify code' },
       { status: 500 }
     );
   }
 }
+

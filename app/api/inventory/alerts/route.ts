@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
     const alerts = await getInventoryAlerts(unreadOnly);
     return NextResponse.json({ success: true, data: alerts });
   } catch (error: any) {
-    console.error('Alerts GET error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: 500 }
@@ -53,10 +52,10 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Alerts PUT error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
 }
+

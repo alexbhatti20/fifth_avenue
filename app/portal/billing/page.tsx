@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -112,7 +112,7 @@ export default function BillingPage() {
         });
       }
     } catch (error: any) {
-      console.error('Error fetching stats:', error);
+      
     } finally {
       setIsLoadingStats(false);
     }
@@ -134,7 +134,7 @@ export default function BillingPage() {
         setOnlineOrdersCount(data.online_orders_count || 0);
       }
     } catch (error: any) {
-      console.error('Error fetching pending orders:', error);
+      
       // Fallback to old RPC if new one doesn't exist
       try {
         const { data: fallbackData, error: fallbackError } = await supabase.rpc('get_billable_orders', {
@@ -148,7 +148,7 @@ export default function BillingPage() {
           setPendingCount(fallbackData.stats?.total_pending || 0);
         }
       } catch (e) {
-        console.error('Fallback also failed:', e);
+        
       }
     } finally {
       setIsLoadingPending(false);
@@ -219,7 +219,7 @@ export default function BillingPage() {
             try {
               await playNotificationSound('new_order');
             } catch (e) {
-              console.warn('Could not play notification sound:', e);
+              
             }
             
             // Show toast notification

@@ -54,7 +54,6 @@ export async function POST(
     });
 
     if (error) {
-      console.error('Error marking review helpful:', error);
       return NextResponse.json(
         { error: 'Failed to mark review as helpful' },
         { status: 500 }
@@ -81,7 +80,6 @@ export async function POST(
       message: 'Marked as helpful',
     });
   } catch (error) {
-    console.error('Helpful POST error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

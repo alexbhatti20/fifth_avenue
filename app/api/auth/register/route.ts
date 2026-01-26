@@ -283,10 +283,6 @@ export async function POST(request: NextRequest) {
       const isDev = process.env.NODE_ENV === 'development';
       
       if (isDev) {
-        console.log('=================================');
-        console.log('DEV MODE - OTP for', normalizedEmail, ':', otp);
-        console.log('=================================');
-        
         return NextResponse.json({
           success: true,
           message: `Verification code sent to ${normalizedEmail}`,
@@ -314,7 +310,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Registration error:', error);
     return NextResponse.json(
       { error: 'Registration failed. Please try again.' },
       { status: 500 }
@@ -411,10 +406,10 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Resend OTP error:', error);
     return NextResponse.json(
       { error: 'Failed to resend code' },
       { status: 500 }
     );
   }
 }
+

@@ -65,8 +65,8 @@ export function useAuth(): UseAuthReturn {
         });
         return true;
       }
-    } catch (e) {
-      console.error('Error loading user from storage:', e);
+    } catch {
+      // Failed to load from storage - continue without stored user
     }
     return false;
   }, []);
@@ -110,8 +110,7 @@ export function useAuth(): UseAuthReturn {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user_data');
       }
-    } catch (error) {
-      console.error('Error fetching user:', error);
+    } catch {
       // Don't clear user if we have stored data
       if (!loadUserFromStorage()) {
         setUser(null);
@@ -125,9 +124,15 @@ export function useAuth(): UseAuthReturn {
   }, [loadUserFromStorage]);
 
   useEffect(() => {
-    // First load from storage immediately
-    loadUserFromStorage();
-    setIsLoading(false);
+    // First load from storage immediately for instant UI
+    const hasStoredUser = loadUserFromStorage();
+    
+    // If no stored user, keep loading true until fetch completes
+    if (!hasStoredUser) {
+      // fetchUser will set isLoading to false when done
+    } else {
+      setIsLoading(false);
+    }
     
     // Then try to fetch fresh data (only once)
     fetchUser();
@@ -345,10 +350,12 @@ export function useAuth(): UseAuthReturn {
         return { error: data.error || 'Failed to send OTP' };
       }
 
-      // DEV MODE: Show OTP in console if provided
+      // DEV MODE: Show OTP in alert if provided (for testing)
       if (data.devOtp) {
-        console.log('🔐 DEV OTP:', data.devOtp);
-        alert(`DEV MODE - Your OTP is: ${data.devOtp}`);
+        // Only show in browser for development testing
+        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+          alert(`DEV MODE - Your OTP is: ${data.devOtp}`);
+        }
       }
 
       return { error: null };

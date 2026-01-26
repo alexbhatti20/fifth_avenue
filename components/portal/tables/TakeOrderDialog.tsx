@@ -94,7 +94,6 @@ export function TakeOrderDialog({
         });
       }
     } catch (error) {
-      console.error('Error fetching menu:', error);
       // Fallback to direct queries
       const { data: items } = await supabase
         .from('menu_items')
@@ -144,8 +143,7 @@ export function TakeOrderDialog({
         toast.info('Customer not found in system');
       }
     } catch (error) {
-      console.error('Customer lookup error:', error);
-    } finally {
+      } finally {
       setIsLookingUp(false);
     }
   };
@@ -246,7 +244,6 @@ export function TakeOrderDialog({
       onOpenChange(false);
       onOrderComplete();
     } catch (error: any) {
-      console.error('Order creation error:', error);
       toast.error(error.message || 'Failed to create order');
     } finally {
       setIsSubmitting(false);

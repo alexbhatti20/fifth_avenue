@@ -192,7 +192,6 @@ export default function EditDealPage() {
           router.push('/portal/deals');
         }
       } catch (error: any) {
-        console.error('Error fetching deal:', error);
         toast.error('Failed to load deal');
         router.push('/portal/deals');
       } finally {
@@ -216,8 +215,7 @@ export default function EditDealPage() {
         setCategories(catRes.data || []);
         setMenuItems(itemsRes.data || []);
       } catch (error) {
-        console.error('Error fetching menu data:', error);
-      }
+        }
     };
 
     fetchMenuData();

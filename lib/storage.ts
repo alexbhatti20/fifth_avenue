@@ -57,14 +57,12 @@ export async function uploadImage(
       });
 
     if (error) {
-      console.error('Upload error:', error);
       return { success: false, error: error.message };
     }
 
     const url = getPublicUrl('images', data.path);
     return { success: true, url, path: data.path };
   } catch (error: any) {
-    console.error('Upload exception:', error);
     return { success: false, error: error.message || 'Upload failed' };
   }
 }
@@ -123,14 +121,12 @@ export async function uploadAvatar(
       });
 
     if (error) {
-      console.error('Avatar upload error:', error);
       return { success: false, error: error.message };
     }
 
     const url = getPublicUrl('avatars', data.path);
     return { success: true, url, path: data.path };
   } catch (error: any) {
-    console.error('Avatar upload exception:', error);
     return { success: false, error: error.message || 'Upload failed' };
   }
 }
@@ -177,14 +173,12 @@ export async function uploadReviewImage(
       });
 
     if (error) {
-      console.error('Review image upload error:', error);
       return { success: false, error: error.message };
     }
 
     const url = getPublicUrl('reviews', data.path);
     return { success: true, url, path: data.path };
   } catch (error: any) {
-    console.error('Review image upload exception:', error);
     return { success: false, error: error.message || 'Upload failed' };
   }
 }
@@ -202,13 +196,11 @@ export async function deleteFile(
     const { error } = await supabase.storage.from(bucket).remove([path]);
 
     if (error) {
-      console.error('Delete error:', error);
       return { success: false, error: error.message };
     }
 
     return { success: true };
   } catch (error: any) {
-    console.error('Delete exception:', error);
     return { success: false, error: error.message || 'Delete failed' };
   }
 }
@@ -226,13 +218,11 @@ export async function deleteFiles(
     const { error } = await supabase.storage.from(bucket).remove(paths);
 
     if (error) {
-      console.error('Delete files error:', error);
       return { success: false, error: error.message };
     }
 
     return { success: true };
   } catch (error: any) {
-    console.error('Delete files exception:', error);
     return { success: false, error: error.message || 'Delete failed' };
   }
 }
@@ -308,7 +298,6 @@ export async function uploadEmployeeDocument(
       });
 
     if (error) {
-      console.error('Document upload error:', error);
       return { success: false, error: error.message };
     }
 
@@ -321,7 +310,6 @@ export async function uploadEmployeeDocument(
       documentNumber,
     };
   } catch (error: any) {
-    console.error('Document upload exception:', error);
     return { success: false, error: error.message || 'Upload failed' };
   }
 }
@@ -365,7 +353,6 @@ export async function deleteEmployeeDocuments(
       });
 
     if (listError) {
-      console.error('List documents error:', listError);
       return { success: false, error: listError.message };
     }
 
@@ -385,13 +372,11 @@ export async function deleteEmployeeDocuments(
       .remove(filePaths);
 
     if (deleteError) {
-      console.error('Delete documents error:', deleteError);
       return { success: false, error: deleteError.message };
     }
 
     return { success: true };
   } catch (error: any) {
-    console.error('Delete documents exception:', error);
     return { success: false, error: error.message || 'Delete failed' };
   }
 }
@@ -477,3 +462,4 @@ export async function uploadEmployeePhoto(
 ): Promise<UploadResult> {
   return uploadAvatar(file, 'employees', employeeId);
 }
+

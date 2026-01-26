@@ -85,11 +85,9 @@ export function useRealtimeSubscription<T>(
       )
       .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
-          console.log(`[Realtime] Subscribed to ${config.table}`);
-        }
+          }
         if (status === 'CHANNEL_ERROR') {
-          console.error(`[Realtime] Error subscribing to ${config.table}`);
-        }
+          }
       });
 
     channelRef.current = channel;
@@ -196,7 +194,6 @@ export function useRealtimeOrdersEnhanced() {
   const fetchOrders = useCallback(async () => {
     // Check authentication before making direct queries
     if (!(await isAuthenticated())) {
-      console.log('useRealtimeOrdersEnhanced: Skipping - not authenticated');
       setIsLoading(false);
       return;
     }
@@ -220,7 +217,6 @@ export function useRealtimeOrdersEnhanced() {
       setOrders(data || []);
       setCache('portal_orders', data || [], 2 * 60 * 1000); // 2 min cache
     } catch (error: any) {
-      console.error('Error fetching orders:', error);
       // Don't show toast for auth errors
       if (!error.message?.includes('JWT') && !error.message?.includes('401')) {
         toast.error('Failed to fetch orders');
@@ -263,7 +259,6 @@ export function useRealtimeTablesEnhanced() {
   const fetchTables = useCallback(async () => {
     // Check authentication before making direct queries
     if (!(await isAuthenticated())) {
-      console.log('useRealtimeTablesEnhanced: Skipping - not authenticated');
       setIsLoading(false);
       return;
     }
@@ -286,8 +281,7 @@ export function useRealtimeTablesEnhanced() {
       setTables(data || []);
       setCache('portal_tables', data || [], 5 * 60 * 1000); // 5 min cache
     } catch (error: any) {
-      console.error('Error fetching tables:', error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   }, []);
@@ -320,7 +314,6 @@ export function useRealtimeKitchenOrdersEnhanced() {
   const fetchOrders = useCallback(async () => {
     // Check authentication before making direct queries
     if (!(await isAuthenticated())) {
-      console.log('useRealtimeKitchenOrdersEnhanced: Skipping - not authenticated');
       setIsLoading(false);
       return;
     }
@@ -335,8 +328,7 @@ export function useRealtimeKitchenOrdersEnhanced() {
       if (error) throw error;
       setOrders(data || []);
     } catch (error: any) {
-      console.error('Error fetching kitchen orders:', error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   }, []);
@@ -402,7 +394,6 @@ export function useRealtimeNotifications(employeeId?: string) {
 
     // Check authentication before making direct queries
     if (!(await isAuthenticated())) {
-      console.log('useRealtimeNotifications: Skipping - not authenticated');
       return;
     }
 
@@ -419,8 +410,7 @@ export function useRealtimeNotifications(employeeId?: string) {
       setNotifications(data || []);
       setUnreadCount((data || []).filter((n: any) => !n.is_read).length);
     } catch (error: any) {
-      console.error('Error fetching notifications:', error);
-    }
+      }
   }, [employeeId]);
 
   useRealtimeSubscription<any>(
@@ -463,8 +453,7 @@ export function useRealtimeNotifications(employeeId?: string) {
 
       if (error) throw error;
     } catch (error: any) {
-      console.error('Error marking notification as read:', error);
-    }
+      }
   };
 
   const markAllAsRead = async () => {
@@ -481,8 +470,7 @@ export function useRealtimeNotifications(employeeId?: string) {
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch (error: any) {
-      console.error('Error marking all as read:', error);
-    }
+      }
   };
 
   return { 

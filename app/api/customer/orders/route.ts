@@ -16,7 +16,6 @@ async function getOrdersFromDB(customerId: string, status?: string) {
   });
 
   if (error) {
-    console.error("RPC Error:", error);
     throw error;
   }
 
@@ -75,7 +74,6 @@ export async function GET(request: NextRequest) {
       source: noCache ? "database" : "next-cache",
     });
   } catch (error) {
-    console.error("Error fetching orders:", error);
     return NextResponse.json(
       { error: "Failed to fetch orders" },
       { status: 500 }
@@ -111,10 +109,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: "Cache invalidated" });
   } catch (error) {
-    console.error("Error invalidating cache:", error);
     return NextResponse.json(
       { error: "Failed to invalidate cache" },
       { status: 500 }
     );
   }
 }
+

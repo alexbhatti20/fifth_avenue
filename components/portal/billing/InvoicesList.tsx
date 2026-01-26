@@ -121,7 +121,6 @@ export function InvoicesList({ className }: InvoicesListProps) {
       if (error) throw error;
       setInvoices(data || []);
     } catch (error: any) {
-      console.error('Error fetching invoices:', error);
       toast.error('Failed to load invoices');
     } finally {
       setIsLoading(false);

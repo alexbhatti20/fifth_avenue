@@ -44,7 +44,6 @@ export async function DELETE(
     });
 
     if (error) {
-      console.error('Error deleting review:', error);
       return NextResponse.json(
         { error: 'Failed to delete review' },
         { status: 500 }
@@ -71,7 +70,6 @@ export async function DELETE(
       message: 'Review deleted successfully',
     });
   } catch (error) {
-    console.error('Review DELETE error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

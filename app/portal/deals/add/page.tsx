@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -179,7 +179,7 @@ export default function AddDealPage() {
       setCategories(catRes.data || []);
       setMenuItems(itemsRes.data || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      
     }
   };
 
@@ -283,7 +283,7 @@ export default function AddDealPage() {
       toast.success(`Deal created successfully!${data?.code ? ` Code: ${data.code}` : ''}`);
       router.push('/portal/deals');
     } catch (error: any) {
-      console.error('Create deal error:', error);
+      
       toast.error(error.message || 'Failed to create deal');
     } finally {
       setIsLoading(false);

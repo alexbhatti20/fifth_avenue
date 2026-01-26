@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -269,7 +269,7 @@ function OrderDetailsDialog({
       const data = await getAvailableDeliveryRiders();
       setRiders(data);
     } catch (error) {
-      console.error('Error loading riders:', error);
+      
     } finally {
       setLoadingRiders(false);
     }

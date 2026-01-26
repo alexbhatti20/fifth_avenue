@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -56,7 +56,7 @@ const invalidateMenuCache = async () => {
       body: JSON.stringify({ type: 'menu' }),
     });
   } catch (error) {
-    console.error('Failed to invalidate cache:', error);
+    
   }
 };
 
@@ -142,7 +142,7 @@ export default function AddMenuItemPage() {
         setFormData(prev => ({ ...prev, category_id: data[0].id }));
       }
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      
     }
   };
 

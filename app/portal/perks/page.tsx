@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { usePortalAuth } from "@/hooks/usePortal";
@@ -120,7 +120,7 @@ export default function PerksPage() {
       if (error) {
         // If RPC doesn't exist, use default settings
         if (error.code === 'PGRST202' || error.message?.includes('not find')) {
-          console.log("get_all_perks_settings RPC not found - using defaults");
+          
           const defaultSettings = {
             loyalty_points_per_order: { enabled: true, min_order_amount: 500, points_per_100: 10, bonus_on_first_order: 50 },
             promo_expiry_days: { default: 30, reward_codes: 60 },
@@ -143,7 +143,7 @@ export default function PerksPage() {
         parseSettingsFromCache(data);
       }
     } catch (error: any) {
-      console.error("Error fetching settings:", error?.message || error);
+      
       // Use defaults on error
       const defaultSettings = {
         loyalty_points_per_order: { enabled: true, min_order_amount: 500, points_per_100: 10, bonus_on_first_order: 50 },
@@ -234,7 +234,7 @@ export default function PerksPage() {
       if (error) {
         // If RPC doesn't exist, fall back to simple customers query
         if (error.code === 'PGRST202' || error.message?.includes('not find')) {
-          console.log("get_all_customers_loyalty RPC not found - falling back to customers table");
+          
           const { data: customersData, error: customersError } = await supabase
             .from("customers")
             .select("id, name, email, phone, created_at")
@@ -285,7 +285,7 @@ export default function PerksPage() {
       }));
       setCustomers(mappedCustomers);
     } catch (error: any) {
-      console.error("Error fetching customers:", error?.message || error);
+      
       setCustomers([]);
     }
   }, []);
@@ -301,7 +301,7 @@ export default function PerksPage() {
       });
       
       if (error) {
-        console.error("Error fetching promos:", error.message);
+        
         setPromos([]);
         return;
       }
@@ -318,7 +318,7 @@ export default function PerksPage() {
         setPromos([]);
       }
     } catch (error: any) {
-      console.error("Error fetching promos:", error?.message || error);
+      
       setPromos([]);
     }
   }, []);

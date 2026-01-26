@@ -47,13 +47,11 @@ export async function POST(request: NextRequest) {
 
     // RPC failed - fall back to direct query
     if (error) {
-      console.log('validate_promo_code_for_billing RPC error:', error.message);
-    }
+      }
     
     return await validatePromoDirectly(code, customerId, order_amount);
 
   } catch (error) {
-    console.error('Promo validation error:', error);
     return NextResponse.json(
       { valid: false, error: 'Internal server error' },
       { status: 500 }
@@ -150,7 +148,7 @@ async function validatePromoDirectly(code: string, customerId: string | null, or
     });
 
   } catch (err) {
-    console.error('Direct promo validation error:', err);
     return NextResponse.json({ valid: false, error: 'Failed to validate promo code' }, { status: 500 });
   }
 }
+

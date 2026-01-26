@@ -158,7 +158,6 @@ function TrackOrderContent() {
         }
       }
     } catch (err: any) {
-      console.error("Error fetching order:", err);
       if (isMountedRef.current) {
         setError(err.message || "Failed to load order");
       }
@@ -191,8 +190,7 @@ function TrackOrderContent() {
         setRecentOrders(data || []);
       }
     } catch (err: any) {
-      console.error("Error fetching recent orders:", err);
-    } finally {
+      } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
       }
@@ -219,7 +217,6 @@ function TrackOrderContent() {
           filter: `id=eq.${orderId}`,
         },
         async (payload) => {
-          console.log('Order updated:', payload);
           if (isMountedRef.current) {
             // Refetch full order to get rider details
             fetchOrder();
@@ -238,7 +235,6 @@ function TrackOrderContent() {
           filter: `order_id=eq.${orderId}`,
         },
         (payload) => {
-          console.log('Status history updated:', payload);
           if (isMountedRef.current && payload.new?.status) {
             setOrder(prev => prev ? { ...prev, status: payload.new.status } : null);
             setLastUpdate(new Date());
@@ -248,8 +244,7 @@ function TrackOrderContent() {
         }
       )
       .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
-      });
+        });
 
     channelRef.current = channel;
 

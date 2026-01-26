@@ -49,8 +49,7 @@ export default function MenuCard({ item, index }: MenuCardProps) {
         setAvgRating(data.stats?.average_rating || 0);
       }
     } catch (error) {
-      console.error('Error loading review stats:', error);
-    }
+      }
   }, [item.id]);
 
   useEffect(() => {

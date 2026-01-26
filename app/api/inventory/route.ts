@@ -86,7 +86,6 @@ export async function GET(request: NextRequest) {
         );
     }
   } catch (error: any) {
-    console.error('Inventory GET error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: 500 }
@@ -126,10 +125,10 @@ export async function POST(request: NextRequest) {
       data: { id: result.id, sku: result.sku } 
     });
   } catch (error: any) {
-    console.error('Inventory POST error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
 }
+

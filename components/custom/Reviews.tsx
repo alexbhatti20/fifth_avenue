@@ -131,8 +131,7 @@ export default function Reviews() {
           setStats(data.stats);
         }
       } catch (error) {
-        console.error('Error fetching reviews:', error);
-      } finally {
+        } finally {
         setLoading(false);
       }
     };

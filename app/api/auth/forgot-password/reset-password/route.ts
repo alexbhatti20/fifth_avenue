@@ -91,10 +91,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (updateError) {
-      console.error('Password update RPC error:', updateError);
-      console.error('RPC error code:', updateError.code);
-      console.error('RPC error message:', updateError.message);
-      console.error('RPC error details:', updateError.details);
       return NextResponse.json(
         { error: updateError.message || 'Failed to update password. Please try again.', details: updateError.code },
         { status: 500 }
@@ -102,8 +98,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!updateResult?.success) {
-      console.error('Password update failed:', updateResult);
-      
       return NextResponse.json(
         { 
           error: updateResult?.error || 'Failed to update password',
@@ -128,10 +122,6 @@ export async function POST(request: NextRequest) {
       message: 'Password reset successfully. You can now log in with your new password.'
     });
   } catch (error: any) {
-    console.error('Reset password error:', error);
-    console.error('Error stack:', error?.stack);
-    console.error('Error details:', JSON.stringify(error, null, 2));
-    
     return NextResponse.json(
       { 
         error: 'Failed to reset password. Please try again.',
@@ -141,3 +131,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -500,7 +500,7 @@ export default function DealsPage() {
       const data = await getDeals();
       setDeals(data);
     } catch (error) {
-      console.error('Error fetching deals:', error);
+      
       toast.error('Failed to load deals');
     } finally {
       setIsLoading(false);

@@ -42,7 +42,6 @@ export async function GET(request: NextRequest) {
     });
 
     if (error) {
-      console.error('Error fetching customer reviews:', error);
       return NextResponse.json(
         { error: 'Failed to fetch reviews' },
         { status: 500 }
@@ -51,10 +50,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('My reviews GET error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
+

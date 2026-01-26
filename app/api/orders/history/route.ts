@@ -51,7 +51,6 @@ export async function GET(request: NextRequest) {
     });
 
     if (error) {
-      console.error('Order history error:', error);
       return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
     }
 
@@ -93,7 +92,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ...response, source: 'database' });
 
   } catch (error) {
-    console.error('Order history error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

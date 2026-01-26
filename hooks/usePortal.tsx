@@ -381,8 +381,7 @@ export function useRealtimeOrdersAdvanced(filters?: UseOrdersAdvancedFilters): U
         setStats(statsData);
       }
     } catch (err) {
-      console.error('Error loading stats:', err);
-    } finally {
+      } finally {
       if (isMountedRef.current) {
         setIsStatsLoading(false);
       }
@@ -574,8 +573,7 @@ export function useNotifications(): UseNotificationsReturn {
       const data = await getMyNotifications(50, false);
       setNotifications(data);
     } catch (err) {
-      console.error('Error loading notifications:', err);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   }, [employee]);

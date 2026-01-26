@@ -254,8 +254,7 @@ export function PendingOrdersList({ onSelectOrder }: PendingOrdersListProps) {
         setOrders(data.orders || []);
       }
     } catch (error) {
-      console.error('Error fetching orders:', error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   };

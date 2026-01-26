@@ -38,8 +38,7 @@ export function WaiterHistory() {
         setStats(data.stats);
       }
     } catch (error) {
-      console.error('Error fetching history:', error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   };

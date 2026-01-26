@@ -49,8 +49,6 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error) {
-    console.error('Logout error:', error);
-    
     // Still return success - we want user to be logged out client-side
     const response = NextResponse.json({ 
       success: true, 
@@ -69,3 +67,4 @@ export async function POST(request: NextRequest) {
     return response;
   }
 }
+

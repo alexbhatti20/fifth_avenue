@@ -124,8 +124,7 @@ export default function LoyaltyPage() {
         { p_customer_id: user.id }
       );
 
-      if (balanceError) console.error("Balance error:", balanceError);
-
+      if (balanceError) return;
       const balanceData = balance?.[0];
       const totalPoints = balanceData?.total_points || 0;
       
@@ -157,7 +156,6 @@ export default function LoyaltyPage() {
       );
 
       if (promosError) {
-        console.error("Promos error:", promosError);
         setPromoCodes([]);
       } else {
         setPromoCodes(customerPromos || []);
@@ -173,8 +171,7 @@ export default function LoyaltyPage() {
 
       setPointsHistory(history || []);
     } catch (error) {
-      console.error("Error fetching loyalty data:", error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   };

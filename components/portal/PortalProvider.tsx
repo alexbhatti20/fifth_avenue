@@ -162,13 +162,11 @@ export function PortalProvider({ children }: PortalProviderProps) {
           hasLoadedRef.current = true;
           return;
         } catch (e) {
-          console.error('Error parsing user data:', e);
-        }
+          }
       }
 
       setEmployee(null);
     } catch (error) {
-      console.error('Error loading employee:', error);
       setEmployee(null);
     } finally {
       setIsLoading(false);
@@ -215,8 +213,7 @@ export function PortalProvider({ children }: PortalProviderProps) {
         fetch('/api/auth/logout', { method: 'POST' })
       ]);
     } catch (e) {
-      console.error('Logout error:', e);
-    }
+      }
   }, [router]);
 
   // Has permission check
@@ -348,8 +345,7 @@ export function PortalProvider({ children }: PortalProviderProps) {
         osc3.stop(ctx.currentTime + 0.5);
       }, 400);
     } catch (e) {
-      console.log('[BlockedDialog] Audio not available');
-    }
+      }
   };
 
   // Handle blocked account - show dialog and play alert sound

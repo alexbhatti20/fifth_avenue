@@ -30,10 +30,8 @@ export async function enableAudio(): Promise<boolean> {
     oscillator.stop(ctx.currentTime + 0.001);
     
     isAudioEnabled = true;
-    console.log('Audio notifications enabled');
     return true;
   } catch (error) {
-    console.warn('Could not enable audio:', error);
     return false;
   }
 }
@@ -55,8 +53,7 @@ export async function playNotificationSound(type: 'new_order' | 'assignment' | '
     
     // If context still not running, try to play anyway (might work if there was prior interaction)
     if (ctx.state !== 'running') {
-      console.warn('AudioContext not running, sound may not play');
-    }
+      }
 
     // Different sounds for different notification types
     switch (type) {
@@ -76,8 +73,7 @@ export async function playNotificationSound(type: 'new_order' | 'assignment' | '
         playAssignmentMelody(ctx);
     }
   } catch (error) {
-    console.warn('Could not play notification sound:', error);
-  }
+    }
 }
 
 // Triple beep sound
@@ -156,7 +152,6 @@ function playUrgentAlert(ctx: AudioContext) {
 // Request notification permission
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!('Notification' in window)) {
-    console.warn('This browser does not support notifications');
     return false;
   }
 
@@ -204,8 +199,7 @@ export async function showNotificationWithSound(
 
       return notification;
     } catch (error) {
-      console.warn('Could not show notification:', error);
-    }
+      }
   }
 
   return null;

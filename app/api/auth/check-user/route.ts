@@ -22,7 +22,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (rpcError) {
-      console.error('RPC error in check-user:', rpcError);
       return NextResponse.json(
         { error: 'Failed to check user' },
         { status: 500 }
@@ -92,10 +91,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Check user error:', error);
     return NextResponse.json(
       { error: 'Failed to check user' },
       { status: 500 }
     );
   }
 }
+

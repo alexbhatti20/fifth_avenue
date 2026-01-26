@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Get reviews error:', error);
     return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 });
   }
 }
@@ -42,7 +41,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Update review error:', error);
     return NextResponse.json({ error: 'Failed to update review' }, { status: 500 });
   }
 }
@@ -70,7 +68,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Delete review error:', error);
     return NextResponse.json({ error: 'Failed to delete review' }, { status: 500 });
   }
 }
+

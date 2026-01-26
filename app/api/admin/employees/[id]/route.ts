@@ -32,7 +32,6 @@ export async function GET(
 
     return NextResponse.json({ success: true, data: data[0] });
   } catch (error) {
-    console.error('Get employee error:', error);
     return NextResponse.json({ error: 'Failed to fetch employee' }, { status: 500 });
   }
 }
@@ -49,8 +48,6 @@ export async function PUT(
     }
 
     const decoded = verifyToken(token);
-    console.log('[PUT Employee] Token decoded:', decoded);
-    
     if (!decoded) {
       return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
     }
@@ -116,8 +113,6 @@ export async function PUT(
     if (avatar_url !== undefined) updateData.avatar_url = avatar_url;
     if (block_reason !== undefined) updateData.block_reason = block_reason;
 
-    console.log('[PUT Employee] Updating employee:', id, 'with data:', updateData);
-
     // Update employee in database - use admin client to bypass RLS
     const { data, error } = await supabaseAdmin
       .from('employees')
@@ -127,17 +122,14 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error('[PUT Employee] Supabase error:', error);
       return NextResponse.json({ 
         error: error.message || 'Database update failed',
         details: error 
       }, { status: 500 });
     }
 
-    console.log('[PUT Employee] Update successful:', data);
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
-    console.error('[PUT Employee] Exception:', error);
     return NextResponse.json({ 
       error: error?.message || 'Failed to update employee',
       details: String(error)
@@ -177,7 +169,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, message: 'Employee deleted successfully' });
   } catch (error) {
-    console.error('Delete employee error:', error);
     return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });
   }
 }

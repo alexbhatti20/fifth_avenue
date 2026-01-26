@@ -84,7 +84,6 @@ export function EmployeeDetailSheet({
         setPayroll(payrollData);
         setLoading(false);
       }).catch((err) => {
-        console.error('Error fetching employee details:', err);
         setLoading(false);
       });
     }

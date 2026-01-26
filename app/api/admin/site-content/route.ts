@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Get site content error:', error);
     return NextResponse.json({ error: 'Failed to fetch site content' }, { status: 500 });
   }
 }
@@ -36,7 +35,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Update site content error:', error);
     return NextResponse.json({ error: 'Failed to update site content' }, { status: 500 });
   }
 }
+

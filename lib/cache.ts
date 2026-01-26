@@ -12,12 +12,11 @@ if (redisUrl && redisToken) {
       url: redisUrl,
       token: redisToken,
     });
-  } catch (error) {
-    console.warn('Failed to initialize Redis client:', error);
+  } catch {
+    // Redis initialization failed - caching will be disabled
   }
-} else {
-  console.warn('Redis credentials not configured - caching disabled');
 }
+// Redis credentials not configured - caching disabled silently
 
 // Cache durations in seconds
 export const CACHE_DURATIONS = {
@@ -48,8 +47,7 @@ export async function getCached<T>(key: string): Promise<T | null> {
   try {
     const data = await redis.get(key);
     return data as T | null;
-  } catch (error) {
-    console.error('Cache get error:', error);
+  } catch {
     return null;
   }
 }
@@ -69,8 +67,7 @@ export async function setCache<T>(
       await redis.set(key, value);
     }
     return true;
-  } catch (error) {
-    console.error('Cache set error:', error);
+  } catch {
     return false;
   }
 }
@@ -81,8 +78,7 @@ export async function deleteCache(key: string): Promise<boolean> {
   try {
     await redis.del(key);
     return true;
-  } catch (error) {
-    console.error('Cache delete error:', error);
+  } catch {
     return false;
   }
 }
@@ -96,8 +92,7 @@ export async function deleteCachePattern(pattern: string): Promise<boolean> {
       await redis.del(...keys);
     }
     return true;
-  } catch (error) {
-    console.error('Cache pattern delete error:', error);
+  } catch {
     return false;
   }
 }

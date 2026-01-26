@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
@@ -151,7 +151,7 @@ function SalesReport({ dateRange }: { dateRange: string }) {
 
         setCategoryData(categories || []);
       } catch (error) {
-        console.error('Error fetching sales data:', error);
+        
         toast.error('Failed to load sales data');
       } finally {
         setIsLoading(false);
@@ -280,7 +280,7 @@ function EmployeeReport({ dateRange }: { dateRange: string }) {
         const data = await getEmployeePerformanceReport(startDate, endDate);
         setEmployees(data || []);
       } catch (error) {
-        console.error('Error fetching employee data:', error);
+        
         toast.error('Failed to load employee data');
       } finally {
         setIsLoading(false);
@@ -349,7 +349,7 @@ function InventoryReportView() {
         const data = await getInventoryReport();
         setReport(data);
       } catch (error) {
-        console.error('Error fetching inventory data:', error);
+        
         toast.error('Failed to load inventory data');
       } finally {
         setIsLoading(false);

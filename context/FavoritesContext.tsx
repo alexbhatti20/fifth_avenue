@@ -72,9 +72,8 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       
       setFavorites(data || []);
       setIsInitialized(true);
-    } catch (error) {
-      console.error("Error loading favorite IDs:", error);
-      // Fallback to local storage
+    } catch {
+      // Fallback to local storage on error
       loadGuestFavorites();
     } finally {
       setIsLoading(false);
@@ -88,8 +87,8 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       if (stored) {
         setFavorites(JSON.parse(stored));
       }
-    } catch (error) {
-      console.error("Error loading guest favorites:", error);
+    } catch {
+      // Failed to load - start with empty favorites
     }
     setIsLoading(false);
     setIsInitialized(true);
@@ -99,8 +98,8 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   const saveGuestFavorites = useCallback((items: FavoriteItem[]) => {
     try {
       localStorage.setItem(GUEST_FAVORITES_KEY, JSON.stringify(items));
-    } catch (error) {
-      console.error("Error saving guest favorites:", error);
+    } catch {
+      // Failed to save - non-critical
     }
   }, []);
 
@@ -144,8 +143,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           setFavorites(serverFavorites);
           
           return data?.action === "added";
-        } catch (error) {
-          console.error("Error toggling favorite:", error);
+        } catch {
           // Revert optimistic update on error
           if (isCurrentlyFavorite) {
             setFavorites((prev) => [{ id: itemId, type: itemType }, ...prev]);
@@ -185,10 +183,8 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       
       // RPC returns jsonb array directly, ensure it's parsed correctly
       const details = Array.isArray(data) ? data : [];
-      console.log("[Favorites] Loaded details:", details);
       setFavoritesDetails(details);
-    } catch (error) {
-      console.error("Error loading favorite details:", error);
+    } catch {
       setFavoritesDetails([]);
     } finally {
       setIsLoading(false);
@@ -207,8 +203,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           p_customer_id: user.id,
         });
         if (error) throw error;
-      } catch (error) {
-        console.error("Error clearing favorites:", error);
+      } catch {
         // Reload on error
         loadFavoriteIds();
       }

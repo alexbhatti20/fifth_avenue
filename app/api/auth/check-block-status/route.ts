@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       // RPC function might not exist yet - return not blocked
-      console.error('RPC error (function may not exist):', error.message);
       return NextResponse.json({ 
         isBlocked: false, 
         error: 'RPC function not available. Please run the SQL migration.' 
@@ -39,10 +38,10 @@ export async function GET(request: NextRequest) {
       portalEnabled: data?.portal_enabled,
     });
   } catch (error: any) {
-    console.error('Check block status error:', error);
     return NextResponse.json({ 
       isBlocked: false, 
       error: error.message 
     }, { status: 500 });
   }
 }
+

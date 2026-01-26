@@ -302,7 +302,6 @@ export async function getInventoryItems(useCache: boolean = true): Promise<Inven
   const { data, error } = await supabase.rpc('get_inventory_items');
 
   if (error) {
-    console.error('Error fetching inventory items:', error);
     return [];
   }
 
@@ -507,7 +506,6 @@ export async function getInventoryTransactions(
   });
 
   if (error) {
-    console.error('Error fetching inventory transactions:', error);
     return [];
   }
 
@@ -531,7 +529,6 @@ export async function getInventorySummary(): Promise<InventorySummary | null> {
   const { data, error } = await supabase.rpc('get_inventory_summary');
 
   if (error) {
-    console.error('Error fetching inventory summary:', error);
     return null;
   }
 
@@ -553,7 +550,6 @@ export async function getLowStockItems(): Promise<LowStockItem[]> {
   const { data, error } = await supabase.rpc('get_low_stock_items');
 
   if (error) {
-    console.error('Error fetching low stock items:', error);
     return [];
   }
 
@@ -578,7 +574,6 @@ export async function getInventoryMovementReport(
   });
 
   if (error) {
-    console.error('Error fetching inventory movement report:', error);
     return null;
   }
 
@@ -596,7 +591,6 @@ export async function getExpiringItems(days: number = 30): Promise<ExpiringItem[
   });
 
   if (error) {
-    console.error('Error fetching expiring items:', error);
     return [];
   }
 
@@ -612,7 +606,6 @@ export async function getInventoryValueByCategory(): Promise<CategoryValue[]> {
   const { data, error } = await supabase.rpc('get_inventory_value_by_category');
 
   if (error) {
-    console.error('Error fetching inventory value by category:', error);
     return [];
   }
 
@@ -628,7 +621,6 @@ export async function getReorderSuggestions(): Promise<LowStockItem[]> {
   const { data, error } = await supabase.rpc('generate_reorder_suggestions');
 
   if (error) {
-    console.error('Error generating reorder suggestions:', error);
     return [];
   }
 
@@ -651,7 +643,6 @@ export async function getInventorySuppliers(): Promise<InventorySupplier[]> {
   const { data, error } = await supabase.rpc('get_inventory_suppliers');
 
   if (error) {
-    console.error('Error fetching suppliers:', error);
     return [];
   }
 
@@ -707,7 +698,6 @@ export async function getInventoryAlerts(unreadOnly: boolean = true): Promise<In
   });
 
   if (error) {
-    console.error('Error fetching inventory alerts:', error);
     return [];
   }
 

@@ -53,8 +53,6 @@ async function getUserProfile(email: string, forceRefresh: boolean = false): Pro
     p_email: email.toLowerCase()
   });
 
-  console.log('getUserProfile RPC result:', { rpcResult, rpcError, email });
-
   if (!rpcError && rpcResult && rpcResult.length > 0) {
     const user = rpcResult[0];
     const profile: UserProfile = {
@@ -81,8 +79,6 @@ async function getUserProfile(email: string, forceRefresh: boolean = false): Pro
     .ilike('email', email.toLowerCase())
     .single();
 
-  console.log('getUserProfile employee query:', { employee, empError, email });
-
   if (employee) {
     const profile: UserProfile = {
       id: employee.id,
@@ -107,8 +103,6 @@ async function getUserProfile(email: string, forceRefresh: boolean = false): Pro
     .select('id, auth_user_id, email, name, phone, address, is_2fa_enabled, is_verified')
     .ilike('email', email.toLowerCase())
     .single();
-
-  console.log('getUserProfile customer query:', { customer, custError, email });
 
   if (customer) {
     const profile: UserProfile = {
@@ -182,13 +176,6 @@ export async function POST(request: NextRequest) {
       password,
     });
 
-    console.log('Supabase Auth result:', { 
-      user: authData?.user?.id, 
-      error: authError?.message,
-      errorCode: authError?.code,
-      email: normalizedEmail 
-    });
-
     if (authError || !authData.user) {
       // Record failed attempt
       const failureResult = await recordLoginFailure(ip);
@@ -202,8 +189,6 @@ export async function POST(request: NextRequest) {
         errorMessage = 'Invalid email or password';
       } else if (authError?.message?.includes('Database error')) {
         // Database error - try to get user profile anyway to check if it's an auth issue
-        console.error('Database error during auth, checking if user exists in tables...');
-        
         // Check if user exists in our tables
         const { data: rpcCheck } = await supabase.rpc('get_user_by_email', {
           p_email: normalizedEmail
@@ -307,16 +292,6 @@ export async function POST(request: NextRequest) {
     const isCustomer = userProfile.type === 'customer';
 
     // Debug log for troubleshooting (remove in production)
-    console.log('Login check:', {
-      email: normalizedEmail,
-      userType: userProfile.type,
-      is2FAEnabled: userProfile.is2FAEnabled,
-      requires2FA,
-      isAdmin,
-      isEmployee,
-      isCustomer,
-    });
-
     // OTP disabled - direct login for all users
     const shouldRequireOTP = false;
 
@@ -442,10 +417,10 @@ export async function POST(request: NextRequest) {
     return response;
 
   } catch (error) {
-    console.error('Login error:', error);
     return NextResponse.json(
       { error: 'Login failed. Please try again.' },
       { status: 500 }
     );
   }
 }
+

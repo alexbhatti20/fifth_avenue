@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
@@ -296,7 +296,7 @@ function BanUnbanSection({
       onSuccess();
       
     } catch (error: any) {
-      console.error(`${mode} customer error:`, error);
+      
       toast.error(error.message || `Failed to ${mode} customer`);
     } finally {
       setIsSubmitting(false);
@@ -437,7 +437,7 @@ function CustomerDetailDialog({
         if (error) throw error;
         setCustomer(data?.[0] || null);
       } catch (error) {
-        console.error('Error fetching customer detail:', error);
+        
         toast.error('Failed to load customer details');
       } finally {
         setIsLoading(false);
@@ -686,7 +686,7 @@ export default function CustomersPage() {
       if (error) throw error;
       setCustomers(data || []);
     } catch (error) {
-      console.error('Error fetching customers:', error);
+      
       toast.error('Failed to load customers');
     } finally {
       setIsLoading(false);
@@ -702,7 +702,7 @@ export default function CustomersPage() {
       if (error) throw error;
       setStats(data?.[0] || null);
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      
     }
   };
 

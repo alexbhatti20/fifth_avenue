@@ -10,7 +10,6 @@ export async function GET() {
     const suppliers = await getInventorySuppliers();
     return NextResponse.json({ success: true, data: suppliers });
   } catch (error: any) {
-    console.error('Suppliers GET error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: 500 }
@@ -43,10 +42,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: { id: result.id } });
   } catch (error: any) {
-    console.error('Suppliers POST error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
 }
+

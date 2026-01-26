@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Get orders error:', error);
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
   }
 }
@@ -47,7 +46,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Update order error:', error);
     return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
   }
 }
@@ -77,7 +75,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Cancel order error:', error);
     return NextResponse.json({ error: 'Failed to cancel order' }, { status: 500 });
   }
 }
+

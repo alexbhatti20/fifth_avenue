@@ -47,7 +47,6 @@ export async function GET(request: NextRequest) {
     });
 
     if (error) {
-      console.error('Error fetching reviews:', error);
       return NextResponse.json(
         { error: 'Failed to fetch reviews' },
         { status: 500 }
@@ -64,7 +63,6 @@ export async function GET(request: NextRequest) {
       cached: false,
     });
   } catch (error) {
-    console.error('Reviews GET error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -82,12 +80,6 @@ export async function POST(request: NextRequest) {
     const cookieToken = request.cookies.get('auth-token')?.value;
     const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : cookieToken;
     
-    console.log('[Reviews API] Auth debug:', { 
-      hasAuthHeader: !!authHeader, 
-      hasCookieToken: !!cookieToken,
-      tokenLength: token?.length 
-    });
-    
     if (!token) {
       return NextResponse.json(
         { error: 'Authentication required. Please login to submit a review.' },
@@ -96,10 +88,6 @@ export async function POST(request: NextRequest) {
     }
 
     const decoded = verifyToken(token);
-    
-    console.log('[Reviews API] Token decoded:', { 
-      decoded: decoded ? { userId: decoded.userId, userType: decoded.userType, type: decoded.type } : null 
-    });
     
     // Allow customers and admins to submit reviews
     const allowedUserTypes = ['customer', 'admin'];
@@ -177,16 +165,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Reviews API] Submitting review:', {
-      customerId,
-      rating,
-      comment: effectiveComment.substring(0, 50),
-      review_type: review_type || 'overall',
-      item_id,
-      meal_id,
-      order_id,
-    });
-
     // Determine the correct review_type based on provided IDs
     // The check_review_target constraint requires:
     // - 'item' reviews must have item_id
@@ -228,10 +206,7 @@ export async function POST(request: NextRequest) {
       p_images: images || [],
     });
 
-    console.log('[Reviews API] RPC result:', { data, error });
-
     if (error) {
-      console.error('Error submitting review:', error);
       return NextResponse.json(
         { error: `Failed to submit review: ${error.message}` },
         { status: 500 }
@@ -262,10 +237,10 @@ export async function POST(request: NextRequest) {
       reviews_remaining: data.reviews_remaining,
     });
   } catch (error) {
-    console.error('Reviews POST error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
+

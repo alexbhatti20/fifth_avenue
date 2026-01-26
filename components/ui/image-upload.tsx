@@ -65,7 +65,6 @@ export function ImageUpload({
         toast.error(result.error || 'Failed to upload image');
       }
     } catch (error: any) {
-      console.error('Upload error:', error);
       toast.error(error.message || 'Failed to upload image');
     } finally {
       setIsUploading(false);

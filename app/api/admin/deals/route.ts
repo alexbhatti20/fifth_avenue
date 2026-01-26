@@ -15,7 +15,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Get deals error:', error);
     return NextResponse.json({ error: 'Failed to fetch deals' }, { status: 500 });
   }
 }
@@ -56,7 +55,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Create deal error:', error);
     return NextResponse.json({ error: 'Failed to create deal' }, { status: 500 });
   }
 }
@@ -85,7 +83,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Update deal error:', error);
     return NextResponse.json({ error: 'Failed to update deal' }, { status: 500 });
   }
 }
@@ -115,7 +112,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Delete deal error:', error);
     return NextResponse.json({ error: 'Failed to delete deal' }, { status: 500 });
   }
 }
+

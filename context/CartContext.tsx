@@ -69,10 +69,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
       if (savedCart) {
-        setItems(JSON.parse(savedCart));
+        const parsedCart = JSON.parse(savedCart);
+        // Validate cart items have valid prices
+        const validCart = parsedCart.filter((item: CartItem) => 
+          typeof item.price === 'number' && item.price > 0 && !isNaN(item.price)
+        );
+        setItems(validCart);
       }
-    } catch (error) {
-      console.error('Failed to load cart from localStorage:', error);
+    } catch {
+      // Failed to load cart - start fresh
     }
     setIsHydrated(true);
   }, []);
@@ -82,8 +87,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (isHydrated) {
       try {
         localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-      } catch (error) {
-        console.error('Failed to save cart to localStorage:', error);
+      } catch {
+        // Failed to save cart - non-critical
       }
     }
   }, [items, isHydrated]);
@@ -95,6 +100,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addToCart = (item: MenuItem, size?: string, price?: number) => {
     const cartItemId = generateCartItemId(item.id, size);
     const itemPrice = price ?? item.price;
+    
+    // Validate price is a positive number
+    if (typeof itemPrice !== 'number' || itemPrice <= 0 || isNaN(itemPrice)) {
+      return; // Don't add items with invalid prices
+    }
 
     setItems((prevItems) => {
       const existingItem = prevItems.find((i) => i.cartItemId === cartItemId);
@@ -133,7 +143,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce((sum, item) => sum + (item.selectedPrice || item.price) * item.quantity, 0);
+  const totalPrice = items.reduce((sum, item) => {
+    const price = item.selectedPrice || item.price;
+    const validPrice = typeof price === 'number' && !isNaN(price) ? price : 0;
+    return sum + validPrice * item.quantity;
+  }, 0);
 
   return (
     <CartContext.Provider

@@ -89,14 +89,11 @@ export async function GET(request: NextRequest) {
 
     // Handle errors
     if (categoriesResult.error) {
-      console.error('Categories fetch error:', categoriesResult.error);
-    }
+      }
     if (itemsResult.error) {
-      console.error('Items fetch error:', itemsResult.error);
-    }
+      }
     if (dealsResult.error) {
-      console.error('Deals fetch error:', dealsResult.error);
-    }
+      }
 
     // Prepare response data
     const menuData: CachedMenuData = {
@@ -121,7 +118,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Customer menu fetch error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch menu data' },
       { status: 500 }
@@ -144,10 +140,10 @@ export async function POST(request: NextRequest) {
       message: 'Menu cache invalidated',
     });
   } catch (error) {
-    console.error('Cache invalidation error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to invalidate cache' },
       { status: 500 }
     );
   }
 }
+

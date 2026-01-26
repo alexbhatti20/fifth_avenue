@@ -4,9 +4,8 @@ import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('Missing Supabase credentials - database features will be disabled');
-}
+// Flag for missing credentials - don't log in production
+const isSupabaseMisconfigured = !supabaseUrl || !supabaseKey;
 
 // Public client (subject to RLS) - always create to avoid null checks
 export const supabase: SupabaseClient = createSupabaseClient(

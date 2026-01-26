@@ -102,19 +102,12 @@ export async function POST(request: NextRequest) {
     // await sendContactEmail(contactMessage);
 
     // Log for now
-    console.log('[Contact Form] New message received:', {
-      name: contactMessage.name,
-      email: contactMessage.email,
-      messagePreview: contactMessage.message.substring(0, 50) + '...',
-    });
-
     return NextResponse.json({
       success: true,
       message: 'Thank you! Your message has been sent successfully. We will get back to you within 24 hours.',
     });
 
   } catch (error) {
-    console.error('[Contact API] Error:', error);
     return NextResponse.json(
       { error: 'Failed to send message. Please try again later.' },
       { status: 500 }
@@ -139,10 +132,10 @@ export async function GET(request: NextRequest) {
       total: parsedMessages.length,
     });
   } catch (error) {
-    console.error('[Contact API] Error fetching messages:', error);
     return NextResponse.json(
       { error: 'Failed to fetch messages' },
       { status: 500 }
     );
   }
 }
+

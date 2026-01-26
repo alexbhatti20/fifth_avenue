@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
       });
 
       if (rpcError) {
-        console.error('RPC error:', rpcError);
         return NextResponse.json(
           { error: `Validation failed: ${rpcError.message || 'Unknown error'}` },
           { status: 500 }
@@ -164,7 +163,6 @@ export async function POST(request: NextRequest) {
       });
 
       if (activationError || !activationResult?.success) {
-        console.error('Activation RPC error:', activationError || activationResult?.error);
         return NextResponse.json(
           { error: activationResult?.error || 'Failed to activate portal' },
           { status: 500 }
@@ -219,10 +217,10 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('Employee activation error:', error);
     return NextResponse.json(
       { error: 'Activation failed' },
       { status: 500 }
     );
   }
 }
+

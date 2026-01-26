@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -791,7 +791,7 @@ function DeliveryHistory({ riderId }: { riderId: string }) {
         setOffset(loadMore ? offset + 20 : 20);
       }
     } catch (error) {
-      console.error('Error fetching delivery history:', error);
+      
       // Fallback to direct query if RPC not available
       try {
         const { data, error: fallbackError } = await supabase
@@ -837,7 +837,7 @@ function DeliveryHistory({ riderId }: { riderId: string }) {
           });
         }
       } catch (fallbackError) {
-        console.error('Fallback query failed:', fallbackError);
+        
       }
     } finally {
       setIsLoading(false);
@@ -1027,7 +1027,7 @@ export default function DeliveryPage() {
       setOrders(data || []);
       setLastUpdate(new Date());
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      
       toast.error('Failed to fetch orders');
     } finally {
       setIsLoading(false);
@@ -1166,7 +1166,7 @@ export default function DeliveryPage() {
 
       fetchOrders();
     } catch (error: any) {
-      console.error('Accept order error:', error);
+      
       toast.error(error.message || 'Failed to accept order');
     }
   };
@@ -1197,7 +1197,7 @@ export default function DeliveryPage() {
 
       fetchOrders();
     } catch (error: any) {
-      console.error('Complete delivery error:', error);
+      
       toast.error(error.message || 'Failed to complete delivery');
     }
   };
@@ -1221,7 +1221,7 @@ export default function DeliveryPage() {
       toast.info(data.message || 'Delivery cancelled. Order is back in queue.');
       fetchOrders();
     } catch (error: any) {
-      console.error('Cancel delivery error:', error);
+      
       toast.error(error.message || 'Failed to cancel delivery');
     }
   };

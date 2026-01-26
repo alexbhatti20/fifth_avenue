@@ -67,7 +67,6 @@ export async function GET() {
       .order('created_at', { ascending: false });
 
     if (dealsError) {
-      console.error('Error fetching deals:', dealsError);
       // Return cached data even if expired on error
       if (cachedDeals) {
         return NextResponse.json({ 
@@ -168,10 +167,10 @@ export async function GET() {
       source: 'database'
     });
   } catch (error: any) {
-    console.error('API Error:', error);
     return NextResponse.json(
       { data: [], error: error.message },
       { status: 500 }
     );
   }
 }
+

@@ -151,8 +151,7 @@ export default function OrderDetailPage() {
         setOrder(data[0]);
       }
     } catch (error) {
-      console.error("Error fetching order details:", error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   };

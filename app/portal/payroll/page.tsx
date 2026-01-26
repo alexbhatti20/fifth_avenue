@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -526,7 +526,7 @@ export default function PayrollPage() {
       setEmployees(employeesData.filter(e => e.status === 'active'));
       setSummary(summaryData);
     } catch (error) {
-      console.error('Error fetching payroll data:', error);
+      
       toast.error('Failed to load payroll data');
     } finally {
       setIsLoading(false);

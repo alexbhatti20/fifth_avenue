@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -124,7 +124,7 @@ export default function AddEmployeePage() {
         setFormData(parsed);
         toast.info('Draft restored. Your previous data has been loaded.');
       } catch (e) {
-        console.error('Failed to parse saved form data:', e);
+        
       }
     }
     
@@ -240,11 +240,11 @@ export default function AddEmployeePage() {
           }
         } catch (nameCheckError) {
           // Silently skip name similarity check if it fails
-          console.log('Name similarity check skipped:', nameCheckError);
+          
         }
       } catch (error) {
         // If check fails, continue anyway (might be permission issue)
-        console.error('Error checking existing employee:', error);
+        
       }
     }
 
@@ -279,14 +279,14 @@ export default function AddEmployeePage() {
       
       if (!response.ok) {
         const error = await response.json();
-        console.error('File upload failed:', error);
+        
         return null;
       }
       
       const result = await response.json();
       return result.url || null;
     } catch (error) {
-      console.error('File upload error:', error);
+      
       return null;
     }
   };

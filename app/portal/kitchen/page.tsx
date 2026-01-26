@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1071,7 +1071,7 @@ export default function KitchenPage() {
         });
       }
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      
     } finally {
       setIsLoading(false);
     }
@@ -1090,7 +1090,7 @@ export default function KitchenPage() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
         (payload) => {
-          console.log('[Kitchen] Real-time update:', payload.eventType);
+          
           fetchOrders();
           
           // Play sound for new orders
@@ -1138,7 +1138,7 @@ export default function KitchenPage() {
         setTimeout(() => oscillator.stop(), 200);
       });
     } catch (e) {
-      console.log('Could not play notification sound');
+      
     }
   };
 

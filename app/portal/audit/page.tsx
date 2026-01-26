@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -342,7 +342,7 @@ export default function AuditLogsPage() {
       }));
       setLogs(displayLogs);
     } catch (error) {
-      console.error('Error fetching audit logs:', error);
+      
       toast.error('Failed to load audit logs');
     } finally {
       setIsLoading(false);

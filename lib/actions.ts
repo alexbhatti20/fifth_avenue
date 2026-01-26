@@ -37,7 +37,6 @@ export async function createMenuItem(formData: FormData) {
 
     return { success: true, data: item };
   } catch (error) {
-    console.error('Create menu item error:', error);
     return { success: false, error: 'Failed to create menu item' };
   }
 }
@@ -67,7 +66,6 @@ export async function updateMenuItem(id: string, formData: FormData) {
 
     return { success: true, data: item };
   } catch (error) {
-    console.error('Update menu item error:', error);
     return { success: false, error: 'Failed to update menu item' };
   }
 }
@@ -87,7 +85,6 @@ export async function deleteMenuItem(id: string) {
 
     return { success: true };
   } catch (error) {
-    console.error('Delete menu item error:', error);
     return { success: false, error: 'Failed to delete menu item' };
   }
 }
@@ -123,7 +120,6 @@ export async function createDeal(formData: FormData) {
 
     return { success: true, data: deal };
   } catch (error) {
-    console.error('Create deal error:', error);
     return { success: false, error: 'Failed to create deal' };
   }
 }
@@ -152,7 +148,6 @@ export async function updateDeal(id: string, formData: FormData) {
 
     return { success: true, data: deal };
   } catch (error) {
-    console.error('Update deal error:', error);
     return { success: false, error: 'Failed to update deal' };
   }
 }
@@ -180,7 +175,6 @@ export async function updateOrderStatus(
 
     return { success: true };
   } catch (error) {
-    console.error('Update order status error:', error);
     return { success: false, error: 'Failed to update order status' };
   }
 }
@@ -210,7 +204,6 @@ export async function updateSiteContent(section: string, formData: FormData) {
 
     return { success: true, data: content };
   } catch (error) {
-    console.error('Update site content error:', error);
     return { success: false, error: 'Failed to update site content' };
   }
 }
@@ -233,7 +226,6 @@ export async function toggleReviewVisibility(reviewId: string, isVisible: boolea
 
     return { success: true };
   } catch (error) {
-    console.error('Toggle review visibility error:', error);
     return { success: false, error: 'Failed to toggle review visibility' };
   }
 }
@@ -256,7 +248,6 @@ export async function assignTable(orderId: string, tableId: string) {
 
     return { success: true };
   } catch (error) {
-    console.error('Assign table error:', error);
     return { success: false, error: 'Failed to assign table' };
   }
 }
@@ -273,7 +264,7 @@ export async function releaseTable(tableId: string) {
 
     return { success: true };
   } catch (error) {
-    console.error('Release table error:', error);
     return { success: false, error: 'Failed to release table' };
   }
 }
+

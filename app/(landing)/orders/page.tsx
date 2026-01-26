@@ -116,8 +116,7 @@ export default function OrdersPage() {
       if (error) throw error;
       setOrders(data || []);
     } catch (error) {
-      console.error("Error fetching orders:", error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   }, [user]);

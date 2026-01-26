@@ -139,8 +139,7 @@ export default function PaymentsPage() {
 
       setPayments(paymentRecords);
     } catch (error) {
-      console.error("Error fetching payments:", error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   };

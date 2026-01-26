@@ -179,12 +179,10 @@ export default function MenuPage() {
           
           // Log cache status for debugging
           if (process.env.NODE_ENV === 'development') {
-            console.log(`Menu data ${data.cached ? 'from cache' : 'fresh fetch'}`);
-          }
+            }
         }
       } catch (error) {
-        console.error("Error fetching menu:", error);
-      } finally {
+        } finally {
         setIsLoading(false);
       }
     }
@@ -343,8 +341,7 @@ export default function MenuPage() {
         setItemReviews(data.reviews || []);
       }
     } catch (error) {
-      console.error('Error fetching item reviews:', error);
-    } finally {
+      } finally {
       setLoadingReviews(false);
     }
   };
@@ -380,7 +377,6 @@ export default function MenuPage() {
     try {
       const reviewType = selectedItem ? 'item' : 'meal';
       const token = localStorage.getItem('auth_token');
-      console.log('[Menu Review] Submitting review with token:', token ? `Bearer ${token.substring(0, 20)}...` : 'No token');
       const res = await fetch('/api/customer/reviews', {
         method: 'POST',
         headers: { 

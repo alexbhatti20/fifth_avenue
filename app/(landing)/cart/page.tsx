@@ -124,8 +124,7 @@ export default function CartPage() {
           setOnlinePaymentMethods(data.methods);
         }
       } catch (error) {
-        console.error('Failed to fetch payment methods:', error);
-      } finally {
+        } finally {
         setLoadingPaymentMethods(false);
       }
     };
@@ -148,8 +147,7 @@ export default function CartPage() {
             userData = parsed;
           }
         } catch (e) {
-          console.error('Error parsing stored user:', e);
-        }
+          }
       }
       
       setCustomerInfo((prev) => ({
@@ -212,7 +210,6 @@ export default function CartPage() {
         });
       }
     } catch (error) {
-      console.error("Promo validation error:", error);
       toast({
         title: "Error",
         description: "Failed to validate promo code. Please try again.",

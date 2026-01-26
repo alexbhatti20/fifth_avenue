@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
 
     if (!emailResult.success) {
       // Dev mode fallback
-      console.log('📧 DEV MODE - Password OTP:', otp);
       return NextResponse.json({
         success: true,
         message: 'Verification code sent',
@@ -58,10 +57,10 @@ export async function POST(request: NextRequest) {
       expiresIn: OTP_EXPIRY_MINUTES * 60,
     });
   } catch (error: any) {
-    console.error('Send password OTP error:', error);
     return NextResponse.json(
       { error: 'Failed to send verification code' },
       { status: 500 }
     );
   }
 }
+

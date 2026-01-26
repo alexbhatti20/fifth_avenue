@@ -59,7 +59,6 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('Loyalty fetch error:', error);
       return NextResponse.json({ error: 'Failed to fetch loyalty data' }, { status: 500 });
     }
 
@@ -114,7 +113,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ...response, source: 'database' });
 
   } catch (error) {
-    console.error('Loyalty fetch error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

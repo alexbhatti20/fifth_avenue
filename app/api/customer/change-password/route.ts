@@ -118,7 +118,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Password change request error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -171,7 +170,6 @@ export async function PUT(request: NextRequest) {
     );
 
     if (updateError) {
-      console.error('Password update error:', updateError);
       return NextResponse.json({ error: 'Failed to update password' }, { status: 500 });
     }
 
@@ -196,7 +194,7 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Password change verification error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

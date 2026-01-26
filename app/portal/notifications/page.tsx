@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -270,7 +270,7 @@ export default function NotificationsPage() {
       setNotifications(data);
       setUnreadCount(count);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      
       toast.error('Failed to load notifications');
     } finally {
       setIsLoading(false);
