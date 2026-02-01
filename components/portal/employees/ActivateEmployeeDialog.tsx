@@ -66,7 +66,7 @@ export function ActivateEmployeeDialog({
     setLoading(true);
     try {
       // Activate employee in database
-      const result = await activateEmployee(employee.id, enablePortal, adminId);
+      const result = await activateEmployee(employee.id);
       
       if (!result.success) {
         throw new Error(result.error || 'Failed to activate employee');
@@ -82,7 +82,7 @@ export function ActivateEmployeeDialog({
           employee.name,
           employee.employee_id,
           reason,
-          result.new_license_id || null,
+          null,
           activatedDate
         );
       }

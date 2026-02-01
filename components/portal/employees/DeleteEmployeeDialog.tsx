@@ -48,7 +48,7 @@ export function DeleteEmployeeDialog({
     setLoading(true);
     try {
       // Delete employee cascade
-      const result = await deleteEmployeeCascade(employee.id, adminId);
+      const result = await deleteEmployeeCascade(employee.id);
       
       if (!result.success) {
         throw new Error(result.error || 'Failed to delete employee');
@@ -75,11 +75,7 @@ export function DeleteEmployeeDialog({
         );
       }
 
-      toast.success(`${employee.name} has been deleted`, {
-        description: result.deleted 
-          ? `Deleted ${result.deleted.documents || 0} documents, ${result.deleted.payroll_records || 0} payroll records`
-          : undefined
-      });
+      toast.success(`${employee.name} has been deleted`);
       
       onSuccess();
       onOpenChange(false);

@@ -115,7 +115,8 @@ export async function POST(request: NextRequest) {
     
     // First get or create the auth user
     const { data: authListData } = await adminClient.auth.admin.listUsers();
-    const authUser = authListData?.users?.find(u => u.email === normalizedEmail);
+    const users = authListData?.users ?? [];
+    const authUser = users.find((u: { email?: string }) => u.email === normalizedEmail);
     
     let token = '';
     let refreshToken = '';
@@ -132,9 +133,12 @@ export async function POST(request: NextRequest) {
         email: normalizedEmail,
       });
       
-      if (linkData?.properties?.access_token) {
-        token = linkData.properties.access_token;
-        refreshToken = linkData.properties.refresh_token || '';
+      if (linkData?.properties) {
+        const props = linkData.properties as { access_token?: string; refresh_token?: string };
+        if (props.access_token) {
+          token = props.access_token;
+          refreshToken = props.refresh_token || '';
+        }
       }
     }
 

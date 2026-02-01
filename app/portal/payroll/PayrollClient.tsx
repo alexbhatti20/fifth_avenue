@@ -68,13 +68,17 @@ import {
   type Payslip,
   type PayrollSummary as PayrollSummaryType,
 } from '@/lib/portal-queries';
+import type { PayrollEmployeeServer } from '@/lib/server-queries';
 import type { Employee } from '@/types/portal';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
+// Employee type that can be either server or full type
+type PayrollEmployee = PayrollEmployeeServer | Employee;
+
 interface PayrollClientProps {
   initialPayslips: Payslip[];
-  initialEmployees: Employee[];
+  initialEmployees: PayrollEmployee[];
   initialSummary: PayrollSummaryType | null;
 }
 
@@ -91,7 +95,7 @@ function GeneratePayslipDialog({
   onOpenChange,
   onGenerate,
 }: {
-  employees: Employee[];
+  employees: PayrollEmployee[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onGenerate: (data: {
@@ -511,7 +515,7 @@ export default function PayrollClient({
   initialSummary,
 }: PayrollClientProps) {
   const { employee } = usePortalAuth();
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees.filter(e => e.status === 'active'));
+  const [employees, setEmployees] = useState<PayrollEmployee[]>(initialEmployees.filter(e => e.status === 'active'));
   const [payslips, setPayslips] = useState<Payslip[]>(initialPayslips);
   const [summary, setSummary] = useState<PayrollSummaryType | null>(initialSummary);
   const [isLoading, setIsLoading] = useState(initialPayslips.length === 0);

@@ -8,5 +8,6 @@ export default async function AuditLogsPage() {
   // Fetch initial data server-side (hidden from browser Network tab)
   const logs = await getAuditLogsServer({ limit: 100 });
 
+  // Pass server data directly since AuditClient now accepts AuditLogServer[]
   return <AuditClient initialLogs={logs} />;
 }

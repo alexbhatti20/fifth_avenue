@@ -28,34 +28,33 @@ export async function POST(request: NextRequest) {
       case 'menu':
         await invalidateMenuCache(categoryId);
         // Revalidate Next.js cache for menu pages
-        revalidateTag('menu', {});
+        revalidateTag('menu', 'default');
         revalidatePath('/menu');
         revalidatePath('/portal/menu');
         break;
       case 'deals':
         await invalidateDealsCache();
         // Revalidate Next.js cache for deals
-        revalidateTag('deals', {});
+        revalidateTag('deals', 'default');
         revalidatePath('/menu');
         revalidatePath('/');
         break;
       case 'all':
         await invalidateMenuCache();
         await invalidateDealsCache();
-        revalidateTag('menu', {});
-        revalidateTag('deals', {});
+        revalidateTag('menu', 'default');
+        revalidateTag('deals', 'default');
         revalidatePath('/menu');
         revalidatePath('/');
         break;
       default:
         await invalidateMenuCache();
-        revalidateTag('menu', {});
+        revalidateTag('menu', 'default');
         revalidatePath('/menu');
     }
 
     return NextResponse.json({ success: true, message: `${type || 'menu'} cache invalidated` });
   } catch (error) {
-    console.error('Error invalidating cache:', error);
     return NextResponse.json({ error: 'Failed to invalidate cache' }, { status: 500 });
   }
 }

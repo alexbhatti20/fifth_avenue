@@ -12,11 +12,12 @@ export default async function PayrollPage() {
     getPayrollSummaryServer(),
   ]);
 
+  // Server types are compatible with PayrollClient's PayrollEmployee type
   return (
     <PayrollClient
-      initialPayslips={payslips}
+      initialPayslips={payslips as any}
       initialEmployees={employees}
-      initialSummary={summary}
+      initialSummary={summary as any}
     />
   );
 }

@@ -54,7 +54,8 @@ import {
 } from '@/components/ui/dialog';
 import { SectionHeader, StatsCard, DataTableWrapper } from '@/components/portal/PortalProvider';
 import { usePortalAuth } from '@/hooks/usePortal';
-import { getAuditLogs, type AuditLog } from '@/lib/portal-queries';
+import { getAuditLogs } from '@/lib/portal-queries';
+import type { AuditLogServer } from '@/lib/server-queries';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -63,9 +64,9 @@ type AuditAction =
   | 'login' | 'logout' | 'password_change'
   | 'status_change' | 'export' | 'settings_change';
 
-// Use imported AuditLog type from portal-queries
+// Use AuditLogServer type from server-queries
 // Extend with display fields for local UI
-interface DisplayAuditLog extends AuditLog {
+interface DisplayAuditLog extends AuditLogServer {
   employee_name?: string;
   employee_role?: string;
   resource_name?: string;
@@ -73,7 +74,7 @@ interface DisplayAuditLog extends AuditLog {
 }
 
 interface AuditClientProps {
-  initialLogs: AuditLog[];
+  initialLogs: AuditLogServer[];
 }
 
 const ACTION_CONFIG: Record<AuditAction, { icon: React.ReactNode; color: string; label: string }> = {
@@ -343,14 +344,15 @@ export default function AuditClient({ initialLogs }: AuditClientProps) {
   const fetchLogs = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await getAuditLogs({ limit: 100 });
+      const data = await getAuditLogs(100, 0);
       // Transform to display format
-      const displayLogs: DisplayAuditLog[] = data.map((log) => ({
+      const displayLogs: DisplayAuditLog[] = (data as unknown as AuditLogServer[]).map((log) => ({
         ...log,
         employee_name: log.employee?.name || 'Unknown',
         employee_role: log.employee?.role || 'unknown',
         resource_type: log.table_name,
         resource_name: log.table_name ? `${log.table_name} record` : undefined,
+        record_id: log.record_id,
       }));
       setLogs(displayLogs);
     } catch (error) {

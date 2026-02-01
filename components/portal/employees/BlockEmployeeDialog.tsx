@@ -64,7 +64,7 @@ export function BlockEmployeeDialog({
     setLoading(true);
     try {
       // Block employee in database
-      const result = await blockEmployee(employee.id, reason, adminId);
+      const result = await blockEmployee(employee.id, reason);
       
       if (!result.success) {
         throw new Error(result.error || 'Failed to block employee');

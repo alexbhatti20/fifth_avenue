@@ -58,6 +58,7 @@ import type {
   RestaurantTable,
   PortalOrder,
   BillingStats,
+  BillingStatsServer,
 } from '@/lib/server-queries';
 
 // Date range type
@@ -210,8 +211,8 @@ interface DashboardClientProps {
   initialHourlySales: HourlySalesAdvanced | null;
   initialTables: RestaurantTable[];
   initialOrders: PortalOrder[];
-  initialBillingStats: BillingStats | null;
-  initialPendingBillingOrders: PortalOrder[];
+  initialBillingStats: BillingStatsServer | null;
+  initialPendingBillingOrders: { orders: any[]; pendingCount: number; onlineOrdersCount: number };
 }
 
 // Advanced Sales Chart with beautiful visualization
@@ -1367,20 +1368,34 @@ function BillingDashboard({
   initialBillingStats,
   initialPendingOrders
 }: {
-  initialBillingStats: BillingStats | null;
-  initialPendingOrders: PortalOrder[];
+  initialBillingStats: BillingStatsServer | null;
+  initialPendingOrders: { orders: PortalOrder[]; pendingCount: number; onlineOrdersCount: number };
 }) {
   const { employee } = usePortalAuth();
   const router = useRouter();
-  const [todayStats, setTodayStats] = useState(initialBillingStats || {
-    total_bills: 0,
-    total_amount: 0,
-    cash_amount: 0,
-    card_amount: 0,
-    online_amount: 0,
-    pending_bills: 0,
-  });
-  const [pendingOrders, setPendingOrders] = useState(initialPendingOrders);
+  
+  // Map server stats to display format
+  const mapStats = (stats: BillingStatsServer | null) => {
+    if (!stats) return {
+      total_bills: 0,
+      total_amount: 0,
+      cash_amount: 0,
+      card_amount: 0,
+      online_amount: 0,
+      pending_bills: 0,
+    };
+    return {
+      total_bills: stats.today?.orders_count ?? 0,
+      total_amount: stats.today?.total_revenue ?? 0,
+      cash_amount: stats.today?.cash_revenue ?? stats.cash_today ?? 0,
+      card_amount: stats.today?.card_revenue ?? stats.card_today ?? 0,
+      online_amount: stats.today?.online_revenue ?? stats.online_today ?? 0,
+      pending_bills: stats.pending_count ?? stats.pending_orders ?? 0,
+    };
+  };
+  
+  const [todayStats, setTodayStats] = useState(mapStats(initialBillingStats));
+  const [pendingOrders, setPendingOrders] = useState(initialPendingOrders.orders || []);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
   const handleGenerateBill = (orderId: string) => {
