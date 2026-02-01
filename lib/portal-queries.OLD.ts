@@ -134,14 +134,6 @@ export async function getCurrentEmployee(): Promise<Employee | null> {
     return null;
   }
 
-    id: data.id,
-    name: data.name,
-    phone: data.phone,
-    address: data.address,
-    emergency_contact: data.emergency_contact,
-    avatar_url: data.avatar_url
-  });
-
   // Return the employee data - let the caller check portal_enabled
   return data as Employee;
 }
