@@ -3,7 +3,7 @@
 ### ✅ What's Implemented
 
 #### 1. **Multi-Layer Caching**
-- **Redis (Upstash):** Fast distributed cache for menu, deals, site content
+- **Redis (Upstash):** Fast distributeffd cache for menu, deals, site content
 - **Next.js ISR:** Pre-reaandered pages with automatic revalidation
 - **No Client Cache:** Fresh data on every client request
 
