@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, memo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Menu, X, ShoppingCart, User, Sparkles, Phone, 
   LogOut, Settings, Package, Heart, Award, CreditCard,
-  MapPin, ChevronDown, Bell, History
+  MapPin, ChevronDown, Bell, History, Flame, Star,
+  ArrowRight, Crown
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,24 +18,121 @@ import { BlockedCustomerDialog } from "./BlockedCustomerDialog";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import dynamic from "next/dynamic";
 
-// Dynamically import Lottie to avoid SSR issues
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
+// Dynamically import Lottie to avoid SSR issues - with loading placeholder
+const Lottie = dynamic(() => import("lottie-react"), { 
+  ssr: false,
+  loading: () => <div className="w-5 h-5" /> // Placeholder to prevent layout shift
+});
 
-// Import chicken animation
-import chickenAnimation from "@/public/assets/chicken-lottie.json";
+// Lazy load chicken animation only when needed
+let chickenAnimation: object | null = null;
+const loadChickenAnimation = () => {
+  if (!chickenAnimation) {
+    chickenAnimation = require("@/public/assets/chicken-lottie.json");
+  }
+  return chickenAnimation;
+};
 
 const baseNavLinks = [
-  { name: "Home", path: "/" },
-  { name: "Menu", path: "/menu" },
-  { name: "Reviews", path: "/reviews" },
-  { name: "Contact", path: "/contact" },
+  { name: "Home", path: "/", icon: null },
+  { name: "Menu", path: "/menu", icon: Flame },
+  { name: "Reviews", path: "/reviews", icon: Star },
+  { name: "Contact", path: "/contact", icon: Phone },
 ];
 
-export default function Navbar() {
+// Premium NavLink component with advanced hover effects
+const NavLink = memo(function NavLink({ 
+  link, 
+  isActive, 
+  isScrolled, 
+  isHovered,
+  onMouseEnter,
+  onMouseLeave,
+  shouldReduceMotion 
+}: { 
+  link: { name: string; path: string; icon: any };
+  isActive: boolean;
+  isScrolled: boolean;
+  isHovered: boolean;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  shouldReduceMotion: boolean;
+}) {
+  const Icon = link.icon;
+  
+  return (
+    <Link
+      href={link.path}
+      className="relative px-4 py-2.5 group"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      prefetch={true}
+    >
+      {/* Animated background glow */}
+      <motion.div
+        initial={false}
+        animate={{
+          opacity: isHovered || isActive ? 1 : 0,
+          scale: isHovered || isActive ? 1 : 0.8,
+        }}
+        transition={{ duration: 0.2 }}
+        className={`absolute inset-0 rounded-xl ${
+          isScrolled 
+            ? "bg-gradient-to-r from-primary/15 via-orange-500/10 to-primary/15" 
+            : "bg-white/15 backdrop-blur-sm"
+        }`}
+      />
+      
+      {/* Shimmer effect on hover */}
+      {isHovered && !shouldReduceMotion && (
+        <motion.div
+          initial={{ x: "-100%", opacity: 0 }}
+          animate={{ x: "100%", opacity: 0.3 }}
+          transition={{ duration: 0.6, ease: "easeInOut" }}
+          className={`absolute inset-0 rounded-xl ${
+            isScrolled ? "bg-gradient-to-r from-transparent via-primary/30 to-transparent" : "bg-gradient-to-r from-transparent via-white/40 to-transparent"
+          }`}
+        />
+      )}
+      
+      <span
+        className={`relative z-10 font-semibold transition-all duration-300 flex items-center gap-1.5 ${
+          isActive
+            ? isScrolled ? "text-primary" : "text-white"
+            : isScrolled
+            ? "text-foreground/80 group-hover:text-primary"
+            : "text-white/85 group-hover:text-white"
+        }`}
+      >
+        {Icon && <Icon className={`w-4 h-4 ${isActive ? "text-orange-500" : ""}`} />}
+        {link.name}
+      </span>
+      
+      {/* Active indicator - animated underline */}
+      <motion.div
+        initial={false}
+        animate={{
+          width: isActive ? "60%" : isHovered ? "40%" : "0%",
+          opacity: isActive || isHovered ? 1 : 0,
+        }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 rounded-full ${
+          isScrolled 
+            ? "bg-gradient-to-r from-primary via-orange-500 to-primary" 
+            : "bg-gradient-to-r from-white/50 via-white to-white/50"
+        }`}
+      />
+    </Link>
+  );
+});
+
+function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHoveredLink, setIsHoveredLink] = useState<string | null>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [animationLoaded, setAnimationLoaded] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
@@ -41,24 +140,51 @@ export default function Navbar() {
   const { user, signOut, fastSignOut, isBanned, banReason } = useAuth();
   const shouldReduceMotion = useReducedMotion();
 
+  // Track hydration to prevent mismatch
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  // Lazy load animation after initial render
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadChickenAnimation();
+      setAnimationLoaded(true);
+    }, 1000); // Delay loading animation
+    return () => clearTimeout(timer);
+  }, []);
+
   // Dynamic nav links - show Features only for non-logged-in users
+  // Use baseNavLinks during SSR/initial render to prevent hydration mismatch
   const navLinks = useMemo(() => {
+    // During SSR and initial render, always use baseNavLinks for consistency
+    if (!hasMounted) {
+      return baseNavLinks;
+    }
     if (user) {
       return baseNavLinks;
     }
-    // Insert Features link after Home for non-logged-in users
+    // Insert Features link after Home for non-logged-in users (client-side only)
     return [
       baseNavLinks[0], // Home
-      { name: "Features", path: "/features" },
+      { name: "Features", path: "/features", icon: Star },
       ...baseNavLinks.slice(1), // Menu, Reviews, Contact
     ];
-  }, [user]);
+  }, [user, hasMounted]);
 
   useEffect(() => {
+    // Throttled scroll handler for performance
+    let ticking = false;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          setIsScrolled(window.scrollY > 50);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -85,7 +211,7 @@ export default function Navbar() {
   };
 
   // User dropdown menu items
-  const userMenuItems = [
+  const userMenuItems = useMemo(() => [
     { icon: Package, label: "My Orders", href: "/orders", color: "text-blue-500" },
     { icon: History, label: "Order History", href: "/orders/history", color: "text-purple-500" },
     { icon: MapPin, label: "Track Order", href: "/orders/track", color: "text-green-500" },
@@ -93,284 +219,302 @@ export default function Navbar() {
     { icon: CreditCard, label: "Payments", href: "/payments", color: "text-emerald-500" },
     { icon: Heart, label: "Favorites", href: "/favorites", color: "text-red-500" },
     { icon: Settings, label: "Settings", href: "/settings", color: "text-gray-500" },
-  ];
+  ], []);
 
   return (
     <motion.header
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      initial={{ y: -100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         isScrolled
-          ? "bg-background/95 backdrop-blur-md shadow-lg py-1"
-          : "bg-gradient-to-r from-primary via-primary to-orange-500 shadow-md py-0"
+          ? "bg-background/80 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] border-b border-white/10 py-1"
+          : "bg-gradient-to-r from-primary via-primary/95 to-orange-600 py-0"
       }`}
     >
-      {/* Top promotional bar - only show when not scrolled */}
-      <AnimatePresence>
-        {!isScrolled && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="bg-foreground/10 backdrop-blur-sm border-b border-white/10 overflow-hidden"
-          >
-            <div className="container-custom py-1.5">
-              <div className="flex items-center justify-center gap-4 text-xs text-white/90">
-                <motion.div 
-                  className="flex items-center gap-1"
-                  animate={shouldReduceMotion ? undefined : { scale: [1, 1.05, 1] }}
-                  transition={shouldReduceMotion ? undefined : { duration: 2, repeat: Infinity }}
-                >
-                  <Sparkles className="w-3 h-3 text-yellow-300" />
-                  <span>Free delivery on orders above Rs. 1500</span>
-                </motion.div>
-                <span className="hidden sm:inline text-white/50">|</span>
-                <div className="hidden sm:flex items-center gap-1">
-                  <Phone className="w-3 h-3" />
-                  <span>Call: 0300-1234567</span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <nav className="container-custom">
+      {/* Animated gradient border at bottom when scrolled */}
+      {isScrolled && (
+        <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+      )}
+      
+      {/* Premium glass effect overlay */}
+      <div className={`absolute inset-0 transition-opacity duration-500 ${
+        isScrolled ? "opacity-0" : "opacity-100"
+      }`}>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.1)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(249,115,22,0.2)_0%,transparent_50%)]" />
+      </div>
+      
+      <nav className="container-custom relative">
         <div className="flex items-center justify-between h-16 md:h-20">
-          {/* Logo with Image */}
-          <Link href="/" className="flex items-center gap-2">
+          {/* Logo with Premium Image */}
+          <Link href="/" className="flex items-center gap-3 group">
             <motion.div
-              whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
-              whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
-              className="flex items-center gap-2"
+              whileHover={shouldReduceMotion ? undefined : { scale: 1.02 }}
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
+              className="flex items-center gap-3"
             >
-              {/* Logo Image */}
+              {/* Logo Image with glow effect */}
               <motion.div 
-                className="w-12 h-12 md:w-14 md:h-14 relative rounded-xl overflow-hidden shadow-lg"
-                animate={shouldReduceMotion ? undefined : { rotate: [0, 2, -2, 0] }}
-                transition={shouldReduceMotion ? undefined : { duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="relative"
+                animate={shouldReduceMotion ? undefined : { rotate: [0, 1, -1, 0] }}
+                transition={shouldReduceMotion ? undefined : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
               >
-                <img 
-                  src="/assets/zoiro-logo.png" 
-                  alt="ZOIRO Broast"
-                  className="w-full h-full object-cover"
-                />
+                {/* Glow effect behind logo */}
+                <div className={`absolute inset-0 rounded-2xl blur-xl transition-opacity duration-300 ${
+                  isScrolled ? "bg-primary/30 opacity-0 group-hover:opacity-100" : "bg-white/20 opacity-50"
+                }`} />
+                <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-2xl overflow-hidden shadow-xl ring-2 ring-white/20 group-hover:ring-white/40 transition-all duration-300">
+                  <Image 
+                    src="/assets/zoiro-logo.png" 
+                    alt="ZOIRO Broast"
+                    fill
+                    sizes="56px"
+                    className="object-cover"
+                    priority
+                  />
+                </div>
               </motion.div>
               
-              {/* Logo Text */}
+              {/* Logo Text with enhanced styling */}
               <div className="flex flex-col leading-none">
-                <span className={`text-2xl md:text-3xl font-bebas tracking-wider transition-colors ${
-                  isScrolled ? "text-primary" : "text-white"
+                <span className={`text-2xl md:text-3xl font-bebas tracking-wider transition-all duration-300 ${
+                  isScrolled ? "text-primary" : "text-white drop-shadow-lg"
                 }`}>
                   ZOIRO
                 </span>
-                <span className={`text-[8px] md:text-[10px] font-medium tracking-widest transition-colors ${
-                  isScrolled ? "text-muted-foreground" : "text-white/70"
+                <span className={`text-[8px] md:text-[10px] font-semibold tracking-[0.25em] uppercase transition-all duration-300 ${
+                  isScrolled ? "text-muted-foreground" : "text-white/80"
                 }`}>
-                  BROAST
+                  Premium Broast
                 </span>
               </div>
             </motion.div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link, index) => (
-              <Link
-                key={link.path}
-                href={link.path}
-                className="relative px-4 py-2"
-                onMouseEnter={() => setIsHoveredLink(link.path)}
-                onMouseLeave={() => setIsHoveredLink(null)}
-              >
-                {/* Background highlight */}
-                <motion.div
-                  className={`absolute inset-0 rounded-full ${isScrolled ? "bg-primary/10" : "bg-white/10"}`}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{
-                    scale: isHoveredLink === link.path || pathname === link.path ? 1 : 0,
-                    opacity: isHoveredLink === link.path || pathname === link.path ? 1 : 0,
-                  }}
-                  transition={{ duration: 0.2 }}
+          {/* Desktop Navigation - Premium Glass Pill Container */}
+          <div className="hidden md:flex items-center">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded-2xl transition-all duration-300 ${
+                isScrolled 
+                  ? "bg-secondary/50 backdrop-blur-sm border border-border/50" 
+                  : "bg-white/10 backdrop-blur-md border border-white/20"
+              }`}
+            >
+              {navLinks.map((link) => (
+                <NavLink
+                  key={link.path}
+                  link={link}
+                  isActive={pathname === link.path}
+                  isScrolled={isScrolled}
+                  isHovered={isHoveredLink === link.path}
+                  onMouseEnter={() => setIsHoveredLink(link.path)}
+                  onMouseLeave={() => setIsHoveredLink(null)}
+                  shouldReduceMotion={shouldReduceMotion}
                 />
-                
-                <motion.span
-                  className={`relative z-10 font-medium transition-colors ${
-                    pathname === link.path
-                      ? isScrolled ? "text-primary font-bold" : "text-white font-bold"
-                      : isScrolled
-                      ? "text-foreground hover:text-primary"
-                      : "text-white/90 hover:text-white"
-                  }`}
-                  animate={{
-                    y: isHoveredLink === link.path ? -2 : 0,
-                  }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {link.name}
-                </motion.span>
-                
-                {/* Active indicator dot */}
-                {pathname === link.path && (
-                  <motion.div
-                    layoutId="activeIndicator"
-                    className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${
-                      isScrolled ? "bg-primary" : "bg-white"
-                    }`}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-              </Link>
-            ))}
+              ))}
+            </motion.div>
           </div>
 
-          {/* Right Side Actions */}
-          <div className="flex items-center gap-1 md:gap-2">
-            {/* Order Now Button - Desktop */}
-            <motion.div 
-              className="hidden lg:block"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Link href="/menu">
-                <Button 
-                  className={`rounded-full px-5 font-semibold ${
-                    isScrolled 
-                      ? "bg-primary hover:bg-primary/90 text-white" 
-                      : "bg-white text-primary hover:bg-white/90"
-                  }`}
+          {/* Right Side Actions - Premium Styling */}
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* Order Now Button - Desktop with premium hover effect */}
+            <div className="hidden lg:block">
+              <Link href="/menu" prefetch={true}>
+                <motion.div
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="relative group"
                 >
-                  <Sparkles className="w-4 h-4 mr-1" />
-                  Order Now
-                </Button>
+                  {/* Glow effect */}
+                  <div className={`absolute -inset-1 rounded-full blur-lg transition-all duration-300 opacity-0 group-hover:opacity-100 ${
+                    isScrolled ? "bg-primary/40" : "bg-white/30"
+                  }`} />
+                  <Button 
+                    className={`relative rounded-full px-6 py-2.5 font-bold text-sm transition-all duration-300 overflow-hidden ${
+                      isScrolled 
+                        ? "bg-gradient-to-r from-primary via-primary to-orange-500 hover:shadow-lg hover:shadow-primary/25 text-white border-0" 
+                        : "bg-white hover:bg-white/95 text-primary shadow-xl"
+                    }`}
+                  >
+                    {/* Shimmer effect */}
+                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                    <Flame className="w-4 h-4 mr-1.5 text-orange-500" />
+                    <span className="relative">Order Now</span>
+                    <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
+                  </Button>
+                </motion.div>
               </Link>
-            </motion.div>
+            </div>
 
-            {/* Profile / User Menu - Shows when logged in */}
-            {user ? (
-              <div className="relative" ref={userMenuRef}>
+            {/* Profile / User Menu - Premium Design (Desktop Only) */}
+            {hasMounted && user ? (
+              <div className="relative hidden md:block" ref={userMenuRef}>
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-full transition-colors ${
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-2xl transition-all duration-300 ${
                     !isScrolled
-                      ? "text-white hover:bg-white/20"
-                      : "text-foreground hover:bg-primary/10"
-                  }`}
+                      ? "text-white hover:bg-white/15 backdrop-blur-sm"
+                      : "text-foreground hover:bg-secondary/80"
+                  } ${isUserMenuOpen ? (isScrolled ? "bg-secondary" : "bg-white/20") : ""}`}
                 >
-                  {/* User Avatar with green online indicator */}
+                  {/* Premium User Avatar with animated ring */}
                   <div className="relative">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm ${
-                      isScrolled ? "bg-primary text-white" : "bg-white text-primary"
+                    <div className={`absolute -inset-1 rounded-full transition-all duration-300 ${
+                      isUserMenuOpen 
+                        ? "bg-gradient-to-r from-primary via-orange-500 to-primary animate-spin-slow opacity-100" 
+                        : "opacity-0"
+                    }`} style={{ animationDuration: "3s" }} />
+                    <div className={`relative w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ring-2 transition-all duration-300 ${
+                      isScrolled 
+                        ? "bg-gradient-to-br from-primary to-orange-500 text-white ring-primary/30" 
+                        : "bg-white text-primary ring-white/50"
                     }`}>
                       {user.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
-                    {/* Online indicator */}
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                    {/* Premium online indicator with pulse */}
+                    <div className="absolute -bottom-0.5 -right-0.5">
+                      <span className="relative flex h-3.5 w-3.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-green-500 border-2 border-background"></span>
+                      </span>
+                    </div>
                   </div>
-                  <span className="hidden lg:block font-medium max-w-[100px] truncate">
-                    {user.name?.split(' ')[0] || 'User'}
-                  </span>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+                  <div className="hidden lg:flex flex-col items-start">
+                    <span className="font-semibold text-sm max-w-[100px] truncate leading-tight">
+                      {user.name?.split(' ')[0] || 'User'}
+                    </span>
+                    <span className={`text-[10px] leading-tight ${isScrolled ? "text-muted-foreground" : "text-white/70"}`}>
+                      Premium Member
+                    </span>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                 </motion.button>
 
-                {/* User Dropdown Menu */}
+                {/* Premium User Dropdown Menu */}
                 <AnimatePresence>
                   {isUserMenuOpen && (
                     <motion.div
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-64 bg-background rounded-2xl shadow-xl border overflow-hidden z-50"
+                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                      className="absolute right-0 mt-3 w-72 bg-background/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-border/50 overflow-hidden z-50"
                     >
-                      {/* User Info Header */}
-                      <div className="p-4 bg-gradient-to-r from-primary/10 to-orange-500/10 border-b">
-                        <div className="flex items-center gap-3">
+                      {/* Premium User Info Header with gradient */}
+                      <div className="relative p-5 bg-gradient-to-br from-primary/15 via-orange-500/10 to-primary/5 border-b border-border/50">
+                        {/* Decorative circles */}
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-orange-500/10 rounded-full blur-2xl" />
+                        <div className="absolute bottom-0 left-0 w-16 h-16 bg-primary/10 rounded-full blur-xl" />
+                        
+                        <div className="relative flex items-center gap-4">
                           <div className="relative">
-                            <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center text-xl font-bold">
+                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-orange-500 text-white flex items-center justify-center text-2xl font-bold shadow-lg">
                               {user.name?.charAt(0).toUpperCase() || 'U'}
                             </div>
-                            {/* Online indicator */}
-                            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background" />
+                            {/* Crown badge for premium feel */}
+                            <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                              <Crown className="w-3.5 h-3.5 text-white" />
+                            </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold truncate">{user.name}</p>
+                            <p className="font-bold text-lg truncate">{user.name}</p>
                             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                            <div className="flex items-center gap-1 mt-1">
+                              <div className="w-2 h-2 rounded-full bg-green-500" />
+                              <span className="text-[10px] text-green-600 font-medium">Active Now</span>
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Menu Items */}
-                      <div className="py-2">
+                      {/* Menu Items with premium styling */}
+                      <div className="py-2 px-2">
                         {userMenuItems.map((item, index) => (
                           <motion.div
                             key={item.href}
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
+                            transition={{ delay: index * 0.03 }}
                           >
                             <Link
                               href={item.href}
-                              className="flex items-center gap-3 px-4 py-2.5 hover:bg-secondary transition-colors"
+                              className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/80 rounded-xl transition-all duration-200 group"
                               onClick={() => setIsUserMenuOpen(false)}
                             >
-                              <item.icon className={`h-5 w-5 ${item.color}`} />
-                              <span className="font-medium">{item.label}</span>
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 ${
+                                item.color.replace("text-", "bg-").replace("500", "100")
+                              } group-hover:scale-110`}>
+                                <item.icon className={`h-4.5 w-4.5 ${item.color}`} />
+                              </div>
+                              <span className="font-medium text-sm">{item.label}</span>
+                              <ArrowRight className="w-4 h-4 ml-auto opacity-0 -translate-x-2 group-hover:opacity-50 group-hover:translate-x-0 transition-all" />
                             </Link>
                           </motion.div>
                         ))}
                       </div>
 
-                      {/* Sign Out */}
-                      <div className="border-t p-2">
-                        <button
+                      {/* Sign Out - Premium styling */}
+                      <div className="border-t border-border/50 p-2">
+                        <motion.button
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.99 }}
                           onClick={handleSignOut}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all duration-200 group"
                         >
-                          <LogOut className="h-5 w-5" />
-                          <span className="font-medium">Sign Out</span>
-                        </button>
+                          <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                            <LogOut className="h-4.5 w-4.5" />
+                          </div>
+                          <span className="font-semibold text-sm">Sign Out</span>
+                        </motion.button>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-            ) : (
-              <Link href="/auth">
-                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+            ) : hasMounted ? (
+              <Link href="/auth" className="hidden md:block">
+                <motion.div 
+                  whileHover={{ scale: 1.05 }} 
+                  whileTap={{ scale: 0.95 }}
+                  className="relative group"
+                >
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={`rounded-full ${
+                    className={`rounded-xl w-11 h-11 transition-all duration-300 ${
                       !isScrolled
-                        ? "text-white hover:text-white hover:bg-white/20"
-                        : "hover:bg-primary/10"
+                        ? "text-white hover:text-white hover:bg-white/20 backdrop-blur-sm"
+                        : "hover:bg-secondary"
                     }`}
                   >
                     <User className="h-5 w-5" />
                   </Button>
                 </motion.div>
               </Link>
+            ) : (
+              // Placeholder during SSR/hydration to prevent mismatch
+              <div className="hidden md:block w-11 h-11" />
             )}
-
-            {/* Cart */}
+            {/* Premium Cart Button */}
             <Link href="/cart">
               <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="relative"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="relative group"
               >
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className={`relative rounded-full ${
+                  className={`relative rounded-xl w-11 h-11 transition-all duration-300 ${
                     !isScrolled 
-                      ? "text-white hover:text-white hover:bg-white/20" 
-                      : "hover:bg-primary/10"
+                      ? "text-white hover:text-white hover:bg-white/20 backdrop-blur-sm" 
+                      : "hover:bg-secondary"
                   }`}
                 >
                   <ShoppingCart className="h-5 w-5" />
@@ -378,33 +522,39 @@ export default function Navbar() {
                     <motion.span
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className={`absolute -top-1 -right-1 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center ${
+                      className={`absolute -top-1 -right-1 text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center shadow-lg ${
                         isScrolled 
-                          ? "bg-primary text-primary-foreground" 
+                          ? "bg-gradient-to-r from-primary to-orange-500 text-white" 
                           : "bg-white text-primary"
                       }`}
                     >
-                      {totalItems}
+                      {totalItems > 99 ? '99+' : totalItems}
                     </motion.span>
                   )}
                 </Button>
+                {/* Pulse ring for items in cart */}
+                {totalItems > 0 && (
+                  <span className={`absolute -top-1 -right-1 w-5 h-5 rounded-full animate-ping ${
+                    isScrolled ? "bg-primary/30" : "bg-white/30"
+                  }`} />
+                )}
               </motion.div>
             </Link>
 
-            {/* Mobile Menu Button */}
+            {/* Premium Mobile Menu Button */}
             <Button
               variant="ghost"
               size="icon"
-              className={`md:hidden rounded-full ${
+              className={`md:hidden rounded-xl w-11 h-11 transition-all duration-300 ${
                 !isScrolled 
-                  ? "text-white hover:text-white hover:bg-white/20" 
-                  : "hover:bg-primary/10"
+                  ? "text-white hover:text-white hover:bg-white/20 backdrop-blur-sm" 
+                  : "hover:bg-secondary"
               }`}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               <motion.div
-                animate={{ rotate: isMobileMenuOpen ? 90 : 0 }}
-                transition={{ duration: 0.2 }}
+                animate={{ rotate: isMobileMenuOpen ? 180 : 0 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               >
                 {isMobileMenuOpen ? (
                   <X className="h-6 w-6" />
@@ -417,129 +567,164 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Premium Mobile Menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="md:hidden bg-background border-t shadow-lg overflow-hidden"
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="md:hidden bg-background/95 backdrop-blur-xl border-t border-border/50 shadow-2xl overflow-hidden"
           >
-            <div className="container-custom py-4 flex flex-col gap-2">
-              {/* User Info - Mobile */}
+            <div className="container-custom py-5 flex flex-col gap-2">
+              {/* Premium User Info - Mobile */}
               {user && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mb-4 p-4 bg-gradient-to-r from-primary/10 to-orange-500/10 rounded-2xl"
+                  className="mb-4 p-5 bg-gradient-to-br from-primary/15 via-orange-500/10 to-primary/5 rounded-3xl border border-primary/10 relative overflow-hidden"
                 >
-                  <div className="flex items-center gap-3">
+                  {/* Decorative elements */}
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl" />
+                  
+                  <div className="relative flex items-center gap-4">
                     <div className="relative">
-                      <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center text-xl font-bold">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-orange-500 text-white flex items-center justify-center text-2xl font-bold shadow-lg">
                         {user.name?.charAt(0).toUpperCase() || 'U'}
                       </div>
-                      {/* Online indicator */}
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background" />
+                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                        <Crown className="w-3.5 h-3.5 text-white" />
+                      </div>
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold">{user.name}</p>
+                      <p className="font-bold text-lg">{user.name}</p>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        <span className="text-[11px] text-green-600 font-medium">Active Now</span>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
               )}
 
-              {navLinks.map((link, index) => (
-                <motion.div
-                  key={link.path}
-                  initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={shouldReduceMotion ? { duration: 0.1 } : { delay: index * 0.1 }}
-                >
-                  <Link
-                    href={link.path}
-                    className={`flex items-center gap-3 py-3 px-4 rounded-xl text-lg font-medium transition-colors ${
-                      pathname === link.path
-                        ? "text-primary bg-primary/10"
-                        : "text-foreground hover:bg-secondary"
-                    }`}
-                  >
-                    {pathname === link.path && (
-                      <motion.div
-                        layoutId="mobileActive"
-                        className="w-1 h-6 bg-primary rounded-full"
-                      />
-                    )}
-                    {link.name}
-                  </Link>
-                </motion.div>
-              ))}
-
-              {/* User Menu Items - Mobile */}
-              {user && (
-                <>
-                  <div className="my-2 border-t pt-2">
-                    <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      My Account
-                    </p>
-                  </div>
-                  {userMenuItems.map((item, index) => (
+              {/* Premium Nav Links - Mobile */}
+              <div className="space-y-1">
+                {navLinks.map((link, index) => {
+                  const Icon = link.icon;
+                  return (
                     <motion.div
-                      key={item.href}
+                      key={link.path}
                       initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={shouldReduceMotion ? { duration: 0.1 } : { delay: (navLinks.length + index) * 0.1 }}
+                      transition={shouldReduceMotion ? { duration: 0.1 } : { delay: index * 0.08 }}
                     >
                       <Link
-                        href={item.href}
-                        className="flex items-center gap-3 py-3 px-4 rounded-xl text-lg font-medium transition-colors text-foreground hover:bg-secondary"
+                        href={link.path}
+                        className={`flex items-center gap-4 py-3.5 px-4 rounded-2xl text-base font-semibold transition-all duration-200 ${
+                          pathname === link.path
+                            ? "text-primary bg-primary/10 shadow-sm"
+                            : "text-foreground hover:bg-secondary/80"
+                        }`}
                       >
-                        <item.icon className={`h-5 w-5 ${item.color}`} />
-                        {item.label}
+                        {pathname === link.path && (
+                          <motion.div
+                            layoutId="mobileActive"
+                            className="w-1 h-6 bg-gradient-to-b from-primary to-orange-500 rounded-full"
+                          />
+                        )}
+                        {Icon && (
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                            pathname === link.path ? "bg-primary/20" : "bg-secondary"
+                          }`}>
+                            <Icon className={`w-4.5 h-4.5 ${pathname === link.path ? "text-primary" : "text-muted-foreground"}`} />
+                          </div>
+                        )}
+                        {link.name}
                       </Link>
                     </motion.div>
-                  ))}
+                  );
+                })}
+              </div>
+
+              {/* Premium User Menu Items - Mobile */}
+              {user && (
+                <>
+                  <div className="my-3 border-t border-border/50 pt-3">
+                    <p className="px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-8 h-[1px] bg-border/50" />
+                      My Account
+                      <span className="flex-1 h-[1px] bg-border/50" />
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    {userMenuItems.map((item, index) => (
+                      <motion.div
+                        key={item.href}
+                        initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={shouldReduceMotion ? { duration: 0.1 } : { delay: (navLinks.length + index) * 0.08 }}
+                      >
+                        <Link
+                          href={item.href}
+                          className="flex items-center gap-4 py-3.5 px-4 rounded-2xl text-base font-semibold transition-all duration-200 text-foreground hover:bg-secondary/80"
+                        >
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                            item.color.replace("text-", "bg-").replace("500", "100")
+                          }`}>
+                            <item.icon className={`h-4.5 w-4.5 ${item.color}`} />
+                          </div>
+                          {item.label}
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </div>
                   <motion.div
                     initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={shouldReduceMotion ? { duration: 0.1 } : { delay: (navLinks.length + userMenuItems.length) * 0.1 }}
+                    transition={shouldReduceMotion ? { duration: 0.1 } : { delay: (navLinks.length + userMenuItems.length) * 0.08 }}
+                    className="mt-2"
                   >
                     <button
                       onClick={handleSignOut}
-                      className="w-full flex items-center gap-3 py-3 px-4 rounded-xl text-lg font-medium text-red-500 hover:bg-red-500/10 transition-colors"
+                      className="w-full flex items-center gap-4 py-3.5 px-4 rounded-2xl text-base font-semibold text-red-500 hover:bg-red-500/10 transition-all duration-200"
                     >
-                      <LogOut className="h-5 w-5" />
+                      <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center">
+                        <LogOut className="h-4.5 w-4.5" />
+                      </div>
                       Sign Out
                     </button>
                   </motion.div>
                 </>
               )}
 
+              {/* Premium Order Now Button - Mobile */}
               <motion.div
-                initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={shouldReduceMotion ? { duration: 0.1 } : { delay: 0.4 }}
-                className="pt-2"
+                className="pt-4 mt-2"
               >
                 <Link href="/menu">
-                  <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:opacity-90 rounded-xl py-6 text-lg">
-                    <Sparkles className="w-5 h-5 mr-2" />
+                  <Button className="w-full bg-gradient-to-r from-primary via-primary to-orange-500 hover:opacity-90 rounded-2xl py-6 text-base font-bold shadow-lg shadow-primary/25 relative overflow-hidden group">
+                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                    <Flame className="w-5 h-5 mr-2 text-orange-200" />
                     Order Now
+                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
               </motion.div>
 
-              {/* Login Button - Mobile (when not logged in) */}
+              {/* Premium Login Button - Mobile (when not logged in) */}
               {!user && (
                 <motion.div
-                  initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={shouldReduceMotion ? { duration: 0.1 } : { delay: 0.5 }}
                 >
                   <Link href="/auth">
-                    <Button variant="outline" className="w-full rounded-xl py-6 text-lg">
+                    <Button variant="outline" className="w-full rounded-2xl py-6 text-base font-bold border-2 hover:bg-secondary/50 transition-all">
                       <User className="w-5 h-5 mr-2" />
                       Login / Sign Up
                     </Button>
@@ -561,3 +746,6 @@ export default function Navbar() {
     </motion.header>
   );
 }
+
+// Export memoized Navbar to prevent unnecessary re-renders
+export default memo(Navbar);

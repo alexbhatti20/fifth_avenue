@@ -17,6 +17,88 @@ export interface UploadResult {
   error?: string;
 }
 
+// Image compression options
+export interface CompressionOptions {
+  maxWidth?: number;
+  maxHeight?: number;
+  quality?: number; // 0-1
+  format?: 'jpeg' | 'webp' | 'png';
+}
+
+const DEFAULT_COMPRESSION: CompressionOptions = {
+  maxWidth: 1200,
+  maxHeight: 1200,
+  quality: 0.8,
+  format: 'webp',
+};
+
+/**
+ * Compress an image before upload
+ * @param file - Original file
+ * @param options - Compression options
+ * @returns Compressed file blob
+ */
+export async function compressImage(
+  file: File,
+  options: CompressionOptions = DEFAULT_COMPRESSION
+): Promise<Blob> {
+  const { maxWidth = 1200, maxHeight = 1200, quality = 0.8, format = 'webp' } = options;
+  
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      reject(new Error('Canvas context not available'));
+      return;
+    }
+    
+    img.onload = () => {
+      // Calculate new dimensions maintaining aspect ratio
+      let { width, height } = img;
+      
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      
+      if (height > maxHeight) {
+        width = (width * maxHeight) / height;
+        height = maxHeight;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Draw and compress
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to compress image'));
+          }
+        },
+        `image/${format}`,
+        quality
+      );
+    };
+    
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/**
+ * Check if file is an image
+ */
+export function isImageFile(file: File): boolean {
+  return file.type.startsWith('image/');
+}
+
 /**
  * Get the public URL for a storage file
  */
@@ -36,24 +118,46 @@ export function generateFileName(originalName: string): string {
 }
 
 /**
- * Upload an image to the images bucket
+ * Upload an image to the images bucket with compression
  * @param file - File to upload
  * @param folder - Folder within images bucket (menu, deals, categories, site)
+ * @param compress - Whether to compress the image (default: true)
+ * @param compressionOptions - Custom compression options
  * @returns Upload result with public URL
  */
 export async function uploadImage(
   file: File,
-  folder: ImageFolder
+  folder: ImageFolder,
+  compress: boolean = true,
+  compressionOptions?: CompressionOptions
 ): Promise<UploadResult> {
   try {
-    const fileName = generateFileName(file.name);
+    let uploadFile: Blob | File = file;
+    let extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    
+    // Compress image if it's an image file and compression is enabled
+    if (compress && isImageFile(file)) {
+      try {
+        const options = { ...DEFAULT_COMPRESSION, ...compressionOptions };
+        uploadFile = await compressImage(file, options);
+        extension = options.format || 'webp';
+      } catch (compressError) {
+        console.warn('Image compression failed, uploading original:', compressError);
+        // Continue with original file if compression fails
+      }
+    }
+    
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(2, 8);
+    const fileName = `${timestamp}_${randomStr}.${extension}`;
     const filePath = `${folder}/${fileName}`;
 
     const { data, error } = await supabase.storage
       .from('images')
-      .upload(filePath, file, {
+      .upload(filePath, uploadFile, {
         cacheControl: '3600',
         upsert: false,
+        contentType: `image/${extension}`,
       });
 
     if (error) {

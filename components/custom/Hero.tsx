@@ -2,6 +2,7 @@
 
 import { motion, useScroll, useTransform, useMotionValue, useSpring, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Star, Sparkles, ChefHat, Timer, Flame, Utensils, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRef, useState, useEffect } from "react";
@@ -121,7 +122,7 @@ export default function Hero() {
   const contentOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   return (
-    <section ref={containerRef} className="relative min-h-screen flex items-center overflow-hidden">
+    <section ref={containerRef} className="relative min-h-screen flex items-center overflow-hidden pt-20">
       {/* Background Image with Parallax */}
       <motion.div 
         className="absolute inset-0 z-0 bg-zinc-900"
@@ -460,11 +461,14 @@ export default function Hero() {
               whileHover={isMobileDevice ? undefined : { scale: 1.1, rotate: 5 }}
               className="relative"
             >
-              <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20">
-                <img 
+              <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 relative">
+                <Image 
                   src="/assets/zoiro-logo.png" 
                   alt="ZOIRO Broast Logo"
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="112px"
+                  className="object-cover"
+                  priority
                 />
               </div>
               {/* Animated ring around logo - only on desktop */}

@@ -24,8 +24,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/context/CartContext";
 import { useFavorites } from "@/context/FavoritesContext";
-import Navbar from "@/components/custom/Navbar";
-import Footer from "@/components/custom/Footer";
 
 export default function FavoritesPage() {
   const router = useRouter();
@@ -60,12 +58,19 @@ export default function FavoritesPage() {
     },
     exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } },
   };
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+
+  // Delay auth check to allow localStorage to be read
+  useEffect(() => {
+    const timer = setTimeout(() => setHasCheckedAuth(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (hasCheckedAuth && !authLoading && !user) {
       router.push("/auth");
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, hasCheckedAuth]);
 
   // Load full details when page loads
   useEffect(() => {
@@ -120,9 +125,7 @@ export default function FavoritesPage() {
 
   if (authLoading || isLoading) {
     return (
-      <>
-        <Navbar />
-        <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -130,14 +133,11 @@ export default function FavoritesPage() {
             <RefreshCw className="w-8 h-8 text-primary" />
           </motion.div>
         </div>
-      </>
     );
   }
 
   return (
-    <>
-      <Navbar />
-      <main className="min-h-screen pt-32 pb-16 bg-gradient-to-b from-background to-secondary/20">
+    <div className="min-h-screen pt-32 pb-16 bg-gradient-to-b from-background to-secondary/20">
         <div className="container mx-auto px-4">
           {/* Back Button */}
           <Button
@@ -377,8 +377,6 @@ export default function FavoritesPage() {
             </motion.div>
           )}
         </div>
-      </main>
-      <Footer />
-    </>
+      </div>
   );
 }

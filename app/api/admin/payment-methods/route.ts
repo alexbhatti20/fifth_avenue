@@ -17,7 +17,7 @@ async function verifyAdminAccess(request: NextRequest) {
   }
 
   try {
-    const decoded = verifyToken(token);
+    const decoded = await verifyToken(token);
     if (!decoded || !decoded.userId) {
       return { error: 'Unauthorized - Invalid token', status: 401 };
     }
@@ -62,7 +62,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    const { data, error } = await supabase.rpc('get_all_payment_methods');
+    // Use internal RPC (SECURITY DEFINER bypasses RLS, API already verified admin)
+    const { data, error } = await supabase.rpc('get_all_payment_methods_internal');
 
     if (error) {
       return NextResponse.json(
@@ -71,17 +72,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!data?.success) {
-      return NextResponse.json(
-        { success: false, error: data?.error || 'Unknown error' },
-        { status: data?.error === 'Unauthorized' ? 403 : 500 }
-      );
-    }
-
     return NextResponse.json({
       success: true,
-      methods: data.methods || [],
-      stats: data.stats || {},
+      methods: data?.methods || [],
+      stats: data?.stats || {},
     });
   } catch (error) {
     return NextResponse.json(
@@ -118,7 +112,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase.rpc('create_payment_method', {
+    // Use internal RPC (SECURITY DEFINER bypasses RLS)
+    const { data, error } = await supabase.rpc('create_payment_method_internal', {
       p_method_type: method_type,
       p_method_name: method_name,
       p_account_number: account_number,
@@ -128,17 +123,10 @@ export async function POST(request: NextRequest) {
       p_display_order: display_order,
     });
 
-    if (error) {
+    if (error || !data?.success) {
       return NextResponse.json(
-        { success: false, error: 'Failed to create payment method' },
+        { success: false, error: data?.error || 'Failed to create payment method' },
         { status: 500 }
-      );
-    }
-
-    if (!data?.success) {
-      return NextResponse.json(
-        { success: false, error: data?.error || 'Unknown error' },
-        { status: 400 }
       );
     }
 
@@ -185,7 +173,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase.rpc('update_payment_method', {
+    // Use internal RPC (SECURITY DEFINER bypasses RLS)
+    const { data, error } = await supabase.rpc('update_payment_method_internal', {
       p_id: id,
       p_method_type: method_type || null,
       p_method_name: method_name || null,
@@ -196,17 +185,10 @@ export async function PUT(request: NextRequest) {
       p_display_order: display_order,
     });
 
-    if (error) {
+    if (error || !data?.success) {
       return NextResponse.json(
-        { success: false, error: 'Failed to update payment method' },
+        { success: false, error: data?.error || 'Failed to update payment method' },
         { status: 500 }
-      );
-    }
-
-    if (!data?.success) {
-      return NextResponse.json(
-        { success: false, error: data?.error || 'Unknown error' },
-        { status: 400 }
       );
     }
 
@@ -243,21 +225,15 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase.rpc('delete_payment_method', {
+    // Use internal RPC (SECURITY DEFINER bypasses RLS)
+    const { data, error } = await supabase.rpc('delete_payment_method_internal', {
       p_id: id,
     });
 
-    if (error) {
+    if (error || !data?.success) {
       return NextResponse.json(
-        { success: false, error: 'Failed to delete payment method' },
+        { success: false, error: data?.error || 'Failed to delete payment method' },
         { status: 500 }
-      );
-    }
-
-    if (!data?.success) {
-      return NextResponse.json(
-        { success: false, error: data?.error || 'Unknown error' },
-        { status: 400 }
       );
     }
 
@@ -294,22 +270,16 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase.rpc('toggle_payment_method_status', {
+    // Use internal RPC (SECURITY DEFINER bypasses RLS)
+    const { data, error } = await supabase.rpc('toggle_payment_method_status_internal', {
       p_id: id,
       p_is_active: is_active,
     });
 
-    if (error) {
+    if (error || !data?.success) {
       return NextResponse.json(
-        { success: false, error: 'Failed to toggle payment method status' },
+        { success: false, error: data?.error || 'Failed to toggle payment method status' },
         { status: 500 }
-      );
-    }
-
-    if (!data?.success) {
-      return NextResponse.json(
-        { success: false, error: data?.error || 'Unknown error' },
-        { status: 400 }
       );
     }
 

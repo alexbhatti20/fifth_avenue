@@ -425,7 +425,7 @@ BEGIN
     v_invoice_number := 'INV-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || 
                         LPAD((SELECT COUNT(*) + 1 FROM orders WHERE DATE(created_at) = CURRENT_DATE)::TEXT, 4, '0');
     
-    -- Create order
+    -- Create order (dine-in orders go directly to kitchen with 'preparing' status)
     INSERT INTO orders (
         customer_id, customer_name, customer_phone, customer_email,
         order_type, status, items, 
@@ -440,7 +440,7 @@ BEGIN
         p_customer_phone,
         p_customer_email,
         'dine-in',
-        'confirmed',
+        'preparing',  -- Directly to kitchen
         p_items,
         v_subtotal,
         v_tax,
@@ -483,7 +483,7 @@ BEGIN
         p_items, v_total_items, v_subtotal, v_tax, v_total,
         p_payment_method, CASE WHEN p_payment_method = 'cash' THEN 'pending' ELSE 'paid' END,
         v_invoice_number,
-        'confirmed', NOW()
+        'preparing', NOW()  -- Directly to kitchen
     )
     RETURNING id INTO v_history_id;
     
@@ -497,7 +497,7 @@ BEGIN
     
     -- Add to order status history
     INSERT INTO order_status_history (order_id, status, changed_by, notes)
-    VALUES (v_new_order_id, 'confirmed'::order_status, v_waiter_id, 'Order created by waiter');
+    VALUES (v_new_order_id, 'preparing'::order_status, v_waiter_id, 'Order created by waiter - sent to kitchen');
     
     -- Update employee stats
     UPDATE employees

@@ -1,16 +1,23 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Allowed origins for CORS
+// Allowed origins for CORS - include all possible localhost ports
 const ALLOWED_ORIGINS = [
   'https://zoirobroast.me',
   'https://www.zoirobroast.me',
   process.env.NEXT_PUBLIC_APP_URL,
 ].filter(Boolean) as string[];
 
-// Development origins
+// Development origins - support all common dev ports
 if (process.env.NODE_ENV === 'development') {
-  ALLOWED_ORIGINS.push('http://localhost:3000', 'http://127.0.0.1:3000');
+  ALLOWED_ORIGINS.push(
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:3002'
+  );
 }
 
 // List of paths that don't require any protection
@@ -112,13 +119,24 @@ export function middleware(request: NextRequest) {
   // CORS handling for API routes
   if (pathname.startsWith('/api/')) {
     const origin = request.headers.get('origin');
+    
+    // Check if origin is localhost (development)
+    const isLocalhost = origin && (
+      origin.startsWith('http://localhost:') || 
+      origin.startsWith('http://127.0.0.1:') ||
+      origin === 'http://localhost' ||
+      origin === 'http://127.0.0.1'
+    );
 
-    // Set CORS headers
-    if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    // Set CORS headers - allow localhost in development
+    if (origin && (ALLOWED_ORIGINS.includes(origin) || (process.env.NODE_ENV !== 'production' && isLocalhost))) {
       response.headers.set('Access-Control-Allow-Origin', origin);
     } else if (!origin) {
       // Same-origin or server-side request
       response.headers.set('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
+    } else if (process.env.NODE_ENV !== 'production') {
+      // In development, allow any origin
+      response.headers.set('Access-Control-Allow-Origin', origin);
     }
 
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
@@ -135,7 +153,7 @@ export function middleware(request: NextRequest) {
       });
     }
 
-    // Block unauthorized origins in production
+    // Block unauthorized origins in production only
     if (process.env.NODE_ENV === 'production' && origin && !ALLOWED_ORIGINS.includes(origin)) {
       // Allow search bots to access API for SEO
       if (!isSearchBot(userAgent)) {
@@ -151,7 +169,7 @@ export function middleware(request: NextRequest) {
   const isPortalPath = portalPaths.some(path => pathname.startsWith(path));
   
   if (isPortalPath && !pathname.includes('/portal/login')) {
-    const authToken = request.cookies.get('auth-token')?.value;
+    const authToken = request.cookies.get('auth_token')?.value;
     
     if (!authToken) {
       const loginUrl = new URL('/portal/login', request.url);

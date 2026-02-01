@@ -1,4 +1,6 @@
 ﻿import { PortalProvider } from '@/components/portal/PortalProvider';
+import { NetworkStatusProvider } from '@/components/ui/network-error-handler';
+import { CartProvider } from '@/context/CartContext';
 
 export const metadata = {
   title: 'Portal - ZOIRO Broast',
@@ -10,5 +12,11 @@ export default function PortalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <PortalProvider>{children}</PortalProvider>;
+  return (
+    <CartProvider>
+      <NetworkStatusProvider>
+        <PortalProvider>{children}</PortalProvider>
+      </NetworkStatusProvider>
+    </CartProvider>
+  );
 }

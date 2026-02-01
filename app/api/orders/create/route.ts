@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient, createAuthenticatedClient } from '@/lib/supabase';
 import { verifyToken } from '@/lib/jwt';
 import { redis, redisKeys, CACHE_TTL, getCache, setCache } from '@/lib/redis';
 
@@ -32,6 +32,12 @@ interface CreateOrderRequest {
   transaction_id?: string;
 }
 
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Public client for reading menu data (public tables)
+const publicClient = createClient();
+
 // Validate order items
 async function validateAndCalculateItems(items: OrderItem[]): Promise<{
   valid: boolean;
@@ -48,15 +54,25 @@ async function validateAndCalculateItems(items: OrderItem[]): Promise<{
     }
 
     if (item.menu_item_id) {
-      // Check menu item
-      const { data: menuItem, error } = await supabase
+      // Validate UUID format first
+      if (!UUID_REGEX.test(item.menu_item_id)) {
+        return { 
+          valid: false, 
+          error: `Invalid item ID format: "${item.menu_item_id}". Please clear your cart and add items again from the menu.`, 
+          validatedItems: [], 
+          subtotal: 0 
+        };
+      }
+
+      // Check menu item (public read)
+      const { data: menuItem, error } = await publicClient
         .from('menu_items')
         .select('id, name, price, is_available')
         .eq('id', item.menu_item_id)
         .single();
 
       if (error || !menuItem) {
-        return { valid: false, error: `Menu item not found: ${item.menu_item_id}`, validatedItems: [], subtotal: 0 };
+        return { valid: false, error: `Menu item not found. Please clear your cart and try again.`, validatedItems: [], subtotal: 0 };
       }
 
       if (!menuItem.is_available) {
@@ -75,8 +91,8 @@ async function validateAndCalculateItems(items: OrderItem[]): Promise<{
       subtotal += menuItem.price * item.quantity;
 
     } else if (item.meal_id) {
-      // Check meal
-      const { data: meal, error } = await supabase
+      // Check meal (public read)
+      const { data: meal, error } = await publicClient
         .from('meals')
         .select('id, name, price, is_available')
         .eq('id', item.meal_id)
@@ -102,8 +118,8 @@ async function validateAndCalculateItems(items: OrderItem[]): Promise<{
       subtotal += meal.price * item.quantity;
 
     } else if (item.deal_id) {
-      // Check deal
-      const { data: deal, error } = await supabase
+      // Check deal (public read)
+      const { data: deal, error } = await publicClient
         .from('deals')
         .select('id, name, discounted_price, is_active, valid_from, valid_until')
         .eq('id', item.deal_id)
@@ -140,7 +156,8 @@ async function validateAndCalculateItems(items: OrderItem[]): Promise<{
 }
 
 // Validate and apply promo code using RPC
-async function validatePromoCode(code: string, customerId: string, subtotal: number): Promise<{
+// authClient: authenticated Supabase client for RPC calls
+async function validatePromoCode(authClient: ReturnType<typeof createAuthenticatedClient>, code: string, customerId: string, subtotal: number): Promise<{
   valid: boolean;
   promoId?: string;
   dealId?: string;
@@ -149,7 +166,7 @@ async function validatePromoCode(code: string, customerId: string, subtotal: num
   source?: 'promo_codes' | 'deals';
 }> {
   // First, try validate_promo_code_for_billing RPC (already exists in billing-rpc.sql)
-  const { data: rpcResult, error: rpcError } = await supabase.rpc('validate_promo_code_for_billing', {
+  const { data: rpcResult, error: rpcError } = await authClient.rpc('validate_promo_code_for_billing', {
     p_code: code.trim().toUpperCase(),
     p_customer_id: customerId,
     p_order_amount: subtotal,
@@ -161,7 +178,7 @@ async function validatePromoCode(code: string, customerId: string, subtotal: num
       // Increment usage since this is for order creation
       if (rpcResult.promo?.id) {
         // Get current usage and increment by 1
-        const { data: currentPromo } = await supabase
+        const { data: currentPromo } = await publicClient
           .from('promo_codes')
           .select('current_usage, usage_limit')
           .eq('id', rpcResult.promo.id)
@@ -170,7 +187,7 @@ async function validatePromoCode(code: string, customerId: string, subtotal: num
         const newUsage = (currentPromo?.current_usage || 0) + 1;
         const shouldDeactivate = currentPromo?.usage_limit && newUsage >= currentPromo.usage_limit;
         
-        await supabase
+        await publicClient
           .from('promo_codes')
           .update({ 
             current_usage: newUsage,
@@ -200,8 +217,8 @@ async function validatePromoCode(code: string, customerId: string, subtotal: num
   
   const now = new Date();
   
-  // First try promo_codes table
-  const { data: promo, error: promoError } = await supabase
+  // First try promo_codes table (public read for validation)
+  const { data: promo, error: promoError } = await publicClient
     .from('promo_codes')
     .select('*')
     .ilike('code', code.trim())
@@ -240,7 +257,7 @@ async function validatePromoCode(code: string, customerId: string, subtotal: num
     }
 
     // Increment usage manually since RPC isn't available
-    await supabase
+    await publicClient
       .from('promo_codes')
       .update({ 
         current_usage: (promo.current_usage || 0) + 1,
@@ -251,8 +268,8 @@ async function validatePromoCode(code: string, customerId: string, subtotal: num
     return { valid: true, promoId: promo.id, discount, source: 'promo_codes' };
   }
 
-  // Fallback: Check the deals table for promo codes
-  const { data: deal, error: dealError } = await supabase
+  // Fallback: Check the deals table for promo codes (public read)
+  const { data: deal, error: dealError } = await publicClient
     .from('deals')
     .select('*')
     .eq('promo_code', code.toUpperCase())
@@ -278,7 +295,7 @@ async function validatePromoCode(code: string, customerId: string, subtotal: num
 
   // Check usage limit per customer for deals
   if (deal.max_uses_per_customer) {
-    const { count } = await supabase
+    const { count } = await publicClient
       .from('promo_code_usage')
       .select('*', { count: 'exact', head: true })
       .eq('customer_id', customerId)
@@ -304,14 +321,15 @@ async function validatePromoCode(code: string, customerId: string, subtotal: num
 }
 
 // Validate loyalty points
-async function validateLoyaltyPoints(customerId: string, pointsToUse: number): Promise<{
+// authClient: authenticated Supabase client for RPC calls
+async function validateLoyaltyPoints(authClient: ReturnType<typeof createAuthenticatedClient>, customerId: string, pointsToUse: number): Promise<{
   valid: boolean;
   availablePoints?: number;
   discount?: number;
   error?: string;
 }> {
-  // Get customer's loyalty balance
-  const { data, error } = await supabase.rpc('get_loyalty_balance', {
+  // Get customer's loyalty balance using authenticated client
+  const { data, error } = await authClient.rpc('get_loyalty_balance', {
     p_customer_id: customerId
   });
 
@@ -335,16 +353,21 @@ export async function POST(request: NextRequest) {
   try {
     // Verify authentication
     const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const cookieToken = request.cookies.get('auth_token')?.value;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : cookieToken;
+    
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.split(' ')[1];
-    const decoded = verifyToken(token);
+    const decoded = await verifyToken(token);
     
     if (!decoded || decoded.userType !== 'customer') {
       return NextResponse.json({ error: 'Customer access only' }, { status: 403 });
     }
+
+    // Create authenticated client for RPC calls
+    const authClient = createAuthenticatedClient(token);
 
     const body: CreateOrderRequest = await request.json();
 
@@ -390,9 +413,9 @@ export async function POST(request: NextRequest) {
     let loyaltyPointsUsed = 0;
     let loyaltyDiscount = 0;
 
-    // Validate promo code
+    // Validate promo code (using authenticated client for customer-specific promo checks)
     if (body.promo_code) {
-      const promoResult = await validatePromoCode(body.promo_code, decoded.userId, subtotal);
+      const promoResult = await validatePromoCode(authClient, body.promo_code, decoded.userId, subtotal);
       
       if (!promoResult.valid) {
         return NextResponse.json({ error: promoResult.error }, { status: 400 });
@@ -402,9 +425,9 @@ export async function POST(request: NextRequest) {
       promoCodeDealId = promoResult.dealId || null;
     }
 
-    // Validate loyalty points
+    // Validate loyalty points (using authenticated client)
     if (body.use_loyalty_points && body.use_loyalty_points > 0) {
-      const loyaltyResult = await validateLoyaltyPoints(decoded.userId, body.use_loyalty_points);
+      const loyaltyResult = await validateLoyaltyPoints(authClient, decoded.userId, body.use_loyalty_points);
       
       if (!loyaltyResult.valid) {
         return NextResponse.json({ error: loyaltyResult.error }, { status: 400 });
@@ -427,8 +450,8 @@ export async function POST(request: NextRequest) {
         // Default delivery fee
         deliveryFee = 150;
         
-        // Try to get from site_content
-        const { data: siteContent } = await supabase
+        // Try to get from site_content (public read)
+        const { data: siteContent } = await publicClient
           .from('site_content')
           .select('content')
           .eq('key', 'delivery_fee')
@@ -455,15 +478,15 @@ export async function POST(request: NextRequest) {
     const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
     const orderNumber = `ZB-${dateStr}-${randomPart}`;
 
-    // Get customer info for the order
-    const { data: customer } = await supabase
+    // Get customer info for the order (using authenticated client)
+    const { data: customer } = await authClient
       .from('customers')
       .select('name, email, phone, address')
       .eq('id', decoded.userId)
       .single();
 
-    // Create order using RPC function (bypasses RLS with SECURITY DEFINER)
-    const { data: order, error: orderError } = await supabase.rpc('create_customer_order', {
+    // Create order using RPC function (using authenticated client - runs as 'authenticated' role)
+    const { data: order, error: orderError } = await authClient.rpc('create_customer_order', {
       p_customer_id: decoded.userId,
       p_order_number: orderNumber,
       p_customer_name: customer?.name || 'Guest',
@@ -502,11 +525,11 @@ export async function POST(request: NextRequest) {
 
     const orderId = rpcResult.id;
 
-    // Record promo code usage if used (non-critical, fire and forget)
+    // Record promo code usage if used (non-critical, fire and forget with authClient)
     if (promoCodeDealId && orderId) {
       (async () => {
         try {
-          await supabase.rpc('record_promo_usage', {
+          await authClient.rpc('record_promo_usage', {
             p_customer_id: decoded.userId,
             p_deal_id: promoCodeDealId,
             p_order_id: orderId,
@@ -516,11 +539,11 @@ export async function POST(request: NextRequest) {
       })();
     }
 
-    // Deduct loyalty points if used (non-critical, fire and forget)
+    // Deduct loyalty points if used (non-critical, fire and forget with authClient)
     if (loyaltyPointsUsed > 0 && orderId) {
       (async () => {
         try {
-          await supabase.rpc('deduct_loyalty_points', {
+          await authClient.rpc('deduct_loyalty_points', {
             p_customer_id: decoded.userId,
             p_order_id: orderId,
             p_points: loyaltyPointsUsed,
@@ -530,10 +553,10 @@ export async function POST(request: NextRequest) {
       })();
     }
 
-    // Create customer notification (non-critical, fire and forget)
+    // Create customer notification (non-critical, fire and forget with authClient)
     (async () => {
       try {
-        await supabase.rpc('create_customer_notification', {
+        await authClient.rpc('create_customer_notification', {
           p_customer_id: decoded.userId,
           p_title: 'Order Placed Successfully!',
           p_message: `Your order #${orderNumber} has been placed. Total: Rs. ${grandTotal.toFixed(2)}`,

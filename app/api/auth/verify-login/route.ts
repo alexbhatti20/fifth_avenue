@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, createAdminClient } from '@/lib/supabase';
 import { redis } from '@/lib/redis';
-import { generateToken } from '@/lib/jwt';
 import { clearLoginRateLimit, getClientIP } from '@/lib/rate-limit';
 
 // Redis key for login OTP
@@ -24,7 +23,7 @@ export async function POST(request: NextRequest) {
     const normalizedOtp = otp.trim();
 
     // First try Redis (primary storage)
-    const redisOtpData = await redis.get<string | { code: string; expiresAt: number; authUserId: string; attempts: number }>(LOGIN_OTP_KEY(normalizedEmail));
+    const redisOtpData = await redis?.get<string | { code: string; expiresAt: number; authUserId: string; attempts: number }>(LOGIN_OTP_KEY(normalizedEmail));
     
     let isValid = false;
     let authUserId: string | null = null;
@@ -37,7 +36,7 @@ export async function POST(request: NextRequest) {
         isValid = true;
         authUserId = otpData.authUserId;
         // Delete OTP from Redis after successful verification
-        await redis.del(LOGIN_OTP_KEY(normalizedEmail));
+        await redis?.del(LOGIN_OTP_KEY(normalizedEmail));
       }
     }
 
@@ -111,13 +110,33 @@ export async function POST(request: NextRequest) {
     };
     userType = profile.user_type as 'customer' | 'employee' | 'admin';
 
-    // Generate JWT token
-    const token = generateToken({
-      userId: user.id,
-      email: user.email,
-      userType: userType,
-      role: userType === 'customer' ? undefined : user.role,
-    });
+    // Use admin client to create a session for the user
+    const adminClient = createAdminClient();
+    
+    // First get or create the auth user
+    const { data: authListData } = await adminClient.auth.admin.listUsers();
+    const authUser = authListData?.users?.find(u => u.email === normalizedEmail);
+    
+    let token = '';
+    let refreshToken = '';
+    
+    if (authUser) {
+      // Generate a new session for this user using admin client
+      // Note: We need to use a workaround since we can't directly sign in without password
+      // The auth session should already exist from when user logged in
+      // Use the auth_user_id we have to create a magic link or custom token
+      
+      // For now, we'll create a session using admin generateLink
+      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+        type: 'magiclink',
+        email: normalizedEmail,
+      });
+      
+      if (linkData?.properties?.access_token) {
+        token = linkData.properties.access_token;
+        refreshToken = linkData.properties.refresh_token || '';
+      }
+    }
 
     // Create response with user data
     const responseData = {
@@ -142,13 +161,23 @@ export async function POST(request: NextRequest) {
 
     // Set secure HTTP-only cookie
     const isSecure = process.env.NEXT_PUBLIC_APP_URL?.startsWith('https') || process.env.NODE_ENV === 'production';
-    response.cookies.set('auth-token', token, {
+    response.cookies.set('auth_token', token, {
       httpOnly: true,
       secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });
+
+    if (refreshToken) {
+      response.cookies.set('sb-refresh-token', refreshToken, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      });
+    }
 
     return response;
   } catch (error) {

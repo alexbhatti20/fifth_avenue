@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { getAuthToken } from "@/lib/cookies";
 import { MenuItem } from "@/data/menuData";
 
 const REVIEWS_STORAGE_KEY = "zoiro_item_reviews";
@@ -161,8 +162,8 @@ export default function ReviewModal({
     setIsSubmitting(true);
 
     try {
-      // Get auth token
-      const token = localStorage.getItem('auth_token');
+      // Get auth token from cookie/localStorage
+      const token = getAuthToken();
       
       // Call the reviews API
       const res = await fetch('/api/customer/reviews', {

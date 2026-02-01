@@ -1,10 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { getClientIP } from '@/lib/rate-limit';
+import { redis } from '@/lib/redis';
+
+// Rate limit: 10 requests per minute per IP
+const CHECK_USER_RATE_LIMIT = 10;
+const CHECK_USER_WINDOW_SECONDS = 60;
 
 // POST /api/auth/check-user - Check if user exists and their status
 // Uses only RPC functions - no direct table queries
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIP(request);
+    
+    // Rate limiting for check-user endpoint to prevent email enumeration
+    if (redis) {
+      const rateLimitKey = `ratelimit:check-user:${ip}`;
+      const attempts = await redis.get<number>(rateLimitKey) || 0;
+      
+      if (attempts >= CHECK_USER_RATE_LIMIT) {
+        return NextResponse.json(
+          { error: 'Too many requests. Please wait a moment before trying again.' },
+          { status: 429 }
+        );
+      }
+      
+      // Increment rate limit counter
+      await redis.incr(rateLimitKey);
+      if (attempts === 0) {
+        await redis.expire(rateLimitKey, CHECK_USER_WINDOW_SECONDS);
+      }
+    }
+
     const { email } = await request.json();
 
     if (!email) {

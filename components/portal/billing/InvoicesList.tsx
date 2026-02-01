@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Receipt,
@@ -55,13 +55,12 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { createClient } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { InvoicePrintView, CompactInvoiceCard } from './InvoicePrintView';
 import type { InvoiceDetails } from './types';
-
-const supabase = createClient();
+// Server Actions for all database calls (hidden from Network tab)
+import { getRecentInvoices, getInvoiceDetails, voidInvoice, markInvoicePrinted } from '@/lib/actions';
 
 // ==========================================
 // INVOICES LIST COMPONENT
@@ -69,19 +68,24 @@ const supabase = createClient();
 
 interface InvoicesListProps {
   className?: string;
+  initialInvoices?: InvoiceDetails[];
 }
 
-export function InvoicesList({ className }: InvoicesListProps) {
-  const [invoices, setInvoices] = useState<InvoiceDetails[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export function InvoicesList({ className, initialInvoices }: InvoicesListProps) {
+  const [invoices, setInvoices] = useState<InvoiceDetails[]>(initialInvoices || []);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>('today');
+  const [dateFilter, setDateFilter] = useState<string>('week');
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceDetails | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isVoidDialogOpen, setIsVoidDialogOpen] = useState(false);
   const [voidReason, setVoidReason] = useState('');
   const [isVoiding, setIsVoiding] = useState(false);
+  // SSR provides data for 'today' + 'all', so mark that as already fetched
+  const fetchedFiltersRef = useRef<string | null>(
+    initialInvoices !== undefined ? 'today|all' : null
+  );
 
   const fetchInvoices = useCallback(async () => {
     setIsLoading(true);
@@ -111,15 +115,16 @@ export function InvoicesList({ className }: InvoicesListProps) {
           break;
       }
 
-      const { data, error } = await supabase.rpc('get_recent_invoices', {
-        p_start_date: startDate.toISOString(),
-        p_end_date: endDate.toISOString(),
-        p_payment_method: paymentFilter === 'all' ? null : paymentFilter,
-        p_limit: 100,
-      });
+      // Server Action - hidden from Network tab
+      const result = await getRecentInvoices(
+        startDate.toISOString(),
+        endDate.toISOString(),
+        paymentFilter === 'all' ? undefined : paymentFilter,
+        100
+      );
 
-      if (error) throw error;
-      setInvoices(data || []);
+      if (!result.success) throw new Error(result.error);
+      setInvoices(result.data || []);
     } catch (error: any) {
       toast.error('Failed to load invoices');
     } finally {
@@ -127,18 +132,27 @@ export function InvoicesList({ className }: InvoicesListProps) {
     }
   }, [dateFilter, paymentFilter]);
 
+  // Only fetch when filter combination changes from what we have
   useEffect(() => {
+    const currentKey = `${dateFilter}|${paymentFilter}`;
+    
+    // Skip if we already have data for this filter combination
+    if (fetchedFiltersRef.current === currentKey) {
+      return;
+    }
+    
+    fetchedFiltersRef.current = currentKey;
     fetchInvoices();
-  }, [fetchInvoices]);
+  }, [dateFilter, paymentFilter, fetchInvoices]);
 
   const handleViewInvoice = async (invoice: InvoiceDetails) => {
     try {
-      const { data, error } = await supabase.rpc('get_invoice_details', {
-        p_invoice_id: invoice.id,
-      });
+      // Server Action - hidden from Network tab
+      const result = await getInvoiceDetails(invoice.id);
 
-      if (error) throw error;
+      if (!result.success) throw new Error(result.error);
       
+      const data = result.data;
       if (data?.success) {
         // Merge invoice with customer and order data from RPC response (include billed_by for invoice print)
         const invoiceWithDetails = {
@@ -163,13 +177,12 @@ export function InvoicesList({ className }: InvoicesListProps) {
     
     setIsVoiding(true);
     try {
-      const { data, error } = await supabase.rpc('void_invoice', {
-        p_invoice_id: selectedInvoice.id,
-        p_reason: voidReason,
-      });
+      // Server Action - hidden from Network tab
+      const result = await voidInvoice(selectedInvoice.id, voidReason);
 
-      if (error) throw error;
+      if (!result.success) throw new Error(result.error);
       
+      const data = result.data;
       if (data?.success) {
         toast.success('Invoice voided successfully');
         setIsVoidDialogOpen(false);
@@ -188,12 +201,12 @@ export function InvoicesList({ className }: InvoicesListProps) {
 
   const handleMarkPrinted = async (invoiceId: string) => {
     try {
-      const { data, error } = await supabase.rpc('mark_invoice_printed', {
-        p_invoice_id: invoiceId,
-      });
+      // Server Action - hidden from Network tab
+      const result = await markInvoicePrinted(invoiceId);
 
-      if (error) throw error;
+      if (!result.success) throw new Error(result.error);
       
+      const data = result.data;
       if (data?.success) {
         toast.success('Invoice marked as printed');
         fetchInvoices();

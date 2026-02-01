@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { realtimeManager, CHANNEL_NAMES } from '@/lib/realtime-manager';
 import { useRouter } from 'next/navigation';
 import type {
   Employee,
@@ -22,14 +23,17 @@ import {
   getAdminDashboardStats,
   getTablesStatus,
   getOrders,
-  getOrdersAdvanced,
-  getOrdersStats,
-  updateOrderStatusQuick,
   getKitchenOrders,
   getMyNotifications,
   getWaiterDashboard,
   markNotificationsRead as markRead,
 } from '@/lib/portal-queries';
+// Server Actions for hidden API calls (no Network tab visibility)
+import {
+  fetchOrdersAdvancedServer,
+  fetchOrdersStatsServer,
+  updateOrderStatusQuickServer,
+} from '@/lib/actions';
 
 // =============================================
 // PORTAL AUTH HOOK - Re-exported from context
@@ -58,6 +62,10 @@ export interface UsePortalAuthReturn {
 // REALTIME DASHBOARD HOOK
 // =============================================
 
+interface UseDashboardOptions {
+  initialStats?: DashboardStats | null;
+}
+
 interface UseDashboardReturn {
   stats: DashboardStats | null;
   isLoading: boolean;
@@ -65,9 +73,10 @@ interface UseDashboardReturn {
   refresh: () => Promise<void>;
 }
 
-export function useAdminDashboard(): UseDashboardReturn {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function useAdminDashboard(options?: UseDashboardOptions): UseDashboardReturn {
+  // Use initial data from SSR if provided
+  const [stats, setStats] = useState<DashboardStats | null>(options?.initialStats || null);
+  const [isLoading, setIsLoading] = useState(!options?.initialStats);
   const [error, setError] = useState<Error | null>(null);
 
   const loadStats = useCallback(async () => {
@@ -83,39 +92,26 @@ export function useAdminDashboard(): UseDashboardReturn {
   }, []);
 
   useEffect(() => {
-    loadStats();
+    // Skip initial load if we have SSR data
+    if (!options?.initialStats) {
+      loadStats();
+    }
 
-    // Set up realtime subscriptions for orders
-    const channel = supabase
-      .channel('dashboard-updates')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          // Refresh stats on any order change
-          loadStats();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'restaurant_tables' },
-        () => {
-          loadStats();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'attendance' },
-        () => {
-          loadStats();
-        }
-      )
-      .subscribe();
+    // Use deduplicated realtime subscriptions
+    const unsubscribe = realtimeManager.subscribeMultiple(
+      CHANNEL_NAMES.DASHBOARD,
+      [
+        { table: 'orders' },
+        { table: 'restaurant_tables' },
+        { table: 'attendance' },
+      ],
+      loadStats
+    );
 
     return () => {
-      channel.unsubscribe();
+      unsubscribe();
     };
-  }, [loadStats]);
+  }, [loadStats, options?.initialStats]);
 
   return { stats, isLoading, error, refresh: loadStats };
 }
@@ -124,6 +120,10 @@ export function useAdminDashboard(): UseDashboardReturn {
 // REALTIME TABLES HOOK
 // =============================================
 
+interface UseTablesOptions {
+  initialTables?: RestaurantTable[];
+}
+
 interface UseTablesReturn {
   tables: RestaurantTable[];
   isLoading: boolean;
@@ -131,9 +131,10 @@ interface UseTablesReturn {
   refresh: () => Promise<void>;
 }
 
-export function useRealtimeTables(): UseTablesReturn {
-  const [tables, setTables] = useState<RestaurantTable[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export function useRealtimeTables(options?: UseTablesOptions): UseTablesReturn {
+  // Use initial data from SSR if provided
+  const [tables, setTables] = useState<RestaurantTable[]>(options?.initialTables || []);
+  const [isLoading, setIsLoading] = useState(!options?.initialTables?.length);
   const [error, setError] = useState<Error | null>(null);
 
   const loadTables = useCallback(async () => {
@@ -149,24 +150,22 @@ export function useRealtimeTables(): UseTablesReturn {
   }, []);
 
   useEffect(() => {
-    loadTables();
+    // Skip initial load if we have SSR data
+    if (!options?.initialTables?.length) {
+      loadTables();
+    }
 
-    // Subscribe to table changes
-    const channel = supabase
-      .channel('tables-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'restaurant_tables' },
-        () => {
-          loadTables();
-        }
-      )
-      .subscribe();
+    // Use deduplicated realtime subscription
+    const unsubscribe = realtimeManager.subscribe(
+      CHANNEL_NAMES.TABLES,
+      'restaurant_tables',
+      loadTables
+    );
 
     return () => {
-      channel.unsubscribe();
+      unsubscribe();
     };
-  }, [loadTables]);
+  }, [loadTables, options?.initialTables?.length]);
 
   return { tables, isLoading, error, refresh: loadTables };
 }
@@ -175,6 +174,14 @@ export function useRealtimeTables(): UseTablesReturn {
 // REALTIME ORDERS HOOK
 // =============================================
 
+interface UseOrdersOptions {
+  status?: string;
+  orderType?: string;
+  limit?: number;
+  // SSR Support
+  initialOrders?: Order[];
+}
+
 interface UseOrdersReturn {
   orders: Order[];
   isLoading: boolean;
@@ -182,19 +189,17 @@ interface UseOrdersReturn {
   refresh: () => Promise<void>;
 }
 
-export function useRealtimeOrders(filters?: {
-  status?: string;
-  orderType?: string;
-  limit?: number;
-}): UseOrdersReturn {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export function useRealtimeOrders(filters?: UseOrdersOptions): UseOrdersReturn {
+  // Use initial data from SSR if provided
+  const [orders, setOrders] = useState<Order[]>(filters?.initialOrders || []);
+  const [isLoading, setIsLoading] = useState(!filters?.initialOrders?.length);
   const [error, setError] = useState<Error | null>(null);
   
   // Memoize filter values to prevent infinite re-renders
   const status = filters?.status;
   const orderType = filters?.orderType;
   const limit = filters?.limit;
+  const hasInitialData = !!filters?.initialOrders?.length;
 
   const loadOrders = useCallback(async () => {
     try {
@@ -209,30 +214,22 @@ export function useRealtimeOrders(filters?: {
   }, [status, orderType, limit]);
 
   useEffect(() => {
-    loadOrders();
+    // Skip initial load if we have SSR data
+    if (!hasInitialData) {
+      loadOrders();
+    }
 
-    // Subscribe to order changes
-    const channel = supabase
-      .channel('orders-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        (payload) => {
-          // Filter by status if needed
-          if (status && payload.new) {
-            if ((payload.new as Order).status !== status) {
-              return;
-            }
-          }
-          loadOrders();
-        }
-      )
-      .subscribe();
+    // Use deduplicated realtime subscription
+    const unsubscribe = realtimeManager.subscribe(
+      CHANNEL_NAMES.ORDERS,
+      'orders',
+      loadOrders
+    );
 
     return () => {
-      channel.unsubscribe();
+      unsubscribe();
     };
-  }, [loadOrders, status]);
+  }, [loadOrders, status, hasInitialData]);
 
   return { orders, isLoading, error, refresh: loadOrders };
 }
@@ -261,20 +258,15 @@ export function useKitchenOrders(): UseOrdersReturn {
   useEffect(() => {
     loadOrders();
 
-    // Subscribe to order changes
-    const channel = supabase
-      .channel('kitchen-orders')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          loadOrders();
-        }
-      )
-      .subscribe();
+    // Use deduplicated realtime subscription
+    const unsubscribe = realtimeManager.subscribe(
+      CHANNEL_NAMES.KITCHEN,
+      'orders',
+      loadOrders
+    );
 
     return () => {
-      channel.unsubscribe();
+      unsubscribe();
     };
   }, [loadOrders]);
 
@@ -291,6 +283,10 @@ interface UseOrdersAdvancedFilters {
   startDate?: string;
   endDate?: string;
   limit?: number;
+  // SSR Support: Initial data from server
+  initialOrders?: OrderAdvanced[];
+  initialStats?: OrdersStats | null;
+  initialTotalCount?: number;
 }
 
 interface UseOrdersAdvancedReturn {
@@ -308,17 +304,21 @@ interface UseOrdersAdvancedReturn {
 }
 
 export function useRealtimeOrdersAdvanced(filters?: UseOrdersAdvancedFilters): UseOrdersAdvancedReturn {
-  const [orders, setOrders] = useState<OrderAdvanced[]>([]);
-  const [stats, setStats] = useState<OrdersStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isStatsLoading, setIsStatsLoading] = useState(true);
+  // Use initial data from SSR if provided
+  const [orders, setOrders] = useState<OrderAdvanced[]>(filters?.initialOrders || []);
+  const [stats, setStats] = useState<OrdersStats | null>(filters?.initialStats || null);
+  const [isLoading, setIsLoading] = useState(!filters?.initialOrders?.length);
+  const [isStatsLoading, setIsStatsLoading] = useState(!filters?.initialStats);
   const [error, setError] = useState<Error | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(filters?.initialTotalCount || 0);
+  // FIX #26: Initialize hasMore from SSR data if available
+  const [hasMore, setHasMore] = useState(filters?.initialOrders ? (filters.initialOrders.length >= (filters?.limit || 50)) : false);
   const offsetRef = useRef(0);
   const filtersRef = useRef(filters);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
+  // FIX #1: Properly check for SSR data (orders OR stats)
+  const hasInitialDataRef = useRef(!!(filters?.initialOrders?.length || filters?.initialStats));
   
   // Keep filters ref updated
   useEffect(() => {
@@ -336,7 +336,7 @@ export function useRealtimeOrdersAdvanced(filters?: UseOrdersAdvancedFilters): U
     };
   }, []);
 
-  // Load orders using optimized RPC
+  // Load orders using Server Action (hidden from Network tab)
   const loadOrders = useCallback(async (reset = true) => {
     try {
       if (reset) {
@@ -344,8 +344,12 @@ export function useRealtimeOrdersAdvanced(filters?: UseOrdersAdvancedFilters): U
         offsetRef.current = 0;
       }
       
-      const response = await getOrdersAdvanced({
-        ...filtersRef.current,
+      // Use Server Action instead of client-side call
+      const response = await fetchOrdersAdvancedServer({
+        status: filtersRef.current?.status,
+        order_type: filtersRef.current?.orderType,
+        date_from: filtersRef.current?.startDate,
+        date_to: filtersRef.current?.endDate,
         offset: offsetRef.current,
         limit: filtersRef.current?.limit || 50,
       });
@@ -353,9 +357,9 @@ export function useRealtimeOrdersAdvanced(filters?: UseOrdersAdvancedFilters): U
       if (!isMountedRef.current) return;
       
       if (reset) {
-        setOrders(response.orders);
+        setOrders(response.orders as OrderAdvanced[]);
       } else {
-        setOrders(prev => [...prev, ...response.orders]);
+        setOrders(prev => [...prev, ...(response.orders as OrderAdvanced[])]);
       }
       
       setTotalCount(response.total_count);
@@ -372,13 +376,13 @@ export function useRealtimeOrdersAdvanced(filters?: UseOrdersAdvancedFilters): U
     }
   }, []); // No dependencies - uses refs
 
-  // Load stats
+  // Load stats using Server Action (hidden from Network tab)
   const loadStats = useCallback(async () => {
     try {
       setIsStatsLoading(true);
-      const statsData = await getOrdersStats();
-      if (isMountedRef.current) {
-        setStats(statsData);
+      const result = await fetchOrdersStatsServer();
+      if (isMountedRef.current && result.success) {
+        setStats(result.data);
       }
     } catch (err) {
       } finally {
@@ -407,7 +411,7 @@ export function useRealtimeOrdersAdvanced(filters?: UseOrdersAdvancedFilters): U
     }
   }, [hasMore, isLoading, loadOrders]);
 
-  // Optimistic status update
+  // Optimistic status update using Server Action (hidden from Network tab)
   const updateStatus = useCallback(async (orderId: string, status: string, notes?: string) => {
     // Optimistic update
     setOrders(prev => prev.map(order => 
@@ -416,24 +420,27 @@ export function useRealtimeOrdersAdvanced(filters?: UseOrdersAdvancedFilters): U
         : order
     ));
 
-    // API call
-    const result = await updateOrderStatusQuick(orderId, status, notes);
+    // Use Server Action instead of client-side call
+    const result = await updateOrderStatusQuickServer(orderId, status, notes);
     
     if (!result.success) {
       // Revert on error
       loadOrders();
     } else {
-      // Refresh stats after status change
-      loadStats();
+      // Refresh both orders and stats after status change
+      // This ensures filters are applied correctly (e.g., "active" filter)
+      await Promise.all([loadOrders(), loadStats()]);
     }
     
     return result;
   }, [loadOrders, loadStats]);
 
-  // Initial load - run only once
+  // Initial load - skip if we have SSR data
   useEffect(() => {
-    loadOrders();
-    loadStats();
+    if (!hasInitialDataRef.current) {
+      loadOrders();
+      loadStats();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - load once on mount
 
@@ -550,6 +557,8 @@ export function useWaiterDashboard(): UseWaiterDashboardReturn {
 
 // =============================================
 // NOTIFICATIONS HOOK
+// FIX #7: Use shared notifications from PortalProvider context
+// to avoid duplicate subscriptions
 // =============================================
 
 interface UseNotificationsReturn {
@@ -562,80 +571,24 @@ interface UseNotificationsReturn {
 }
 
 export function useNotifications(): UseNotificationsReturn {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { employee } = usePortalAuthContext();
-
-  const loadNotifications = useCallback(async () => {
-    if (!employee) return;
-    
-    try {
-      const data = await getMyNotifications(50, false);
-      setNotifications(data);
-    } catch (err) {
-      } finally {
-      setIsLoading(false);
-    }
-  }, [employee]);
-
-  useEffect(() => {
-    if (!employee) return;
-    
-    loadNotifications();
-
-    // Subscribe to new notifications
-    const channel = supabase
-      .channel('notifications-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${employee.id}`,
-        },
-        (payload) => {
-          setNotifications((prev) => [payload.new as Notification, ...prev]);
-          
-          // Show browser notification if supported
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification((payload.new as Notification).title, {
-              body: (payload.new as Notification).message,
-              icon: '/assets/logo.png',
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, [employee, loadNotifications]);
-
-  const markAsRead = useCallback(async (ids: string[]) => {
-    await markRead(ids);
-    setNotifications((prev) =>
-      prev.map((n) => (ids.includes(n.id) ? { ...n, is_read: true } : n))
-    );
-  }, []);
-
-  const markAllAsRead = useCallback(async () => {
-    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
-    if (unreadIds.length > 0) {
-      await markAsRead(unreadIds);
-    }
-  }, [notifications, markAsRead]);
-
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  // FIX #7: Use shared context instead of creating duplicate subscription
+  const { 
+    notifications, 
+    unreadCount, 
+    markNotificationAsRead, 
+    markAllNotificationsAsRead,
+    refreshNotifications 
+  } = usePortalAuthContext();
+  
+  const [isLoading] = useState(false);
 
   return {
     notifications,
     unreadCount,
     isLoading,
-    markAsRead,
-    markAllAsRead,
-    refresh: loadNotifications,
+    markAsRead: markNotificationAsRead,
+    markAllAsRead: markAllNotificationsAsRead,
+    refresh: refreshNotifications,
   };
 }
 

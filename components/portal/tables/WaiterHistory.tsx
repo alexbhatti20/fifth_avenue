@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Package } from 'lucide-react';
+import { Package, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DataTableWrapper } from '@/components/portal/PortalProvider';
 import { createClient } from '@/lib/supabase';
 import type { WaiterStats, OrderHistoryItem } from './types';
@@ -19,12 +20,16 @@ export function WaiterHistory() {
   const [history, setHistory] = useState<OrderHistoryItem[]>([]);
   const [stats, setStats] = useState<WaiterStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const hasFetchedRef = useRef(false); // Prevent duplicate fetches
 
-  useEffect(() => {
-    fetchHistory();
-  }, []);
-
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async (force = false) => {
+    // Skip if already fetched (unless forced refresh)
+    if (hasFetchedRef.current && !force) {
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
     try {
       const { data, error } = await supabase.rpc('get_waiter_order_history', {
         p_limit: 20,
@@ -36,15 +41,35 @@ export function WaiterHistory() {
       if (data?.success) {
         setHistory(data.history || []);
         setStats(data.stats);
+        hasFetchedRef.current = true;
       }
     } catch (error) {
-      } finally {
+      console.error('Error fetching waiter history:', error);
+    } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
   return (
     <div className="space-y-6">
+      {/* Header with Refresh */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">My Orders History</h3>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => fetchHistory(true)}
+          disabled={isLoading}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
+      
       {/* Stats */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -3,7 +3,7 @@
 // =============================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getInventorySuppliers, createInventorySupplier } from '@/lib/inventory-queries';
+import { getInventorySuppliers, createInventorySupplier } from '@/lib/server-queries';
 
 export async function GET() {
   try {

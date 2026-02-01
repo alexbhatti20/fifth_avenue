@@ -9,8 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import Navbar from "@/components/custom/Navbar";
-import Footer from "@/components/custom/Footer";
 
 // Brand contact info
 const BRAND_INFO = {
@@ -109,9 +107,7 @@ export default function ContactPage() {
   };
 
   return (
-    <>
-      <Navbar />
-      <main className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-20">
         {/* Enhanced Hero Section */}
         <section className="relative py-24 md:py-32 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black text-white overflow-hidden">
           {/* Animated Background Elements */}
@@ -535,8 +531,6 @@ export default function ContactPage() {
             </div>
           </div>
         </section>
-      </main>
-      <Footer />
-    </>
+      </div>
   );
 }

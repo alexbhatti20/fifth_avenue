@@ -100,6 +100,12 @@ const nextConfig = {
   
   // Generate ETags for caching
   generateEtags: true,
+  
+  // Experimental optimizations for faster navigation
+  experimental: {
+    // Optimistic client cache for faster navigation
+    optimisticClientCache: true,
+  },
 };
 
 export default nextConfig;

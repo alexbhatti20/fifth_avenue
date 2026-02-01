@@ -398,18 +398,25 @@ BEGIN
         updated_at = NOW()
     WHERE id = p_item_id;
     
-    -- Log transaction
+    -- Log transaction (insert into both type and transaction_type for backwards compatibility)
     INSERT INTO inventory_transactions (
-        inventory_id, transaction_type, quantity_change,
-        unit_cost, total_cost, notes, created_by, 
+        inventory_id, type, transaction_type, quantity, quantity_change,
+        previous_quantity, new_quantity,
+        unit_cost, total_cost, notes, reason, created_by, performed_by,
         reference_number, batch_number, created_at
     ) VALUES (
         p_item_id,
         p_transaction_type,
+        p_transaction_type,
+        ABS(qty_change),
         qty_change,
+        COALESCE(item_record.quantity, 0),
+        new_quantity,
         actual_cost,
         ABS(qty_change) * actual_cost,
         p_reason,
+        p_reason,
+        emp_id,
         emp_id,
         p_reference_number,
         p_batch_number,

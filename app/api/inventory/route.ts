@@ -3,9 +3,11 @@
 // =============================================
 
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyToken } from '@/lib/jwt';
+import { createAuthenticatedClient } from '@/lib/supabase';
+import { redis, CACHE_DURATION } from '@/lib/redis';
 import {
   getInventoryItems,
-  createInventoryItem,
   getInventorySummary,
   getInventoryTransactions,
   getLowStockItems,
@@ -15,10 +17,39 @@ import {
   getReorderSuggestions,
   getExpiringItems,
   getInventoryMovementReport,
-} from '@/lib/inventory-queries';
+  invalidateInventoryCache,
+} from '@/lib/server-queries';
+import type { CreateItemData } from '@/lib/inventory-queries';
+
+
+// Helper to verify employee authentication
+async function verifyEmployeeAuth(request: NextRequest): Promise<{ valid: boolean; error?: string; status?: number; user?: any }> {
+  const token = request.headers.get('authorization')?.replace('Bearer ', '');
+  if (!token) {
+    return { valid: false, error: 'Unauthorized', status: 401 };
+  }
+
+  const decoded = await verifyToken(token);
+  if (!decoded) {
+    return { valid: false, error: 'Invalid token', status: 401 };
+  }
+
+  // Only admin, manager, and kitchen can access inventory
+  if (!['admin', 'manager', 'kitchen'].includes(decoded.role)) {
+    return { valid: false, error: 'Insufficient permissions', status: 403 };
+  }
+
+  return { valid: true, user: decoded };
+}
 
 export async function GET(request: NextRequest) {
   try {
+    // Verify authentication
+    const auth = await verifyEmployeeAuth(request);
+    if (!auth.valid) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status || 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action') || 'list';
 
@@ -95,36 +126,63 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const auth = await verifyEmployeeAuth(request);
+    if (!auth.valid) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status || 401 });
+    }
+
+    // Only admin/manager can create inventory items
+    if (!['admin', 'manager'].includes(auth.user?.role)) {
+      return NextResponse.json({ success: false, error: 'Only managers can create inventory items' }, { status: 403 });
+    }
+
     const body = await request.json();
     
-    const result = await createInventoryItem({
-      name: body.name,
-      sku: body.sku,
-      category: body.category,
-      unit: body.unit,
-      quantity: body.quantity,
-      min_quantity: body.min_quantity,
-      max_quantity: body.max_quantity,
-      cost_per_unit: body.cost_per_unit,
-      supplier: body.supplier,
-      notes: body.notes,
-      location: body.location,
-      barcode: body.barcode,
-      expiry_date: body.expiry_date,
+    // Validate required fields
+    if (!body.name || !body.category || !body.unit) {
+      return NextResponse.json({ success: false, error: 'Name, category, and unit are required' }, { status: 400 });
+    }
+    
+    // Get token from header
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return NextResponse.json({ success: false, error: 'No authentication token' }, { status: 401 });
+    }
+    
+    // Create authenticated client with the token
+    const supabase = createAuthenticatedClient(token);
+    
+    // Call RPC function directly with authenticated client
+    const { data, error } = await supabase.rpc('create_inventory_item', {
+      p_name: body.name,
+      p_sku: body.sku,
+      p_category: body.category,
+      p_unit: body.unit,
+      p_quantity: body.quantity || 0,
+      p_min_quantity: body.min_quantity || 10,
+      p_max_quantity: body.max_quantity || 100,
+      p_cost_per_unit: body.cost_per_unit || 0,
+      p_supplier: body.supplier,
+      p_notes: body.notes,
+      p_location: body.location,
+      p_barcode: body.barcode,
+      p_expiry_date: body.expiry_date,
     });
 
-    if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 400 }
-      );
+    if (error) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
+
+    // Invalidate cache
+    await invalidateInventoryCache();
 
     return NextResponse.json({ 
       success: true, 
-      data: { id: result.id, sku: result.sku } 
+      data: { id: data?.id, sku: data?.sku } 
     });
   } catch (error: any) {
+    console.error('Error creating inventory item:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },
       { status: 500 }

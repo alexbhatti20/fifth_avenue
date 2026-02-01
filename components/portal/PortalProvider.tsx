@@ -5,12 +5,16 @@ import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PortalSidebar, PortalAppbar, MobileSidebar } from './PortalLayout';
 import { BlockedUserDialog } from './BlockedUserDialog';
+import { ErrorBoundary, SectionErrorBoundary } from '@/components/ui/error-boundary';
+import { QueryProvider } from '@/lib/query-provider';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { getCurrentEmployee } from '@/lib/portal-queries';
+import { supabase, isSupabaseConfigured, restoreSupabaseSession, setSupabaseSession } from '@/lib/supabase';
+import { getCurrentEmployee, getMyNotifications, markNotificationsRead, getAuthenticatedClient } from '@/lib/portal-queries';
 import { clearPermissionsCache } from '@/lib/permissions';
-import type { Employee, EmployeeRole } from '@/types/portal';
+import { clearAuthToken, getAuthToken } from '@/lib/cookies';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import type { Employee, EmployeeRole, Notification } from '@/types/portal';
 import { hasPermission as checkPermission } from '@/types/portal';
 
 // =============================================
@@ -28,6 +32,12 @@ interface PortalAuthContextType {
   refreshEmployee: () => Promise<void>;
   isBlocked: boolean;
   blockReason: string | null;
+  // Notifications - shared to prevent duplicate API calls
+  notifications: Notification[];
+  unreadCount: number;
+  markNotificationAsRead: (ids: string[]) => Promise<void>;
+  markAllNotificationsAsRead: () => Promise<void>;
+  refreshNotifications: () => Promise<void>;
 }
 
 const PortalAuthContext = createContext<PortalAuthContextType | null>(null);
@@ -48,6 +58,11 @@ export function usePortalAuthContext(): PortalAuthContextType {
       refreshEmployee: async () => {},
       isBlocked: false,
       blockReason: null,
+      notifications: [],
+      unreadCount: 0,
+      markNotificationAsRead: async () => {},
+      markAllNotificationsAsRead: async () => {},
+      refreshNotifications: async () => {},
     };
   }
   return context;
@@ -87,11 +102,89 @@ export function PortalProvider({ children }: PortalProviderProps) {
   const isLoadingRef = useRef(false);
   const hasLoadedRef = useRef(false);
   
+  // Notifications state - shared to prevent duplicate API calls
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const notificationsLoadedRef = useRef(false);
+  
   const router = useRouter();
   const pathname = usePathname();
 
   // Check if current page is auth page (unified auth or old portal auth pages)
   const isAuthPage = pathname === '/portal/login' || pathname === '/portal/activate' || pathname === '/auth';
+
+  // Load notifications - only once per session
+  const loadNotifications = useCallback(async () => {
+    if (!employee || notificationsLoadedRef.current) return;
+    notificationsLoadedRef.current = true;
+    
+    try {
+      const data = await getMyNotifications(50, false);
+      setNotifications(data);
+    } catch (err) {
+      // Handle error silently
+    }
+  }, [employee]);
+
+  // Mark notifications as read
+  const markNotificationAsRead = useCallback(async (ids: string[]) => {
+    await markNotificationsRead(ids);
+    setNotifications((prev) =>
+      prev.map((n) => (ids.includes(n.id) ? { ...n, is_read: true } : n))
+    );
+  }, []);
+
+  // Mark all notifications as read
+  const markAllNotificationsAsRead = useCallback(async () => {
+    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
+    if (unreadIds.length > 0) {
+      await markNotificationAsRead(unreadIds);
+    }
+  }, [notifications, markNotificationAsRead]);
+
+  // Refresh notifications
+  const refreshNotifications = useCallback(async () => {
+    notificationsLoadedRef.current = false;
+    await loadNotifications();
+  }, [loadNotifications]);
+
+  // Calculate unread count
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  // Load notifications when employee is available
+  useEffect(() => {
+    if (employee && !notificationsLoadedRef.current) {
+      loadNotifications();
+      
+      // Subscribe to new notifications
+      const channel = supabase
+        .channel('notifications-provider')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${employee.id}`,
+          },
+          (payload) => {
+            setNotifications((prev) => [payload.new as Notification, ...prev]);
+            
+            // Show browser notification if supported
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification((payload.new as Notification).title, {
+                body: (payload.new as Notification).message,
+                icon: '/assets/logo.png',
+              });
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        channel.unsubscribe();
+      };
+    }
+  }, [employee, loadNotifications]);
 
   // Load employee data - only called once
   const loadEmployee = useCallback(async () => {
@@ -105,6 +198,18 @@ export function PortalProvider({ children }: PortalProviderProps) {
     }
 
     try {
+      // IMPORTANT: Restore Supabase session from cookies/localStorage first
+      // This ensures auth.uid() works correctly in RLS policies
+      const sessionRestored = await restoreSupabaseSession();
+      if (!sessionRestored) {
+        // Try to restore from localStorage tokens
+        const accessToken = localStorage.getItem('sb_access_token') || localStorage.getItem('auth_token');
+        const refreshToken = localStorage.getItem('sb_refresh_token');
+        if (accessToken) {
+          await setSupabaseSession(accessToken, refreshToken || undefined);
+        }
+      }
+
       const emp = await getCurrentEmployee();
       if (emp) {
         if (emp.portal_enabled === false) {
@@ -113,6 +218,27 @@ export function PortalProvider({ children }: PortalProviderProps) {
         }
         setEmployee(emp);
         hasLoadedRef.current = true;
+        
+        // FIX #9: Update localStorage with minimal data only (no PII like address/emergency_contact)
+        try {
+          const existingData = localStorage.getItem('user_data');
+          if (existingData) {
+            const parsed = JSON.parse(existingData);
+            // Only store essential non-sensitive data in localStorage
+            const updatedData = {
+              id: parsed.id,
+              email: parsed.email,
+              name: emp.name,
+              role: emp.role,
+              avatar_url: emp.avatar_url,
+              is_2fa_enabled: emp.is_2fa_enabled,
+            };
+            localStorage.setItem('user_data', JSON.stringify(updatedData));
+          }
+        } catch (e) {
+          // Silent fail - not critical
+        }
+        
         return;
       }
 
@@ -127,7 +253,7 @@ export function PortalProvider({ children }: PortalProviderProps) {
           let portalEnabled = true;
           let blockReasonText: string | null = null;
 
-          const { data: accessData, error: rpcError } = await supabase.rpc('check_employee_portal_access', {
+          const { data: accessData, error: rpcError } = await getAuthenticatedClient().rpc('check_employee_portal_access', {
             p_email: parsed.email
           });
           
@@ -143,11 +269,15 @@ export function PortalProvider({ children }: PortalProviderProps) {
             name: parsed.name || 'Employee',
             email: parsed.email,
             phone: parsed.phone || '',
+            address: parsed.address || '',
+            emergency_contact: parsed.emergency_contact || '',
+            avatar_url: parsed.avatar_url || '',
+            hired_date: parsed.hired_date || '',
             role: parsed.role || userType,
             status: 'active',
             portal_enabled: portalEnabled,
             block_reason: blockReasonText,
-            is_2fa_enabled: false,
+            is_2fa_enabled: parsed.is_2fa_enabled || false,
             permissions: parsed.permissions || {},
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -174,16 +304,45 @@ export function PortalProvider({ children }: PortalProviderProps) {
     }
   }, []);
 
-  // Refresh employee data
+  // Refresh employee data - forces fresh fetch from database
+  // Note: This doesn't set isLoading to avoid component remount/flicker
   const refreshEmployee = useCallback(async () => {
-    hasLoadedRef.current = false;
-    isLoadingRef.current = false;
-    await loadEmployee();
-  }, [loadEmployee]);
+    // Fetch fresh data from database directly
+    try {
+      const emp = await getCurrentEmployee();
+      
+      if (emp) {
+        // Create a new object to ensure React detects the change
+        const freshEmployee = { ...emp };
+        setEmployee(freshEmployee);
+        
+        // FIX #9: Update localStorage with minimal non-sensitive data only
+        const userData = localStorage.getItem('user_data');
+        if (userData) {
+          try {
+            const parsed = JSON.parse(userData);
+            const updatedData = {
+              id: parsed.id,
+              email: parsed.email,
+              name: emp.name,
+              role: emp.role,
+              avatar_url: emp.avatar_url,
+              is_2fa_enabled: emp.is_2fa_enabled,
+            };
+            localStorage.setItem('user_data', JSON.stringify(updatedData));
+          } catch (e) {
+            // Silent fail - not critical
+          }
+        }
+      }
+    } catch (error) {
+      // Silent fail - will retry on next refresh
+    }
+  }, []);
 
   // Fast logout
   const fastLogout = useCallback(() => {
-    localStorage.removeItem('auth_token');
+    clearAuthToken();
     localStorage.removeItem('user_data');
     localStorage.removeItem('user_type');
     localStorage.removeItem('portal_sidebar_collapsed');
@@ -192,13 +351,13 @@ export function PortalProvider({ children }: PortalProviderProps) {
     setEmployee(null);
     hasLoadedRef.current = false;
     supabase.auth.signOut().catch(() => {});
-    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     window.location.href = '/auth';
   }, []);
 
   // Async logout
   const logout = useCallback(async () => {
-    localStorage.removeItem('auth_token');
+    clearAuthToken();
     localStorage.removeItem('user_data');
     localStorage.removeItem('user_type');
     localStorage.removeItem('portal_sidebar_collapsed');
@@ -226,18 +385,94 @@ export function PortalProvider({ children }: PortalProviderProps) {
   const isAuthenticated = !!employee;
   const role = employee?.role || null;
 
+  // Proactive token refresh - check every 2 minutes and refresh if expiring soon
+  useEffect(() => {
+    if (!employee) return;
+
+    const refreshTokenIfNeeded = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        // Check if token expires in less than 5 minutes
+        const expiresAt = session.expires_at;
+        if (expiresAt) {
+          const expiresAtMs = expiresAt * 1000;
+          const now = Date.now();
+          const fiveMinutes = 5 * 60 * 1000;
+
+          if (expiresAtMs - now < fiveMinutes) {
+            const { data, error } = await supabase.auth.refreshSession();
+            if (error) {
+              console.error('Token refresh failed:', error.message);
+              // If refresh fails, force re-login
+              if (error.message.includes('expired') || error.message.includes('invalid')) {
+                fastLogout();
+              }
+            } else if (data.session) {
+              // Sync new tokens to storage
+              const newAccessToken = data.session.access_token;
+              const newRefreshToken = data.session.refresh_token;
+              
+              // Update localStorage
+              localStorage.setItem('sb_access_token', newAccessToken);
+              localStorage.setItem('auth_token', newAccessToken);
+              if (newRefreshToken) {
+                localStorage.setItem('sb_refresh_token', newRefreshToken);
+              }
+              
+              // Update cookies
+              const maxAge = 60 * 60 * 24 * 7; // 7 days
+              document.cookie = `sb-access-token=${encodeURIComponent(newAccessToken)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+              document.cookie = `auth_token=${encodeURIComponent(newAccessToken)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+              if (newRefreshToken) {
+                document.cookie = `sb-refresh-token=${encodeURIComponent(newRefreshToken)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+              }
+              
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error checking token expiry:', err);
+      }
+    };
+
+    // Check immediately
+    refreshTokenIfNeeded();
+
+    // Then check every 2 minutes
+    const interval = setInterval(refreshTokenIfNeeded, 2 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [employee, fastLogout]);
+
   // Load employee on mount
   useEffect(() => {
     loadEmployee();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event) => {
+      async (event, session) => {
         if (event === 'SIGNED_OUT') {
           setEmployee(null);
           hasLoadedRef.current = false;
           router.push('/auth');
         } else if (event === 'SIGNED_IN' && !hasLoadedRef.current) {
           await loadEmployee();
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+          // Sync refreshed tokens to cookies
+          const newAccessToken = session.access_token;
+          const newRefreshToken = session.refresh_token;
+          
+          localStorage.setItem('sb_access_token', newAccessToken);
+          localStorage.setItem('auth_token', newAccessToken);
+          if (newRefreshToken) {
+            localStorage.setItem('sb_refresh_token', newRefreshToken);
+          }
+          
+          const maxAge = 60 * 60 * 24 * 7;
+          document.cookie = `sb-access-token=${encodeURIComponent(newAccessToken)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+          document.cookie = `auth_token=${encodeURIComponent(newAccessToken)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+          
         }
       }
     );
@@ -286,6 +521,12 @@ export function PortalProvider({ children }: PortalProviderProps) {
     refreshEmployee,
     isBlocked,
     blockReason,
+    // Notifications - shared to prevent duplicate API calls
+    notifications,
+    unreadCount,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    refreshNotifications,
   };
 
   useEffect(() => {
@@ -364,9 +605,9 @@ export function PortalProvider({ children }: PortalProviderProps) {
   useEffect(() => {
     // Redirect logic - only redirect if fully loaded and mounted
     if (!isLoading && mounted) {
-      // Check localStorage as additional auth source
+      // Check localStorage/cookie as additional auth source
       const userType = localStorage.getItem('user_type');
-      const authToken = localStorage.getItem('auth_token');
+      const authToken = getAuthToken();
       const hasLocalAuth = (userType === 'admin' || userType === 'employee') && authToken;
       
       if (!isAuthenticated && !hasLocalAuth && !isAuthPage) {
@@ -391,39 +632,46 @@ export function PortalProvider({ children }: PortalProviderProps) {
     localStorage.setItem('portal_sidebar_collapsed', String(collapsed));
   };
 
-  // Check localStorage auth as fallback
+  // Check localStorage/cookie auth as fallback
   const hasLocalAuth = typeof window !== 'undefined' && 
     (localStorage.getItem('user_type') === 'admin' || localStorage.getItem('user_type') === 'employee') &&
-    localStorage.getItem('auth_token');
+    getAuthToken();
 
   // Don't render anything while loading
   if (!mounted || isLoading) {
     return (
-      <PortalAuthContext.Provider value={authContextValue}>
-        <LoadingSpinner />
-      </PortalAuthContext.Provider>
+      <QueryProvider>
+        <PortalAuthContext.Provider value={authContextValue}>
+          <LoadingSpinner />
+        </PortalAuthContext.Provider>
+      </QueryProvider>
     );
   }
 
   // Render auth pages without layout
   if (isAuthPage) {
     return (
-      <PortalAuthContext.Provider value={authContextValue}>
-        {children}
-      </PortalAuthContext.Provider>
+      <QueryProvider>
+        <PortalAuthContext.Provider value={authContextValue}>
+          {children}
+        </PortalAuthContext.Provider>
+      </QueryProvider>
     );
   }
 
   // Render full layout for authenticated users (either from hook or localStorage)
   if (!isAuthenticated && !hasLocalAuth) {
     return (
-      <PortalAuthContext.Provider value={authContextValue}>
-        <LoadingSpinner />
-      </PortalAuthContext.Provider>
+      <QueryProvider>
+        <PortalAuthContext.Provider value={authContextValue}>
+          <LoadingSpinner />
+        </PortalAuthContext.Provider>
+      </QueryProvider>
     );
   }
 
   return (
+    <QueryProvider>
     <PortalAuthContext.Provider value={authContextValue}>
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Blocked Account Dialog - Triggered when admin blocks employee in real-time */}
@@ -455,28 +703,22 @@ export function PortalProvider({ children }: PortalProviderProps) {
         onMenuClick={() => setMobileMenuOpen(true)} 
       />
 
-      {/* Main Content */}
+      {/* Main Content - Mobile optimized with Error Boundary */}
       <main
         className={cn(
           'pt-16 min-h-screen transition-all duration-300',
           sidebarCollapsed ? 'md:ml-20' : 'md:ml-[280px]'
         )}
       >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={pathname}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-            className="p-3 sm:p-4 md:p-6 pb-20 sm:pb-6"
-          >
+        <div className="p-3 sm:p-4 md:p-6 pb-20 sm:pb-6">
+          <ErrorBoundary>
             {children}
-          </motion.div>
-        </AnimatePresence>
+          </ErrorBoundary>
+        </div>
       </main>
     </div>
     </PortalAuthContext.Provider>
+    </QueryProvider>
   );
 }
 
@@ -527,7 +769,7 @@ export function ProtectedPage({ children, allowedRoles, permission }: ProtectedP
 }
 
 // =============================================
-// STATS CARD COMPONENT
+// STATS CARD COMPONENT - Mobile Optimized
 // =============================================
 
 interface StatsCardProps {
@@ -541,18 +783,17 @@ interface StatsCardProps {
 
 export function StatsCard({ title, value, change, changeType = 'neutral', icon, className }: StatsCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className={cn(
         'bg-white dark:bg-zinc-900 rounded-xl p-3 sm:p-4 md:p-6 shadow-sm border border-zinc-200 dark:border-zinc-800',
+        'transition-shadow duration-200 hover:shadow-md',
         className
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] sm:text-xs md:text-sm font-medium portal-heading-static truncate">{title}</p>
-          <p className="text-lg sm:text-xl md:text-2xl font-bold mt-0.5 sm:mt-1 portal-card-title truncate">{value}</p>
+          <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground truncate">{title}</p>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold mt-0.5 sm:mt-1 truncate">{value}</p>
           {change && (
             <p
               className={cn(
@@ -568,12 +809,12 @@ export function StatsCard({ title, value, change, changeType = 'neutral', icon, 
         </div>
         <div className="p-1.5 sm:p-2 md:p-3 rounded-lg bg-primary/10 text-primary flex-shrink-0">{icon}</div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 // =============================================
-// SECTION HEADER COMPONENT
+// SECTION HEADER COMPONENT - Mobile Optimized
 // =============================================
 
 interface SectionHeaderProps {
@@ -585,17 +826,17 @@ interface SectionHeaderProps {
 
 export function SectionHeader({ title, description, action, icon }: SectionHeaderProps) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between mb-4 sm:mb-6">
-      <div className="min-w-0">
+    <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-center justify-between mb-4 sm:mb-6">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          {icon && <span className="flex-shrink-0">{icon}</span>}
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-wide portal-heading truncate">{title}</h2>
+          {icon && <span className="flex-shrink-0 text-primary">{icon}</span>}
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-wide text-foreground truncate">{title}</h2>
         </div>
         {description && (
-          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">{description}</p>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 sm:mt-1 line-clamp-2 sm:truncate">{description}</p>
         )}
       </div>
-      {action && <div className="flex-shrink-0">{action}</div>}
+      {action && <div className="flex-shrink-0 w-full sm:w-auto">{action}</div>}
     </div>
   );
 }

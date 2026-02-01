@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,10 +9,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -21,6 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import {
   TrendingUp,
   TrendingDown,
@@ -30,84 +40,26 @@ import {
   ArrowUpRight,
   ClipboardCheck,
   Trash2,
+  Package,
+  AlertTriangle,
+  CheckCircle,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { InventoryItem, TransactionType, StockAdjustmentData } from '@/lib/inventory-queries';
 
-const TRANSACTION_TYPES: {
-  value: TransactionType;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-  color: string;
-  direction: 'add' | 'remove' | 'set';
-}[] = [
-  {
-    value: 'purchase',
-    label: 'Purchase',
-    description: 'Add stock from purchase',
-    icon: <TrendingUp className="h-4 w-4" />,
-    color: 'text-green-500 bg-green-500/10',
-    direction: 'add',
-  },
-  {
-    value: 'usage',
-    label: 'Usage',
-    description: 'Remove stock for kitchen use',
-    icon: <TrendingDown className="h-4 w-4" />,
-    color: 'text-red-500 bg-red-500/10',
-    direction: 'remove',
-  },
-  {
-    value: 'waste',
-    label: 'Waste',
-    description: 'Record spoilage or damage',
-    icon: <Trash2 className="h-4 w-4" />,
-    color: 'text-orange-500 bg-orange-500/10',
-    direction: 'remove',
-  },
-  {
-    value: 'return',
-    label: 'Return',
-    description: 'Return stock from usage',
-    icon: <RotateCcw className="h-4 w-4" />,
-    color: 'text-purple-500 bg-purple-500/10',
-    direction: 'add',
-  },
-  {
-    value: 'transfer_in',
-    label: 'Transfer In',
-    description: 'Receive from another location',
-    icon: <ArrowDownLeft className="h-4 w-4" />,
-    color: 'text-cyan-500 bg-cyan-500/10',
-    direction: 'add',
-  },
-  {
-    value: 'transfer_out',
-    label: 'Transfer Out',
-    description: 'Send to another location',
-    icon: <ArrowUpRight className="h-4 w-4" />,
-    color: 'text-pink-500 bg-pink-500/10',
-    direction: 'remove',
-  },
-  {
-    value: 'count',
-    label: 'Physical Count',
-    description: 'Set exact quantity from count',
-    icon: <ClipboardCheck className="h-4 w-4" />,
-    color: 'text-indigo-500 bg-indigo-500/10',
-    direction: 'set',
-  },
-  {
-    value: 'adjustment',
-    label: 'Adjustment',
-    description: 'Manual stock correction',
-    icon: <ArrowUpDown className="h-4 w-4" />,
-    color: 'text-blue-500 bg-blue-500/10',
-    direction: 'set',
-  },
-];
+// Transaction type configuration
+const TRANSACTION_TYPES = [
+  { value: 'purchase', label: 'Purchase', desc: 'Add stock from supplier', icon: TrendingUp, color: 'text-green-500 bg-green-500/10', direction: 'add' },
+  { value: 'usage', label: 'Usage', desc: 'Remove for kitchen use', icon: TrendingDown, color: 'text-red-500 bg-red-500/10', direction: 'remove' },
+  { value: 'waste', label: 'Waste', desc: 'Spoilage or damage', icon: Trash2, color: 'text-orange-500 bg-orange-500/10', direction: 'remove' },
+  { value: 'return', label: 'Return', desc: 'Return unused stock', icon: RotateCcw, color: 'text-purple-500 bg-purple-500/10', direction: 'add' },
+  { value: 'transfer_in', label: 'Transfer In', desc: 'From another location', icon: ArrowDownLeft, color: 'text-cyan-500 bg-cyan-500/10', direction: 'add' },
+  { value: 'transfer_out', label: 'Transfer Out', desc: 'To another location', icon: ArrowUpRight, color: 'text-pink-500 bg-pink-500/10', direction: 'remove' },
+  { value: 'count', label: 'Physical Count', desc: 'Set exact quantity', icon: ClipboardCheck, color: 'text-indigo-500 bg-indigo-500/10', direction: 'set' },
+  { value: 'adjustment', label: 'Adjustment', desc: 'Manual correction', icon: ArrowUpDown, color: 'text-blue-500 bg-blue-500/10', direction: 'set' },
+] as const;
 
 interface StockAdjustmentDialogProps {
   item: InventoryItem | null;
@@ -116,6 +68,39 @@ interface StockAdjustmentDialogProps {
   onSubmit: (data: StockAdjustmentData) => Promise<void>;
 }
 
+// Memoized type selector button
+const TypeButton = memo(function TypeButton({
+  type,
+  isSelected,
+  onClick,
+}: {
+  type: typeof TRANSACTION_TYPES[number];
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  const Icon = type.icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex items-center gap-2 p-2.5 rounded-lg border text-left transition-colors',
+        isSelected
+          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+          : 'border-border hover:border-primary/50 hover:bg-muted/50'
+      )}
+    >
+      <span className={cn('p-1.5 rounded', type.color)}>
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <div className="min-w-0">
+        <p className="font-medium text-sm truncate">{type.label}</p>
+        <p className="text-xs text-muted-foreground truncate">{type.desc}</p>
+      </div>
+    </button>
+  );
+});
+
 export function StockAdjustmentDialog({
   item,
   open,
@@ -123,71 +108,86 @@ export function StockAdjustmentDialog({
   onSubmit,
 }: StockAdjustmentDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [transactionType, setTransactionType] = useState<TransactionType>('purchase');
-  const [quantity, setQuantity] = useState(0);
+  const [quantity, setQuantity] = useState('');
   const [reason, setReason] = useState('');
-  const [unitCost, setUnitCost] = useState<number | undefined>();
+  const [unitCost, setUnitCost] = useState('');
   const [referenceNumber, setReferenceNumber] = useState('');
   const [batchNumber, setBatchNumber] = useState('');
 
-  const selectedType = TRANSACTION_TYPES.find((t) => t.value === transactionType);
-
-  const calculateNewStock = (): number => {
-    if (!item) return 0;
-
-    switch (selectedType?.direction) {
-      case 'add':
-        return item.current_stock + quantity;
-      case 'remove':
-        return item.current_stock - quantity;
-      case 'set':
-        return quantity;
-      default:
-        return item.current_stock;
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setTransactionType('purchase');
+      setQuantity('');
+      setReason('');
+      setUnitCost('');
+      setReferenceNumber('');
+      setBatchNumber('');
+      setIsLoading(false);
+      setShowConfirmDialog(false);
     }
-  };
+  }, [open]);
 
-  const handleSubmit = async () => {
+  const selectedType = TRANSACTION_TYPES.find(t => t.value === transactionType);
+  const qty = parseFloat(quantity) || 0;
+  const cost = parseFloat(unitCost) || 0;
+
+  const calculateNewStock = useCallback(() => {
+    if (!item) return 0;
+    switch (selectedType?.direction) {
+      case 'add': return item.current_stock + qty;
+      case 'remove': return item.current_stock - qty;
+      case 'set': return qty;
+      default: return item.current_stock;
+    }
+  }, [item, selectedType, qty]);
+
+  // Validate and show confirmation
+  const handleShowConfirm = () => {
     if (!item) return;
 
-    if (quantity <= 0 && selectedType?.direction !== 'set') {
+    if (qty <= 0 && selectedType?.direction !== 'set') {
       toast.error('Please enter a valid quantity');
       return;
     }
 
     if (!reason.trim()) {
-      toast.error('Please provide a reason for this adjustment');
+      toast.error('Please provide a reason');
       return;
     }
 
     const newStock = calculateNewStock();
-    if (newStock < 0 && transactionType !== 'adjustment' && transactionType !== 'count') {
-      toast.error(`Insufficient stock. Cannot remove ${quantity} ${item.unit}`);
+    if (newStock < 0 && selectedType?.direction === 'remove') {
+      toast.error(`Insufficient stock. Current: ${item.current_stock} ${item.unit}`);
       return;
     }
 
+    setShowConfirmDialog(true);
+  };
+
+  // Actually submit after confirmation
+  const handleConfirmedSubmit = async () => {
+    if (!item) return;
+
     setIsLoading(true);
+    setShowConfirmDialog(false);
+    
     try {
       await onSubmit({
         itemId: item.id,
         transactionType,
-        quantity,
-        reason,
-        unitCost: transactionType === 'purchase' ? unitCost : undefined,
-        referenceNumber: referenceNumber || undefined,
-        batchNumber: batchNumber || undefined,
+        quantity: qty,
+        reason: reason.trim(),
+        unitCost: transactionType === 'purchase' && cost > 0 ? cost : undefined,
+        referenceNumber: referenceNumber.trim() || undefined,
+        batchNumber: batchNumber.trim() || undefined,
       });
-
-      // Reset form
-      setQuantity(0);
-      setReason('');
-      setUnitCost(undefined);
-      setReferenceNumber('');
-      setBatchNumber('');
-      onOpenChange(false);
+      // Don't show toast here - let the parent handle it
+      onOpenChange(false); // Close dialog on success
     } catch (error: any) {
       toast.error(error.message || 'Failed to adjust stock');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -198,178 +198,306 @@ export function StockAdjustmentDialog({
   const stockChange = newStock - item.current_stock;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="sm:max-w-5xl sm:w-[90vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Stock Adjustment</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5 text-orange-500" />
+            Stock Adjustment
+          </DialogTitle>
           <DialogDescription>
-            Adjust stock for <strong>{item.name}</strong> ({item.sku})
+            Adjust stock for <strong>{item.name}</strong> (SKU: {item.sku})
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Current Stock Display */}
-          <div className="p-4 rounded-lg bg-zinc-100 dark:bg-zinc-800/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Current Stock</p>
-                <p className="text-3xl font-bold">
-                  {item.current_stock} <span className="text-base font-normal">{item.unit}</span>
-                </p>
-              </div>
+        <div className="space-y-5">
+          {/* Current Stock & Item Info - Horizontal Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-lg bg-gradient-to-br from-zinc-100 to-zinc-50 dark:from-zinc-800 dark:to-zinc-900">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Current Stock</p>
+              <p className="text-4xl font-bold mt-1">
+                {item.current_stock.toLocaleString()}
+                <span className="text-lg font-normal ml-1">{item.unit}</span>
+              </p>
               <Badge
+                variant="outline"
                 className={cn(
-                  item.status === 'in_stock' && 'bg-green-500/10 text-green-500',
-                  item.status === 'low_stock' && 'bg-yellow-500/10 text-yellow-500',
-                  item.status === 'out_of_stock' && 'bg-red-500/10 text-red-500'
+                  'mt-2',
+                  item.status === 'in_stock' && 'border-green-500 text-green-600',
+                  item.status === 'low_stock' && 'border-yellow-500 text-yellow-600',
+                  item.status === 'out_of_stock' && 'border-red-500 text-red-600'
                 )}
               >
+                {item.status === 'in_stock' && <CheckCircle className="h-3 w-3 mr-1" />}
+                {item.status === 'low_stock' && <AlertTriangle className="h-3 w-3 mr-1" />}
                 {item.status.replace('_', ' ')}
               </Badge>
             </div>
-          </div>
-
-          {/* Transaction Type Selection */}
-          <div className="space-y-2">
-            <Label>Transaction Type</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {TRANSACTION_TYPES.map((type) => (
-                <button
-                  key={type.value}
-                  type="button"
-                  onClick={() => setTransactionType(type.value)}
-                  className={cn(
-                    'flex items-center gap-2 p-3 rounded-lg border transition-all text-left',
-                    transactionType === type.value
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                  )}
-                >
-                  <span className={cn('p-1.5 rounded', type.color)}>{type.icon}</span>
-                  <div>
-                    <p className="font-medium text-sm">{type.label}</p>
-                    <p className="text-xs text-muted-foreground">{type.description}</p>
-                  </div>
-                </button>
-              ))}
+            <div className="p-4 rounded-lg bg-muted/50 space-y-1.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Category:</span>
+                <span className="font-medium">{item.category}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Min Stock:</span>
+                <span className="font-medium">{item.min_stock} {item.unit}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cost/Unit:</span>
+                <span className="font-medium">Rs. {item.cost_per_unit.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Value:</span>
+                <span className="font-medium">Rs. {item.total_value.toLocaleString()}</span>
+              </div>
             </div>
-          </div>
-
-          {/* Quantity Input */}
-          <div className="space-y-2">
-            <Label htmlFor="quantity">
-              {selectedType?.direction === 'set' ? 'New Quantity' : 'Quantity'} ({item.unit})
-            </Label>
-            <Input
-              id="quantity"
-              type="number"
-              min="0"
-              step="0.01"
-              value={quantity}
-              onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
-              className="text-lg"
-            />
-            {selectedType?.direction !== 'set' && (
-              <p className="text-xs text-muted-foreground">
-                {selectedType?.direction === 'add' ? 'Adding' : 'Removing'} {quantity} {item.unit}
-              </p>
-            )}
-          </div>
-
-          {/* Unit Cost (for purchases) */}
-          {transactionType === 'purchase' && (
-            <div className="space-y-2">
-              <Label htmlFor="unitCost">Cost per Unit (Rs.)</Label>
-              <Input
-                id="unitCost"
-                type="number"
-                min="0"
-                step="0.01"
-                value={unitCost || item.cost_per_unit}
-                onChange={(e) => setUnitCost(parseFloat(e.target.value) || undefined)}
-                placeholder={`Default: Rs. ${item.cost_per_unit}`}
-              />
-              {quantity > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  Total Cost: Rs. {((unitCost || item.cost_per_unit) * quantity).toLocaleString()}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Reference & Batch Numbers */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="reference">Reference #</Label>
-              <Input
-                id="reference"
-                value={referenceNumber}
-                onChange={(e) => setReferenceNumber(e.target.value)}
-                placeholder="PO, Invoice #"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="batch">Batch #</Label>
-              <Input
-                id="batch"
-                value={batchNumber}
-                onChange={(e) => setBatchNumber(e.target.value)}
-                placeholder="Batch number"
-              />
-            </div>
-          </div>
-
-          {/* Reason */}
-          <div className="space-y-2">
-            <Label htmlFor="reason">Reason *</Label>
-            <Textarea
-              id="reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Describe the reason for this adjustment..."
-              rows={2}
-            />
-          </div>
-
-          {/* Preview */}
-          {quantity > 0 && (
-            <div className="p-4 rounded-lg border bg-muted/30">
-              <p className="text-sm font-medium mb-2">Stock Preview</p>
-              <div className="flex items-center gap-4">
+            {/* Stock Preview - Always visible on right */}
+            <div className="p-4 rounded-lg border-2 border-dashed bg-muted/30">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Stock Preview</p>
+              <div className="flex items-center justify-between gap-2">
                 <div className="text-center">
-                  <p className="text-lg font-bold">{item.current_stock}</p>
+                  <p className="text-xl font-bold">{item.current_stock.toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">Current</p>
                 </div>
-                <div className={cn('text-lg font-bold', stockChange >= 0 ? 'text-green-500' : 'text-red-500')}>
-                  {stockChange >= 0 ? '+' : ''}{stockChange.toFixed(2)}
+                <div className={cn(
+                  'text-xl font-bold',
+                  stockChange >= 0 ? 'text-green-500' : 'text-red-500'
+                )}>
+                  {qty > 0 ? (stockChange >= 0 ? '+' : '') + stockChange.toFixed(1) : '→'}
                 </div>
                 <div className="text-center">
-                  <p className={cn('text-lg font-bold', newStock < item.min_stock && 'text-yellow-500', newStock <= 0 && 'text-red-500')}>
-                    {newStock.toFixed(2)}
+                  <p className={cn(
+                    'text-xl font-bold',
+                    qty > 0 && newStock < item.min_stock && 'text-yellow-500',
+                    qty > 0 && newStock <= 0 && 'text-red-500'
+                  )}>
+                    {qty > 0 ? newStock.toFixed(1) : '?'}
                   </p>
                   <p className="text-xs text-muted-foreground">New</p>
                 </div>
               </div>
-              {newStock <= 0 && (
-                <p className="text-xs text-red-500 mt-2">⚠️ Item will be out of stock</p>
+              {qty > 0 && newStock <= 0 && (
+                <p className="text-xs text-red-500 mt-2 text-center">Out of stock!</p>
               )}
-              {newStock > 0 && newStock <= item.min_stock && (
-                <p className="text-xs text-yellow-500 mt-2">⚠️ Stock will be below minimum level</p>
+              {qty > 0 && newStock > 0 && newStock <= item.min_stock && (
+                <p className="text-xs text-yellow-600 mt-2 text-center">Below min level</p>
               )}
             </div>
-          )}
+          </div>
+
+          <Separator />
+
+          {/* Transaction Type Selection */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Transaction Type</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {TRANSACTION_TYPES.map((type) => (
+                <TypeButton
+                  key={type.value}
+                  type={type}
+                  isSelected={transactionType === type.value}
+                  onClick={() => setTransactionType(type.value as TransactionType)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Quantity, Cost, Reference & Batch - All Horizontal */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="quantity">
+                {selectedType?.direction === 'set' ? 'New Quantity' : 'Quantity'} *
+              </Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="0"
+                step="0.01"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder={`Enter ${item.unit}`}
+                className="text-lg h-11"
+              />
+              {qty > 0 && selectedType?.direction !== 'set' && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedType?.direction === 'add' ? 'Adding' : 'Removing'} {qty} {item.unit}
+                </p>
+              )}
+            </div>
+
+            {transactionType === 'purchase' ? (
+              <div className="space-y-2">
+                <Label htmlFor="unitCost">Cost/Unit (Rs.)</Label>
+                <Input
+                  id="unitCost"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={unitCost}
+                  onChange={(e) => setUnitCost(e.target.value)}
+                  placeholder={`${item.cost_per_unit}`}
+                  className="h-11"
+                />
+                {qty > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Total: Rs. {((cost || item.cost_per_unit) * qty).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="reference">Reference # (Optional)</Label>
+                <Input
+                  id="reference"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  placeholder="PO, Invoice..."
+                  className="h-11"
+                />
+              </div>
+            )}
+
+            {transactionType === 'purchase' ? (
+              <div className="space-y-2">
+                <Label htmlFor="reference">Reference # (Optional)</Label>
+                <Input
+                  id="reference"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  placeholder="PO, Invoice..."
+                  className="h-11"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="batch">Batch # (Optional)</Label>
+                <Input
+                  id="batch"
+                  value={batchNumber}
+                  onChange={(e) => setBatchNumber(e.target.value)}
+                  placeholder="Batch number..."
+                  className="h-11"
+                />
+              </div>
+            )}
+
+            {transactionType === 'purchase' && (
+              <div className="space-y-2">
+                <Label htmlFor="batch">Batch # (Optional)</Label>
+                <Input
+                  id="batch"
+                  value={batchNumber}
+                  onChange={(e) => setBatchNumber(e.target.value)}
+                  placeholder="Batch number..."
+                  className="h-11"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Reason - Full Width */}
+          <div className="space-y-2">
+            <Label htmlFor="reason">Reason *</Label>
+            <Input
+              id="reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Describe why you're making this adjustment..."
+              className="h-11"
+            />
+          </div>
+
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isLoading || quantity <= 0}>
-            {isLoading ? 'Processing...' : 'Confirm Adjustment'}
+          <Button 
+            onClick={handleShowConfirm} 
+            disabled={isLoading || qty <= 0 || !reason.trim()}
+            className="min-w-[120px]"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : 'Adjust Stock'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Confirmation Dialog */}
+    <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+            Confirm Stock Adjustment
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3">
+              <p>Are you sure you want to make this adjustment?</p>
+              <div className="p-3 rounded-lg bg-muted space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Item:</span>
+                  <span className="font-medium">{item?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Type:</span>
+                  <span className="font-medium">{selectedType?.label}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Current Stock:</span>
+                  <span className="font-medium">{item?.current_stock} {item?.unit}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Change:</span>
+                  <span className={cn(
+                    'font-bold',
+                    stockChange >= 0 ? 'text-green-600' : 'text-red-600'
+                  )}>
+                    {stockChange >= 0 ? '+' : ''}{stockChange.toFixed(1)} {item?.unit}
+                  </span>
+                </div>
+                <div className="flex justify-between border-t pt-2">
+                  <span className="text-muted-foreground">New Stock:</span>
+                  <span className={cn(
+                    'font-bold',
+                    newStock <= 0 && 'text-red-600',
+                    newStock > 0 && newStock <= (item?.min_stock || 0) && 'text-yellow-600'
+                  )}>
+                    {newStock.toFixed(1)} {item?.unit}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Reason: {reason}
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleConfirmedSubmit}
+            disabled={isLoading}
+            className="bg-primary"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : 'Confirm Adjustment'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 

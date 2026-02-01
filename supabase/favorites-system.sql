@@ -240,7 +240,7 @@ BEGIN
 END;
 $$;
 
--- Grant permissions
+-- Grant permissions (authenticated only - API routes use createAuthenticatedClient)
 GRANT EXECUTE ON FUNCTION toggle_favorite(uuid, text, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_customer_favorites(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION is_favorite(uuid, text, text) TO authenticated;

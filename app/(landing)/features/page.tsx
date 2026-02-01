@@ -10,8 +10,6 @@ import {
   ArrowRight, Check, Play, Pause
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Navbar from "@/components/custom/Navbar";
-import Footer from "@/components/custom/Footer";
 
 // ============================================
 // WebGL Background Component
@@ -353,16 +351,14 @@ export default function FeaturesPage() {
   const heroY = useTransform(scrollYProgress, [0, 0.15], [0, -50]);
 
   return (
-    <>
-      <Navbar />
-      <main className="min-h-screen bg-zinc-950 text-white overflow-hidden relative" ref={containerRef}>
+    <div className="min-h-screen bg-zinc-950 text-white overflow-hidden relative pt-20" ref={containerRef}>
         {/* WebGL Background */}
         <WebGLBackground />
 
         {/* Hero Section */}
         <motion.section 
           ref={heroRef}
-          className="relative min-h-screen flex items-center justify-center py-20"
+          className="relative min-h-screen flex items-center justify-center pt-20 pb-20"
           style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
         >
           {/* Animated gradient orbs */}
@@ -885,8 +881,6 @@ export default function FeaturesPage() {
             </motion.div>
           </div>
         </section>
-      </main>
-      <Footer />
-    </>
+      </div>
   );
 }

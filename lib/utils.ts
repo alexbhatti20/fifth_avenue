@@ -58,3 +58,102 @@ export function getMobileOptimizedVariants(desktopVariants: Record<string, unkno
   
   return desktopVariants;
 }
+
+// =============================================
+// UNIVERSAL ERROR HANDLING
+// =============================================
+
+// Check if error is related to network/internet connectivity
+export function isNetworkError(error: unknown): boolean {
+  // Empty error objects are typically network failures
+  if (error && typeof error === 'object' && Object.keys(error).length === 0) {
+    return true;
+  }
+  
+  if (!error) return false;
+  
+  const errorStr = String(error).toLowerCase();
+  const errorMessage = (error as Error)?.message?.toLowerCase() || '';
+  const errorName = (error as Error)?.name?.toLowerCase() || '';
+  
+  const networkErrorPatterns = [
+    'network',
+    'fetch',
+    'failed to fetch',
+    'networkerror',
+    'net::err',
+    'econnrefused',
+    'enotfound',
+    'etimedout',
+    'econnreset',
+    'socket',
+    'connection refused',
+    'no internet',
+    'offline',
+    'unreachable',
+    'dns',
+    'timeout',
+    'aborted',
+    'load failed', // Safari network error
+    'cancelled', // Request cancelled (often due to network)
+  ];
+  
+  return networkErrorPatterns.some(pattern => 
+    errorStr.includes(pattern) || 
+    errorMessage.includes(pattern) || 
+    errorName.includes(pattern)
+  );
+}
+
+// Get user-friendly error message
+export function getErrorMessage(error: unknown, context?: string): string {
+  // Check for network/internet issues first
+  if (isNetworkError(error)) {
+    return 'Unable to connect. Please check your internet connection and try again.';
+  }
+  
+  // Handle empty error objects
+  if (error && typeof error === 'object' && Object.keys(error).length === 0) {
+    return 'Unable to connect. Please check your internet connection and try again.';
+  }
+  
+  // Extract error message if available
+  const errorMessage = (error as Error)?.message || String(error);
+  
+  // Don't expose technical errors to users
+  const technicalPatterns = [
+    'rpc',
+    'sql',
+    'database',
+    'supabase',
+    'postgres',
+    'function',
+    'undefined',
+    'null',
+    'cannot read',
+    'cannot access',
+    'type error',
+  ];
+  
+  const isTechnical = technicalPatterns.some(pattern => 
+    errorMessage.toLowerCase().includes(pattern)
+  );
+  
+  if (isTechnical) {
+    return context 
+      ? `Something went wrong while ${context}. Please try again.`
+      : 'Something went wrong. Please try again.';
+  }
+  
+  return errorMessage;
+}
+
+// Log error with context (for debugging) but return user-friendly message
+export function handleError(error: unknown, context: string): string {
+  // Log full error for debugging (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.error(`[${context}]`, error);
+  }
+  
+  return getErrorMessage(error, context.toLowerCase());
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -48,13 +48,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { SectionHeader } from '@/components/portal/PortalProvider';
-import { createClient } from '@/lib/supabase';
+import { 
+  getOrderForBilling, 
+  validatePromoCodeForBilling, 
+  generateFullBill, 
+  getInvoiceDetails 
+} from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { usePortalAuth } from '@/hooks/usePortal';
 import { InvoicePrintView } from '@/components/portal/billing';
-
-const supabase = createClient();
 
 const ALLOWED_ROLES = ['admin', 'manager', 'billing_staff', 'waiter', 'reception'];
 
@@ -122,26 +125,22 @@ export default function GenerateInvoicePage() {
     }
   }, [employee, isAuthLoading, router]);
 
-  // Fetch order details
+  // Fetch order details using Server Action (hidden from Network tab)
   const fetchOrderDetails = useCallback(async () => {
     if (!orderId) return;
     
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_order_for_billing', {
-        p_order_id: orderId,
-      });
+      const result = await getOrderForBilling(orderId);
 
-      if (error) throw error;
-      
-      if (data?.success) {
-        setBillingData(data);
+      if (result.success && result.data?.success) {
+        setBillingData(result.data);
         
-        if (data.existing_invoice) {
+        if (result.data.existing_invoice) {
           toast.info('This order already has an invoice');
         }
       } else {
-        toast.error(data?.error || 'Failed to load order details');
+        toast.error(result.data?.error || result.error || 'Failed to load order details');
         router.push('/portal/billing');
       }
     } catch (error: any) {
@@ -152,8 +151,12 @@ export default function GenerateInvoicePage() {
     }
   }, [orderId, router]);
 
+  const hasFetchedRef = useRef(false);
+
   useEffect(() => {
+    if (hasFetchedRef.current) return;
     if (isAuthorized && orderId) {
+      hasFetchedRef.current = true;
       fetchOrderDetails();
     }
   }, [isAuthorized, orderId, fetchOrderDetails]);
@@ -163,20 +166,23 @@ export default function GenerateInvoicePage() {
     
     setIsValidatingPromo(true);
     try {
-      const { data, error } = await supabase.rpc('validate_promo_code_for_billing', {
-        p_code: promoCode.trim(),
-        p_customer_id: billingData?.customer?.id || null,
-        p_order_amount: billingData.order.subtotal,
-      });
+      const result = await validatePromoCodeForBilling(
+        promoCode.trim(),
+        billingData?.customer?.id || undefined,
+        billingData.order.subtotal
+      );
 
-      if (error) throw error;
-      
-      setPromoValidation(data);
-      
-      if (data?.valid) {
-        toast.success(`Promo applied! Rs. ${data.discount_amount} off`);
+      if (result.success) {
+        setPromoValidation(result.data);
+        
+        if (result.data?.valid) {
+          toast.success(`Promo applied! Rs. ${result.data.discount_amount} off`);
+        } else {
+          toast.error(result.data?.error || 'Invalid promo code');
+        }
       } else {
-        toast.error(data?.error || 'Invalid promo code');
+        toast.error(result.error || 'Failed to validate promo code');
+        setPromoValidation(null);
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -208,19 +214,24 @@ export default function GenerateInvoicePage() {
     if (withEmail) setIsSendingEmail(true);
     
     try {
-      const { data, error } = await supabase.rpc('generate_advanced_invoice', {
-        p_order_id: orderId,
-        p_payment_method: paymentMethod,
-        p_manual_discount: manualDiscount,
-        p_tip: tip,
-        p_service_charge: serviceCharge,
-        p_promo_code: promoValidation?.valid ? promoCode : null,
-        p_loyalty_points_used: loyaltyPointsToUse,
-        p_notes: notes || null,
-        p_biller_id: employee?.id || null,
+      // Use Server Action for invoice generation (hidden from Network tab)
+      const result = await generateFullBill({
+        orderId: orderId,
+        paymentMethod: paymentMethod as 'cash' | 'card' | 'online' | 'wallet',
+        manualDiscount: manualDiscount,
+        tip: tip,
+        serviceCharge: serviceCharge,
+        promoCode: promoValidation?.valid ? promoCode : undefined,
+        loyaltyPointsUsed: loyaltyPointsToUse,
+        notes: notes || undefined,
+        billerId: employee?.id || undefined,
       });
 
-      if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to generate invoice');
+      }
+      
+      const data = result.data;
       
       if (data?.success) {
         toast.success(`Invoice #${data.invoice_number} generated!`);
@@ -242,9 +253,13 @@ export default function GenerateInvoicePage() {
         // Send invoice email if requested
         if (withEmail && billingData?.customer?.email) {
           try {
+            const token = localStorage.getItem('auth_token');
             const emailResponse = await fetch('/api/customer/invoice-email', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` })
+              },
               body: JSON.stringify({
                 customerEmail: billingData.customer.email,
                 customerName: billingData.customer.name || 'Valued Customer',
@@ -275,7 +290,6 @@ export default function GenerateInvoicePage() {
               const promoIncluded = data?.reward_promo?.code ? ' (includes reward promo!)' : '';
               toast.success(`Invoice sent to ${billingData.customer.email}!${promoIncluded}`);
             } else {
-              const emailError = await emailResponse.json();
               toast.error('Invoice generated but email failed to send');
             }
           } catch (emailError) {
@@ -283,19 +297,17 @@ export default function GenerateInvoicePage() {
           }
         }
         
-        // Fetch the invoice for print view
-        const { data: invoiceData } = await supabase.rpc('get_invoice_details', {
-          p_invoice_id: data.invoice_id,
-        });
+        // Fetch the invoice for print view using Server Action
+        const invoiceResult = await getInvoiceDetails(data.invoice_id);
         
-        if (invoiceData?.success) {
+        if (invoiceResult.success && invoiceResult.data?.success) {
           // Merge invoice with customer and order data (include billed_by for invoice print)
           const invoiceWithDetails = {
-            ...invoiceData.invoice,
-            customer: invoiceData.customer,
-            order: invoiceData.order,
-            waiter: invoiceData.waiter,
-            billed_by: invoiceData.billed_by,
+            ...invoiceResult.data.invoice,
+            customer: invoiceResult.data.customer,
+            order: invoiceResult.data.order,
+            waiter: invoiceResult.data.waiter,
+            billed_by: invoiceResult.data.billed_by,
           };
           setGeneratedInvoice(invoiceWithDetails);
           setShowPrintView(true);

@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { getAuthToken } from '@/lib/cookies';
 import { ROLE_LABELS, ROLE_COLORS } from './EmployeeCard';
 import type { Employee } from '@/types/portal';
 
@@ -112,9 +113,13 @@ export function BlockUnblockDialog({
         });
         
         try {
+          const token = getAuthToken();
           const emailResponse = await fetch('/api/admin/employees/notify', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              ...(token && { 'Authorization': `Bearer ${token}` })
+            },
             body: JSON.stringify({
               type: isBlocking ? 'blocked' : 'unblocked',
               email: employee.email,

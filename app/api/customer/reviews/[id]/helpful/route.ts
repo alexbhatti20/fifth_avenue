@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { createClient, createAuthenticatedClient } from '@/lib/supabase';
 import { verifyToken } from '@/lib/jwt';
 import { redis, rateLimiters } from '@/lib/redis';
 
 const REVIEWS_CACHE_KEY = 'cache:public_reviews';
 
 // POST - Mark a review as helpful
+// Note: This endpoint supports both authenticated and anonymous users
+// Anonymous users are tracked by IP address
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: reviewId } = await params;
-    const supabase = createClient();
 
     // Get IP address for rate limiting
     const forwarded = request.headers.get('x-forwarded-for');
@@ -32,18 +33,28 @@ export async function POST(
 
     // Check if user is logged in (optional) - using JWT token
     let customerId: string | null = null;
+    let supabase;
+    
     const authHeader = request.headers.get('authorization');
-    const cookieToken = request.cookies.get('auth-token')?.value;
+    const cookieToken = request.cookies.get('auth_token')?.value;
     const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : cookieToken;
     
     if (token) {
-      const decoded = verifyToken(token);
+      const decoded = await verifyToken(token);
       // Allow customers and admins to mark reviews as helpful
       const allowedUserTypes = ['customer', 'admin'];
       const userType = decoded?.userType || decoded?.type;
       if (decoded && allowedUserTypes.includes(userType as string)) {
         customerId = decoded.userId;
+        // Use authenticated client for logged-in users
+        supabase = createAuthenticatedClient(token);
       }
+    }
+    
+    // For anonymous users, use the public client
+    // mark_review_helpful RPC should allow anon role for IP-based tracking
+    if (!supabase) {
+      supabase = createClient();
     }
 
     // Mark as helpful via RPC

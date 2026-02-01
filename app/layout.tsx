@@ -5,6 +5,7 @@ import { CartProvider } from '@/context/CartContext'
 import { FavoritesProvider } from '@/context/FavoritesContext'
 import { Toaster } from '@/components/ui/toaster'
 import FloatingCartButton from '@/components/custom/FloatingCartButton'
+import CookieConsent from '@/components/custom/CookieConsent'
 import JsonLd from '@/components/seo/JsonLd'
 import { ALL_KEYWORDS, SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/lib/seo'
 
@@ -161,6 +162,7 @@ export default function RootLayout({
             {children}
             <FloatingCartButton />
             <Toaster />
+            <CookieConsent />
           </FavoritesProvider>
         </CartProvider>
       </body>

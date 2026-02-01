@@ -1,8 +1,9 @@
 "use client";
 
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, memo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin, Phone, Clock, Facebook, Instagram, Twitter } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -51,7 +52,7 @@ const simplifiedItemVariants = {
   },
 };
 
-export default function Footer() {
+function Footer() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
   const shouldReduceMotion = useReducedMotion();
@@ -72,16 +73,18 @@ export default function Footer() {
           <motion.div variants={activeItemVariants} className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-3 mb-3 sm:mb-4">
               <motion.div
-                className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden shadow-lg"
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden shadow-lg relative"
                 initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0 }}
                 animate={isInView ? { opacity: 1, scale: 1 } : {}}
                 transition={shouldReduceMotion ? { duration: 0.15 } : { delay: 0.1, type: "spring" }}
                 whileHover={shouldReduceMotion ? undefined : { scale: 1.1, rotate: 5 }}
               >
-                <img 
+                <Image 
                   src="/assets/zoiro-logo.png" 
                   alt="ZOIRO Broast" 
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="56px"
+                  className="object-cover"
                 />
               </motion.div>
               <motion.h3
@@ -197,24 +200,20 @@ export default function Footer() {
         </motion.div>
 
         {/* Bottom Bar */}
-        <motion.div
+        <div
           className="border-t border-background/20 mt-8 sm:mt-12 pt-6 sm:pt-8 flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ delay: 0.8 }}
         >
           <p className="text-background/50 text-xs sm:text-sm text-center md:text-left">
             © 2025 ZOIRO - Injected Broast. All rights reserved.
           </p>
-          <motion.p
-            className="text-background/50 text-xs sm:text-sm"
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
+          <p className="text-background/50 text-xs sm:text-sm">
             Made with ❤️ in Vehari City
-          </motion.p>
-        </motion.div>
+          </p>
+        </div>
       </div>
     </footer>
   );
 }
+
+// Export memoized Footer to prevent unnecessary re-renders
+export default memo(Footer);

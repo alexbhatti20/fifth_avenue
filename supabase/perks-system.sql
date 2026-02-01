@@ -254,16 +254,19 @@ BEGIN
         p_points_required, NOW() + (v_expiry_days || ' days')::INTERVAL
     ) RETURNING id INTO v_new_promo_id;
     
-    -- Also create in main promo_codes table with customer restriction
+    -- Also create in main promo_codes table with customer_id and loyalty_points_required
+    -- This allows the promo to be validated in billing flow
     INSERT INTO promo_codes (
         code, name, description, promo_type, value, max_discount,
-        valid_from, valid_until, usage_limit, current_usage, is_active
+        valid_from, valid_until, usage_limit, current_usage, is_active,
+        customer_id, loyalty_points_required
     ) VALUES (
         v_code, p_promo_name, 
-        'Personal reward for ' || v_customer_name || ' (Customer ID: ' || p_customer_id || ')',
-        p_promo_type, p_promo_value, p_max_discount,
+        'Personal loyalty reward for ' || v_customer_name,
+        p_promo_type::promo_type, p_promo_value, p_max_discount,
         NOW(), NOW() + (v_expiry_days || ' days')::INTERVAL,
-        1, 0, true
+        1, 0, true,
+        p_customer_id, p_points_required
     );
     
     RETURN json_build_object(

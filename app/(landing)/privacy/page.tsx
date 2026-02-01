@@ -2,8 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Lock, Eye, Database, Shield, UserCheck, Bell, Trash2, Baby, FileEdit, Phone, Mail, MapPin } from "lucide-react";
-import Navbar from "@/components/custom/Navbar";
-import Footer from "@/components/custom/Footer";
 
 const privacyData = [
   {
@@ -55,8 +53,7 @@ const privacyData = [
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-black">
-      <Navbar />
+    <div className="min-h-screen bg-black pt-20">
       
       {/* Hero Section */}
       <section className="relative py-24 overflow-hidden">
@@ -194,8 +191,6 @@ export default function PrivacyPage() {
           </motion.div>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 }

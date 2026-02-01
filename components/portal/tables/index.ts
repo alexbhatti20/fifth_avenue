@@ -6,6 +6,7 @@
 export * from './types';
 export { STATUS_CONFIG } from './status-config';
 export { WaiterTableCard } from './WaiterTableCard';
+export { WaiterTableCardV2 } from './WaiterTableCardV2';
 export { MenuItemCard } from './MenuItemCard';
 export { CartItemRow } from './CartItemRow';
 export { TakeOrderDialog } from './TakeOrderDialog';

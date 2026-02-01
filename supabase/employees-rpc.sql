@@ -545,22 +545,23 @@ BEGIN
   END IF;
 
   -- Update employee with only provided fields
+  -- Note: Sensitive fields like role, salary, portal_enabled are only updated if explicitly provided
   UPDATE employees SET
     name = COALESCE(p_data->>'name', name),
     email = COALESCE(p_data->>'email', email),
     phone = COALESCE(p_data->>'phone', phone),
-    role = COALESCE((p_data->>'role')::employee_role, role),
     address = COALESCE(p_data->>'address', address),
     emergency_contact = COALESCE(p_data->>'emergency_contact', emergency_contact),
     emergency_contact_name = COALESCE(p_data->>'emergency_contact_name', emergency_contact_name),
-    date_of_birth = COALESCE((p_data->>'date_of_birth')::DATE, date_of_birth),
+    date_of_birth = CASE WHEN p_data->>'date_of_birth' IS NOT NULL THEN (p_data->>'date_of_birth')::DATE ELSE date_of_birth END,
     blood_group = COALESCE(p_data->>'blood_group', blood_group),
-    salary = COALESCE((p_data->>'salary')::NUMERIC, salary),
-    portal_enabled = COALESCE((p_data->>'portal_enabled')::BOOLEAN, portal_enabled),
-    permissions = COALESCE((p_data->'permissions')::JSONB, permissions),
-    bank_details = COALESCE((p_data->'bank_details')::JSONB, bank_details),
-    notes = COALESCE(p_data->>'notes', notes),
     avatar_url = COALESCE(p_data->>'avatar_url', avatar_url),
+    notes = COALESCE(p_data->>'notes', notes),
+    -- Only update these if explicitly provided (admin operations)
+    salary = CASE WHEN p_data ? 'salary' THEN (p_data->>'salary')::NUMERIC ELSE salary END,
+    portal_enabled = CASE WHEN p_data ? 'portal_enabled' THEN (p_data->>'portal_enabled')::BOOLEAN ELSE portal_enabled END,
+    permissions = CASE WHEN p_data ? 'permissions' THEN (p_data->'permissions')::JSONB ELSE permissions END,
+    bank_details = CASE WHEN p_data ? 'bank_details' THEN (p_data->'bank_details')::JSONB ELSE bank_details END,
     updated_at = NOW()
   WHERE id = p_employee_id;
 

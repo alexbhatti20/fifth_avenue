@@ -114,6 +114,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- =============================================
 -- 2. SEARCH CUSTOMER FOR ORDER
 -- Fast, optimized partial and exact match search
+-- Searches by name, phone, or email
 -- =============================================
 
 CREATE OR REPLACE FUNCTION search_customer_for_order(
@@ -122,7 +123,20 @@ CREATE OR REPLACE FUNCTION search_customer_for_order(
 RETURNS JSON AS $$
 DECLARE
     v_result JSON;
+    v_search_clean TEXT;
 BEGIN
+    -- Clean search input
+    v_search_clean := TRIM(p_search);
+    
+    -- Return empty if search too short
+    IF LENGTH(v_search_clean) < 2 THEN
+        RETURN json_build_object(
+            'success', true,
+            'exact_match', false,
+            'customers', '[]'::json
+        );
+    END IF;
+
     -- Use CTE for optimized search with pre-calculated loyalty
     WITH customer_search AS (
         SELECT 
@@ -133,12 +147,23 @@ BEGIN
             c.address,
             c.is_verified,
             c.created_at,
-            CASE WHEN c.phone = p_search THEN true ELSE false END as is_exact
+            -- Prioritize exact matches
+            CASE 
+                WHEN c.phone = v_search_clean THEN 0
+                WHEN c.email = v_search_clean THEN 1
+                WHEN LOWER(c.name) = LOWER(v_search_clean) THEN 2
+                WHEN c.phone LIKE v_search_clean || '%' THEN 3
+                ELSE 4 
+            END as match_rank
         FROM customers c
-        WHERE c.phone ILIKE '%' || p_search || '%'
-           OR c.name ILIKE '%' || p_search || '%'
-        ORDER BY 
-            CASE WHEN c.phone = p_search THEN 0 ELSE 1 END
+        WHERE 
+            -- Search by phone (partial match)
+            c.phone ILIKE '%' || v_search_clean || '%'
+            -- Search by name (partial match)
+            OR c.name ILIKE '%' || v_search_clean || '%'
+            -- Search by email (partial match)
+            OR c.email ILIKE '%' || v_search_clean || '%'
+        ORDER BY match_rank, c.name
         LIMIT 10
     ),
     customer_stats AS (
@@ -150,7 +175,7 @@ BEGIN
             cs.address,
             cs.is_verified,
             cs.created_at,
-            cs.is_exact,
+            cs.match_rank,
             COALESCE(lp.total_points, 0) as loyalty_points,
             COALESCE(o.order_count, 0) as total_orders
         FROM customer_search cs
@@ -169,7 +194,7 @@ BEGIN
     )
     SELECT json_build_object(
         'success', true,
-        'exact_match', COALESCE((SELECT bool_or(is_exact) FROM customer_stats), false),
+        'exact_match', COALESCE((SELECT bool_or(match_rank <= 2) FROM customer_stats), false),
         'customers', COALESCE((
             SELECT json_agg(
                 json_build_object(
@@ -189,6 +214,7 @@ BEGIN
                     'is_verified', is_verified,
                     'created_at', created_at
                 )
+                ORDER BY match_rank, name
             )
             FROM customer_stats
         ), '[]'::json)
@@ -281,6 +307,9 @@ BEGIN
     v_loyalty_points_earned := FLOOR(v_total / 100);
 
     -- Create the order
+    -- Status determined by order type:
+    -- - Online: 'pending' (needs confirmation)
+    -- - Dine-in/Takeaway/Walk-in: 'preparing' (directly to kitchen)
     INSERT INTO orders (
         id,
         order_number,
@@ -312,7 +341,10 @@ BEGIN
         v_customer_address,
         v_order_type::order_type,
         v_table_number,
-        'pending'::order_status,
+        CASE 
+            WHEN v_order_type = 'online' THEN 'pending'::order_status 
+            ELSE 'preparing'::order_status  -- Dine-in, takeaway, walk-in go directly to kitchen
+        END,
         'pending',
         'cash'::payment_method,
         v_items,
@@ -339,6 +371,15 @@ BEGIN
     IF v_customer_id IS NOT NULL AND v_loyalty_points_earned > 0 THEN
         INSERT INTO loyalty_points (customer_id, order_id, points, type, description, created_at)
         VALUES (v_customer_id, v_order_id, v_loyalty_points_earned, 'earned', 'Points earned from order ' || v_order_number, NOW());
+        
+        -- Check and auto-award loyalty promo codes if customer reached any threshold
+        -- This is called in addition to the trigger as a backup
+        BEGIN
+            PERFORM check_and_award_loyalty_promo(v_customer_id);
+        EXCEPTION WHEN OTHERS THEN
+            -- Don't fail order creation if promo award fails
+            RAISE WARNING 'Could not auto-award promo codes: %', SQLERRM;
+        END;
     END IF;
 
     RETURN json_build_object(

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 
 // Size variant type
 export interface SizeVariant {
@@ -55,6 +55,21 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const CART_STORAGE_KEY = 'zoiro-cart';
 
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Check if an ID is a valid UUID or a deal ID (deal-{uuid})
+const isValidItemId = (id: string): boolean => {
+  if (!id) return false;
+  // Deal IDs are valid if they're in format "deal-{uuid}"
+  if (id.startsWith('deal-')) {
+    const dealId = id.replace('deal-', '');
+    return UUID_REGEX.test(dealId);
+  }
+  // Regular item IDs must be UUIDs
+  return UUID_REGEX.test(id);
+};
+
 // Generate unique cart item ID based on item ID and size
 const generateCartItemId = (itemId: string, size?: string): string => {
   return size ? `${itemId}-${size.toLowerCase().replace(/\s+/g, '-')}` : itemId;
@@ -70,14 +85,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
       if (savedCart) {
         const parsedCart = JSON.parse(savedCart);
-        // Validate cart items have valid prices
+        // Validate cart items have valid prices AND valid UUIDs
         const validCart = parsedCart.filter((item: CartItem) => 
-          typeof item.price === 'number' && item.price > 0 && !isNaN(item.price)
+          typeof item.price === 'number' && 
+          item.price > 0 && 
+          !isNaN(item.price) &&
+          isValidItemId(item.id)
         );
+        // If we filtered out invalid items, save the cleaned cart
+        if (validCart.length !== parsedCart.length) {
+          localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(validCart));
+        }
         setItems(validCart);
       }
     } catch {
       // Failed to load cart - start fresh
+      localStorage.removeItem(CART_STORAGE_KEY);
     }
     setIsHydrated(true);
   }, []);
@@ -93,11 +116,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, isHydrated]);
 
-  const getCartItemId = (itemId: string, size?: string): string => {
+  const getCartItemId = useCallback((itemId: string, size?: string): string => {
     return generateCartItemId(itemId, size);
-  };
+  }, []);
 
-  const addToCart = (item: MenuItem, size?: string, price?: number) => {
+  const addToCart = useCallback((item: MenuItem, size?: string, price?: number) => {
     const cartItemId = generateCartItemId(item.id, size);
     const itemPrice = price ?? item.price;
     
@@ -122,46 +145,47 @@ export function CartProvider({ children }: { children: ReactNode }) {
         cartItemId 
       }];
     });
-  };
+  }, []);
 
-  const removeFromCart = (cartItemId: string) => {
+  const removeFromCart = useCallback((cartItemId: string) => {
     setItems((prevItems) => prevItems.filter((i) => (i.cartItemId || i.id) !== cartItemId));
-  };
+  }, []);
 
-  const updateQuantity = (cartItemId: string, quantity: number) => {
+  const updateQuantity = useCallback((cartItemId: string, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(cartItemId);
+      setItems((prevItems) => prevItems.filter((i) => (i.cartItemId || i.id) !== cartItemId));
       return;
     }
     setItems((prevItems) =>
       prevItems.map((i) => ((i.cartItemId || i.id) === cartItemId ? { ...i, quantity } : i))
     );
-  };
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setItems([]);
-  };
+  }, []);
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce((sum, item) => {
+  const totalItems = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items]);
+  const totalPrice = useMemo(() => items.reduce((sum, item) => {
     const price = item.selectedPrice || item.price;
     const validPrice = typeof price === 'number' && !isNaN(price) ? price : 0;
     return sum + validPrice * item.quantity;
-  }, 0);
+  }, 0), [items]);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    items,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    totalItems,
+    totalPrice,
+    getCartItemId,
+  }), [items, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice, getCartItemId]);
 
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
-        totalItems,
-        totalPrice,
-        getCartItemId,
-      }}
-    >
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { redis } from '@/lib/redis';
-import { generateToken } from '@/lib/jwt';
 import { 
   checkOTPRateLimit, 
   recordOTPFailure, 
@@ -64,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Get OTP from Redis first (faster)
     let otpData: OTPData | null = null;
-    const redisOTPData = await redis.get<string | OTPData>(OTP_KEY(normalizedEmail));
+    const redisOTPData = await redis?.get<string | OTPData>(OTP_KEY(normalizedEmail));
     
     if (redisOTPData) {
       otpData = typeof redisOTPData === 'string' ? JSON.parse(redisOTPData) : redisOTPData;
@@ -101,7 +100,7 @@ export async function POST(request: NextRequest) {
     // Check if OTP expired
     if (Date.now() > otpData.expiresAt) {
       // Clear expired OTP
-      await redis.del(OTP_KEY(normalizedEmail));
+      await redis?.del(OTP_KEY(normalizedEmail));
       
       return NextResponse.json(
         { error: 'Verification code has expired. Please request a new one.' },
@@ -118,7 +117,7 @@ export async function POST(request: NextRequest) {
       otpData.attempts = (otpData.attempts || 0) + 1;
       const remainingTTL = Math.floor((otpData.expiresAt - Date.now()) / 1000);
       if (remainingTTL > 0) {
-        await redis.set(OTP_KEY(normalizedEmail), JSON.stringify(otpData), { ex: remainingTTL });
+        await redis?.set(OTP_KEY(normalizedEmail), JSON.stringify(otpData), { ex: remainingTTL });
       }
 
       return NextResponse.json(
@@ -196,18 +195,19 @@ export async function POST(request: NextRequest) {
           .single();
         
         if (existingCustomer) {
-          // Customer already exists, just generate token and return
-          const token = generateToken({
-            userId: existingCustomer.id,
-            email: existingCustomer.email,
-            userType: 'customer',
+          // Customer already exists, try to sign them in to get session
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: normalizedEmail,
+            password: pendingData.password,
           });
+          
+          const token = signInData?.session?.access_token || '';
 
           // Cleanup Redis
           await Promise.all([
-            redis.del(OTP_KEY(normalizedEmail)),
-            redis.del(PENDING_REGISTRATION_KEY(normalizedEmail)),
-          ]);
+            redis?.del(OTP_KEY(normalizedEmail)),
+            redis?.del(PENDING_REGISTRATION_KEY(normalizedEmail)),
+          ].filter(Boolean));
 
           const response = NextResponse.json({
             success: true,
@@ -224,13 +224,23 @@ export async function POST(request: NextRequest) {
           });
 
           const isSecure = process.env.NEXT_PUBLIC_APP_URL?.startsWith('https') || process.env.NODE_ENV === 'production';
-          response.cookies.set('auth-token', token, {
+          response.cookies.set('auth_token', token, {
             httpOnly: true,
             secure: isSecure,
             sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 7,
             path: '/',
           });
+          
+          if (signInData?.session?.refresh_token) {
+            response.cookies.set('sb-refresh-token', signInData.session.refresh_token, {
+              httpOnly: true,
+              secure: isSecure,
+              sameSite: 'lax',
+              maxAge: 60 * 60 * 24 * 7,
+              path: '/',
+            });
+          }
 
           return response;
         }
@@ -252,18 +262,19 @@ export async function POST(request: NextRequest) {
 
     // Cleanup Redis
     await Promise.all([
-      redis.del(OTP_KEY(normalizedEmail)),
-      redis.del(PENDING_REGISTRATION_KEY(normalizedEmail)),
+      redis?.del(OTP_KEY(normalizedEmail)),
+      redis?.del(PENDING_REGISTRATION_KEY(normalizedEmail)),
       clearOTPRateLimit(normalizedEmail),
       clearRegistrationRateLimit(ip),
-    ]);
+    ].filter(Boolean));
 
-    // Generate JWT token for auto-login
-    const token = generateToken({
-      userId: customer.id,
-      email: customer.email,
-      userType: 'customer',
+    // Sign in the newly created user to get session token
+    const { data: sessionData } = await supabase!.auth.signInWithPassword({
+      email: normalizedEmail,
+      password: pendingData.password,
     });
+    
+    const token = sessionData?.session?.access_token || '';
 
     // Create welcome notification (non-critical, fire and forget)
     try {
@@ -303,13 +314,23 @@ export async function POST(request: NextRequest) {
 
     // Set secure HTTP-only cookie for token
     const isSecure = process.env.NEXT_PUBLIC_APP_URL?.startsWith('https') || process.env.NODE_ENV === 'production';
-    response.cookies.set('auth-token', token, {
+    response.cookies.set('auth_token', token, {
       httpOnly: true,
       secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });
+
+    if (sessionData?.session?.refresh_token) {
+      response.cookies.set('sb-refresh-token', sessionData.session.refresh_token, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      });
+    }
 
     return response;
 

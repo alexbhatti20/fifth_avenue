@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Receipt,
@@ -27,11 +27,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { createClient } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import type { BillableOrder } from './types';
-
-const supabase = createClient();
+// Server Actions for all database calls (hidden from Network tab)
+import { getBillableOrders } from '@/lib/actions';
 
 const ORDER_TYPE_CONFIG: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
   'dine-in': { color: 'bg-blue-500/10 text-blue-600', icon: <Utensils className="h-3 w-3" />, label: 'Dine-in' },
@@ -225,36 +224,53 @@ function BillableOrderCard({ order, onGenerateBill }: BillableOrderCardProps) {
 
 interface PendingOrdersListProps {
   onSelectOrder: (order: BillableOrder) => void;
+  initialOrders?: BillableOrder[];
 }
 
-export function PendingOrdersList({ onSelectOrder }: PendingOrdersListProps) {
-  const [orders, setOrders] = useState<BillableOrder[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export function PendingOrdersList({ onSelectOrder, initialOrders }: PendingOrdersListProps) {
+  const [orders, setOrders] = useState<BillableOrder[]>(initialOrders || []);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [orderTypeFilter, setOrderTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('pending_bill');
+  // SSR provides data for 'all' + 'pending_bill', so mark that as already fetched
+  const fetchedFiltersRef = useRef<string | null>(
+    initialOrders !== undefined ? 'all|pending_bill' : null
+  );
 
+  // Only fetch when filter combination changes from what we have
   useEffect(() => {
+    const currentKey = `${orderTypeFilter}|${statusFilter}`;
+    
+    // Skip if we already have data for this filter combination
+    if (fetchedFiltersRef.current === currentKey) {
+      return;
+    }
+    
+    fetchedFiltersRef.current = currentKey;
     fetchOrders();
   }, [orderTypeFilter, statusFilter]);
 
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_billable_orders', {
-        p_order_type: orderTypeFilter === 'all' ? null : orderTypeFilter,
-        p_status_filter: statusFilter,
-        p_limit: 50,
-        p_offset: 0,
-      });
+      // Server Action - hidden from Network tab
+      const result = await getBillableOrders(
+        orderTypeFilter === 'all' ? undefined : orderTypeFilter,
+        statusFilter,
+        50,
+        0
+      );
 
-      if (error) throw error;
+      if (!result.success) throw new Error(result.error);
       
+      const data = result.data;
       if (data?.success) {
         setOrders(data.orders || []);
       }
     } catch (error) {
-      } finally {
+      console.error('Error fetching orders:', error);
+    } finally {
       setIsLoading(false);
     }
   };

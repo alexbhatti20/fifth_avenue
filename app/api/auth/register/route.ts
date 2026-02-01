@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
     const expiresAt = Date.now() + (OTP_EXPIRY_MINUTES * 60 * 1000);
 
     // Store pending registration data in Redis (expires in 10 minutes)
-    await redis.set(
+    await redis?.set(
       PENDING_REGISTRATION_KEY(normalizedEmail),
       JSON.stringify({
         email: normalizedEmail,
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Store OTP in Redis (expires in 2 minutes)
-    await redis.set(
+    await redis?.set(
       OTP_KEY(normalizedEmail),
       JSON.stringify({
         code: otp,
@@ -279,18 +279,8 @@ export async function POST(request: NextRequest) {
     const emailResult = await sendRegistrationOTP(normalizedEmail, name, otp);
 
     if (!emailResult.success) {
-      // In development, still allow registration but show OTP in response
-      const isDev = process.env.NODE_ENV === 'development';
-      
-      if (isDev) {
-        return NextResponse.json({
-          success: true,
-          message: `Verification code sent to ${normalizedEmail}`,
-          email: normalizedEmail,
-          expiresIn: OTP_EXPIRY_MINUTES * 60,
-          // DEV ONLY - remove in production
-          devOtp: otp,
-        });
+      // In development, log OTP for debugging but never send in response
+      if (process.env.NODE_ENV === 'development') {
       }
       
       // Record failure for rate limiting
@@ -345,7 +335,7 @@ export async function PUT(request: NextRequest) {
     const normalizedEmail = email.toLowerCase().trim();
 
     // Check if pending registration exists
-    const pendingData = await redis.get<string>(PENDING_REGISTRATION_KEY(normalizedEmail));
+    const pendingData = await redis?.get<string>(PENDING_REGISTRATION_KEY(normalizedEmail));
     
     if (!pendingData) {
       return NextResponse.json(
@@ -361,7 +351,7 @@ export async function PUT(request: NextRequest) {
     const expiresAt = Date.now() + (OTP_EXPIRY_MINUTES * 60 * 1000);
 
     // Update OTP in Redis
-    await redis.set(
+    await redis?.set(
       OTP_KEY(normalizedEmail),
       JSON.stringify({
         code: otp,

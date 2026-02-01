@@ -174,14 +174,16 @@ export async function POST(request: NextRequest) {
     );
 
     if (!emailResult.success) {
+      // Log OTP in development for debugging but never send in response
+      if (process.env.NODE_ENV === 'development') {
       }
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Verification code sent to your email',
       expiresIn: OTP_EXPIRY_SECONDS,
       resendIn: RESEND_COOLDOWN_SECONDS,
-      devOtp: process.env.NODE_ENV === 'development' ? otp : undefined,
     });
   } catch (error: any) {
     return NextResponse.json(

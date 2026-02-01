@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { redis } from '@/lib/redis';
-import { generateToken } from '@/lib/jwt';
 import { generateOTP, sendLoginOTP } from '@/lib/brevo';
 
 const OTP_EXPIRY_MINUTES = 5;
@@ -174,13 +173,13 @@ export async function POST(request: NextRequest) {
 
       const employee = activationResult.employee;
 
-      // Generate JWT token
-      const token = generateToken({
-        userId: employee.id,
+      // Sign in to get session token
+      const { data: sessionData } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
-        userType: employee.role === 'admin' ? 'admin' : 'employee',
-        role: employee.role,
+        password,
       });
+      
+      const token = sessionData?.session?.access_token || '';
 
       const response = NextResponse.json({
         success: true,
@@ -200,13 +199,23 @@ export async function POST(request: NextRequest) {
 
       // Set auth cookie
       const isSecure = process.env.NEXT_PUBLIC_APP_URL?.startsWith('https') || process.env.NODE_ENV === 'production';
-      response.cookies.set('auth-token', token, {
+      response.cookies.set('auth_token', token, {
         httpOnly: true,
         secure: isSecure,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7,
         path: '/',
       });
+
+      if (sessionData?.session?.refresh_token) {
+        response.cookies.set('sb-refresh-token', sessionData.session.refresh_token, {
+          httpOnly: true,
+          secure: isSecure,
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7,
+          path: '/',
+        });
+      }
 
       return response;
     }

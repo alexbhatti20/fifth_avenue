@@ -161,15 +161,15 @@ export function ItemDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-xl font-bold">
-            <Package className="h-6 w-6 text-orange-500 animate-pulse" />
-            <span className="bg-gradient-to-r from-red-500 via-orange-500 to-red-600 bg-clip-text text-transparent animate-gradient-x tracking-widest uppercase">
+            <Package className="h-6 w-6 text-orange-500" />
+            <span>
               {item ? 'Edit Inventory Item' : 'Add New Inventory Item'}
             </span>
           </DialogTitle>
-          <DialogDescription className="tracking-wide">
+          <DialogDescription>
             {item
               ? 'Update the details of this inventory item'
               : 'Fill in the details to add a new item to inventory'}

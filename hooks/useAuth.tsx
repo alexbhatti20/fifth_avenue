@@ -1,8 +1,35 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase, Customer } from '@/lib/supabase';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { supabase, Customer, setSupabaseSession } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
+import { 
+  setAuthToken, 
+  getAuthToken, 
+  clearAuthToken 
+} from '@/lib/cookies';
 
-const API_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+// Use relative URLs for API calls - this always works for same-origin requests
+// No need for NEXT_PUBLIC_APP_URL which can cause CORS issues in development
+const getApiUrl = () => {
+  // In browser, use relative URL (same origin)
+  if (typeof window !== 'undefined') {
+    return '';
+  }
+  // On server, use the full URL
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+};
+
+// Global auth cache to prevent re-fetching across component mounts
+let globalAuthCache: {
+  user: Customer | null;
+  authUser: User | null;
+  isFetched: boolean;
+  fetchPromise: Promise<void> | null;
+} = {
+  user: null,
+  authUser: null,
+  isFetched: false,
+  fetchPromise: null,
+};
 
 // Custom event for auth state changes
 const AUTH_STATE_CHANGE_EVENT = 'auth-state-change';
@@ -17,6 +44,8 @@ const dispatchAuthChange = (user: Customer | null) => {
 interface LoginResult {
   error: string | null;
   requiresOTP?: boolean;
+  requires2FA?: boolean;
+  employeeId?: string;
   directLogin?: boolean;
   userType?: 'customer' | 'employee' | 'admin';
 }
@@ -42,13 +71,39 @@ interface UseAuthReturn {
 }
 
 export function useAuth(): UseAuthReturn {
-  const [user, setUser] = useState<Customer | null>(null);
-  const [authUser, setAuthUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Initialize state from global cache OR localStorage for instant hydration
+  const [user, setUser] = useState<Customer | null>(() => {
+    // First check global cache
+    if (globalAuthCache.user) return globalAuthCache.user;
+    // Then try localStorage (for first mount)
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('user_data');
+        if (stored) {
+          const userData = JSON.parse(stored);
+          globalAuthCache.user = userData;
+          return userData;
+        }
+      } catch {}
+    }
+    return null;
+  });
+  const [authUser, setAuthUser] = useState<User | null>(() => globalAuthCache.authUser);
+  const [isLoading, setIsLoading] = useState(() => {
+    // If we have a user in cache or localStorage, we're not loading
+    if (globalAuthCache.user) return false;
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('user_data');
+        if (stored) return false;
+      } catch {}
+    }
+    return !globalAuthCache.isFetched;
+  });
   const [isBanned, setIsBanned] = useState(false);
   const [banReason, setBanReason] = useState<string | null>(null);
   const isFetchingRef = useRef(false);
-  const hasFetchedRef = useRef(false);
+  const hasFetchedRef = useRef(globalAuthCache.isFetched);
 
   // Load user from localStorage on mount (for persistence)
   const loadUserFromStorage = useCallback(() => {
@@ -94,20 +149,21 @@ export function useAuth(): UseAuthReturn {
 
         if (customer) {
           setUser(customer);
+          globalAuthCache.user = customer;
           // Persist user data
           localStorage.setItem('user_data', JSON.stringify(customer));
         }
         
-        // Store token in localStorage
+        // Store token in both localStorage AND cookie (for SSR)
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          localStorage.setItem('auth_token', session.access_token);
+          setAuthToken(session.access_token);
         }
       } else if (!hasStoredUser) {
         // Only clear if we also don't have stored user
         setUser(null);
         setAuthUser(null);
-        localStorage.removeItem('auth_token');
+        clearAuthToken();
         localStorage.removeItem('user_data');
       }
     } catch {
@@ -120,10 +176,20 @@ export function useAuth(): UseAuthReturn {
       setIsLoading(false);
       isFetchingRef.current = false;
       hasFetchedRef.current = true;
+      globalAuthCache.isFetched = true;
+      globalAuthCache.fetchPromise = null;
     }
   }, [loadUserFromStorage]);
 
   useEffect(() => {
+    // If already fetched globally, don't re-fetch (instant navigation)
+    if (globalAuthCache.isFetched && globalAuthCache.user) {
+      setUser(globalAuthCache.user);
+      setAuthUser(globalAuthCache.authUser);
+      setIsLoading(false);
+      return;
+    }
+
     // First load from storage immediately for instant UI
     const hasStoredUser = loadUserFromStorage();
     
@@ -135,20 +201,44 @@ export function useAuth(): UseAuthReturn {
     }
     
     // Then try to fetch fresh data (only once)
-    fetchUser();
+    if (!globalAuthCache.fetchPromise) {
+      globalAuthCache.fetchPromise = fetchUser() as unknown as Promise<void>;
+    }
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session && !hasFetchedRef.current) {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESHED' && session) {
+        // Sync refreshed tokens to storage
+        const newAccessToken = session.access_token;
+        const newRefreshToken = session.refresh_token;
+        
+        try {
+          setAuthToken(newAccessToken);
+          localStorage.setItem('sb_access_token', newAccessToken);
+          localStorage.setItem('auth_token', newAccessToken);
+          if (newRefreshToken) {
+            localStorage.setItem('sb_refresh_token', newRefreshToken);
+          }
+          
+          // Also update cookies
+          const maxAge = 60 * 60 * 24 * 7; // 7 days
+          document.cookie = `sb-access-token=${encodeURIComponent(newAccessToken)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+          document.cookie = `auth_token=${encodeURIComponent(newAccessToken)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+          
+        } catch (e) {
+          console.error('Error syncing refreshed token:', e);
+        }
+      } else if (session && !hasFetchedRef.current) {
         // Only fetch if not already fetched
         fetchUser();
       } else if (!session) {
         // Check if we have a manual token before clearing
-        const token = localStorage.getItem('auth_token');
+        const token = getAuthToken();
         if (!token) {
           setUser(null);
           setAuthUser(null);
+          clearAuthToken();
           localStorage.removeItem('user_data');
           hasFetchedRef.current = false;
         }
@@ -176,7 +266,13 @@ export function useAuth(): UseAuthReturn {
       return;
     }
 
-    // Subscribe to changes on the customer's record
+    // Immediately check ban status from existing user data
+    if ((user as any)?.is_banned === true) {
+      setIsBanned(true);
+      setBanReason((user as any)?.ban_reason || 'Your account has been suspended.');
+    }
+
+    // Subscribe to real-time changes for ban status
     const channel = supabase
       .channel(`customer-ban-${user.id}`)
       .on(
@@ -190,21 +286,18 @@ export function useAuth(): UseAuthReturn {
         (payload) => {
           const newData = payload.new as { is_banned?: boolean; ban_reason?: string };
           
-          // Check if customer was banned
+          // Check if customer was banned or unbanned
           if (newData.is_banned === true) {
             setIsBanned(true);
             setBanReason(newData.ban_reason || 'Your account has been suspended.');
+          } else {
+            // Unbanned
+            setIsBanned(false);
+            setBanReason(null);
           }
         }
       )
       .subscribe();
-
-    // Check ban status from existing user data (already fetched)
-    // The user object from fetchUser() includes is_banned and ban_reason
-    if ((user as any)?.is_banned === true) {
-      setIsBanned(true);
-      setBanReason((user as any)?.ban_reason || 'Your account has been suspended.');
-    }
 
     return () => {
       supabase.removeChannel(channel);
@@ -214,16 +307,27 @@ export function useAuth(): UseAuthReturn {
   // Step 1: Send login request - may return token directly or require OTP
   const sendLoginOTP = async (email: string, password: string): Promise<LoginResult> => {
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${getApiUrl()}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
       });
 
       const data = await response.json();
 
       if (!response.ok) {
         return { error: data.error || 'Failed to login', requiresOTP: false };
+      }
+
+      // Check if 2FA is required
+      if (data.requires2FA) {
+        return {
+          error: null,
+          requires2FA: true,
+          employeeId: data.employeeId,
+          userType: data.userType,
+        };
       }
 
       // Store userType if provided
@@ -234,12 +338,15 @@ export function useAuth(): UseAuthReturn {
 
       // Check if direct login (no OTP required)
       if (data.requiresOTP === false && data.token) {
-        // Store token
-        localStorage.setItem('auth_token', data.token);
+        // Store token in cookie and localStorage (for SSR)
+        setAuthToken(data.token);
         
         // Store Supabase access token for RLS-enabled API calls
         if (data.supabaseAccessToken) {
           localStorage.setItem('sb_access_token', data.supabaseAccessToken);
+          // CRITICAL: Set the session in Supabase client for RLS policies
+          // This ensures auth.uid() works correctly in database queries
+          await setSupabaseSession(data.supabaseAccessToken);
         }
         
         // Store user data directly from response
@@ -281,10 +388,11 @@ export function useAuth(): UseAuthReturn {
   // Step 2: Verify login OTP
   const verifyLoginOTP = async (email: string, otp: string): Promise<VerifyOTPResult> => {
     try {
-      const response = await fetch(`${API_URL}/api/auth/verify-login`, {
+      const response = await fetch(`${getApiUrl()}/api/auth/verify-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -294,7 +402,10 @@ export function useAuth(): UseAuthReturn {
       }
 
       if (data.token) {
-        localStorage.setItem('auth_token', data.token);
+        setAuthToken(data.token);
+        localStorage.setItem('sb_access_token', data.token);
+        // CRITICAL: Set the session in Supabase client for RLS policies
+        await setSupabaseSession(data.token);
       }
 
       // Store userType for redirect logic
@@ -338,10 +449,11 @@ export function useAuth(): UseAuthReturn {
   // Step 1: Send registration OTP
   const sendRegisterOTP = async (email: string, name: string, phone: string, password: string, address?: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/auth/register`, {
+      const response = await fetch(`${getApiUrl()}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, name, phone, password, address }),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -370,10 +482,11 @@ export function useAuth(): UseAuthReturn {
     otp: string
   ) => {
     try {
-      const response = await fetch(`${API_URL}/api/auth/verify-otp`, {
+      const response = await fetch(`${getApiUrl()}/api/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -383,7 +496,7 @@ export function useAuth(): UseAuthReturn {
       }
 
       if (data.token) {
-        localStorage.setItem('auth_token', data.token);
+        setAuthToken(data.token);
       }
 
       // Store user data directly from response
@@ -416,14 +529,19 @@ export function useAuth(): UseAuthReturn {
 
   const signOut = async () => {
     try {
-      await fetch(`${API_URL}/api/auth/logout`, { method: 'POST' });
+      await fetch(`${getApiUrl()}/api/auth/logout`, { method: 'POST', credentials: 'include' });
     } catch (e) {
       // Ignore logout API errors
     }
     await supabase.auth.signOut();
     setUser(null);
     setAuthUser(null);
-    localStorage.removeItem('auth_token');
+    // Reset global auth cache
+    globalAuthCache.user = null;
+    globalAuthCache.authUser = null;
+    globalAuthCache.isFetched = false;
+    globalAuthCache.fetchPromise = null;
+    clearAuthToken();
     localStorage.removeItem('user_data');
     localStorage.removeItem('user_type');
     localStorage.removeItem('zoiro-cart');
@@ -444,8 +562,14 @@ export function useAuth(): UseAuthReturn {
     setIsBanned(false);
     setBanReason(null);
     
-    // Clear all storage
-    localStorage.removeItem('auth_token');
+    // Reset global auth cache
+    globalAuthCache.user = null;
+    globalAuthCache.authUser = null;
+    globalAuthCache.isFetched = false;
+    globalAuthCache.fetchPromise = null;
+    
+    // Clear all storage (localStorage AND cookies)
+    clearAuthToken();
     localStorage.removeItem('user_data');
     localStorage.removeItem('user_type');
     localStorage.removeItem('sb_access_token');

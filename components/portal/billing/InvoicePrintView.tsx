@@ -316,9 +316,14 @@ export const InvoicePrintView = forwardRef<HTMLDivElement, InvoicePrintViewProps
           )}
 
           {/* Staff Info */}
-          {invoice.billed_by?.name && (
-            <div className="text-[9px] mb-2 text-gray-600">
-              Billed by: <span className="font-semibold">{invoice.billed_by.name}</span>
+          {(invoice.billed_by?.name || invoice.waiter?.name) && (
+            <div className="text-[9px] mb-2 text-gray-600 space-y-0.5">
+              {invoice.billed_by?.name && (
+                <div>Billed by: <span className="font-semibold">{invoice.billed_by.name}</span></div>
+              )}
+              {invoice.waiter?.name && (
+                <div>Served by: <span className="font-semibold">{invoice.waiter.name}</span></div>
+              )}
             </div>
           )}
 

@@ -1,19 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient, createAuthenticatedClient } from '@/lib/supabase';
 import { verifyToken } from '@/lib/jwt';
 
 export async function POST(request: NextRequest) {
   try {
     // Get customer ID from token (optional - guest checkout support)
     let customerId: string | null = null;
-    const authHeader = request.headers.get('authorization');
+    let supabase;
     
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      const decoded = verifyToken(token);
+    const authHeader = request.headers.get('authorization');
+    const cookieToken = request.cookies.get('auth_token')?.value;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : cookieToken;
+    
+    if (token) {
+      const decoded = await verifyToken(token);
       if (decoded && decoded.userType === 'customer') {
         customerId = decoded.userId;
+        // Use authenticated client for logged-in customers
+        supabase = createAuthenticatedClient(token);
       }
+    }
+    
+    // For guest checkout, use public client
+    // validate_promo_code_for_billing should allow anon for guest checkout
+    if (!supabase) {
+      supabase = createClient();
     }
 
     const body = await request.json();
@@ -61,6 +72,9 @@ export async function POST(request: NextRequest) {
 
 // Fallback function if RPC doesn't exist yet
 async function validatePromoDirectly(code: string, customerId: string | null, orderAmount: number) {
+  // Use public client for fallback query (read-only public data)
+  const supabase = createClient();
+  
   try {
     // Find the promo code
     const { data: promo, error } = await supabase

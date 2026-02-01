@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       isAdmin = employee?.role === 'admin';
     } else {
       // Try custom JWT token
-      const decoded = verifyToken(accessToken);
+      const decoded = await verifyToken(accessToken);
       
       if (decoded) {
         isAdmin = decoded.userType === 'admin' || decoded.role === 'admin';
@@ -99,8 +99,12 @@ export async function POST(request: NextRequest) {
       : {};
     // Custom permissions can be granted to ANY role (not just 'other')
     // These are extra permissions beyond the role's default permissions
+    // Filter out dangerous keys to prevent prototype pollution
+    const DANGEROUS_KEYS = ['__proto__', 'constructor', 'prototype'];
     const permissions = custom_permissions?.length > 0
-      ? custom_permissions.reduce((acc: Record<string, boolean>, perm: string) => { acc[perm] = true; return acc; }, {})
+      ? custom_permissions
+          .filter((perm: string) => typeof perm === 'string' && !DANGEROUS_KEYS.includes(perm))
+          .reduce((acc: Record<string, boolean>, perm: string) => { acc[perm] = true; return acc; }, {})
       : {};
     
     // Extract CNIC document file_url if uploaded

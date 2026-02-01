@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 import { 
   getCached, 
   setCache, 
@@ -10,6 +10,8 @@ import {
 // =============================================
 // Customer Payment Methods API
 // Fetches active payment methods for checkout with caching
+// NOTE: This is a PUBLIC endpoint - no auth required
+// get_active_payment_methods RPC should allow anon role
 // =============================================
 
 interface PaymentMethod {
@@ -48,6 +50,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Use public client - this is a PUBLIC endpoint
+    const supabase = createClient();
+    
     // Fetch from RPC
     const { data, error } = await supabase.rpc('get_active_payment_methods');
 

@@ -47,16 +47,32 @@ import Image from 'next/image';
 
 const supabase = createClient();
 
+// Helper to get auth token from various sources
+const getAuthToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('auth_token') || 
+         localStorage.getItem('sb_access_token') ||
+         document.cookie.match(/(^| )auth_token=([^;]+)/)?.[2] ||
+         document.cookie.match(/(^| )sb-access-token=([^;]+)/)?.[2] ||
+         null;
+};
+
 // Helper function to invalidate menu cache
 const invalidateMenuCache = async () => {
   try {
+    const token = getAuthToken();
     await fetch('/api/admin/invalidate-cache', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      },
+      credentials: 'include',
       body: JSON.stringify({ type: 'menu' }),
     });
   } catch (error) {
-    }
+    // Silent fail - cache will eventually refresh
+  }
 };
 
 interface SizeVariant {

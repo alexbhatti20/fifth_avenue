@@ -7,7 +7,7 @@ import {
   getInventoryAlerts,
   markInventoryAlertRead,
   resolveInventoryAlert,
-} from '@/lib/inventory-queries';
+} from '@/lib/server-queries';
 
 export async function GET(request: NextRequest) {
   try {

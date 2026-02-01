@@ -107,6 +107,9 @@ export async function invalidateMenuCache(categoryId?: string) {
   await deleteCache(CACHE_KEYS.menuCategories());
   // Also invalidate customer-facing menu cache
   await deleteCache('customer:menu:all');
+  // IMPORTANT: Invalidate the combined menu data cache used by landing page
+  await deleteCache('menu:data:all');
+  await deleteCachePattern('menu:data:*');
 }
 
 // Invalidate deals cache
@@ -114,6 +117,8 @@ export async function invalidateDealsCache() {
   await deleteCache(CACHE_KEYS.activeDeals());
   // Also invalidate customer-facing menu cache (includes deals)
   await deleteCache('customer:menu:all');
+  // Also invalidate the combined menu data cache used by landing page
+  await deleteCache('menu:data:all');
 }
 
 // Invalidate site content cache

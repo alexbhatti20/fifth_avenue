@@ -4,8 +4,9 @@ import { supabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get auth token from cookie or header
-    const authToken = request.cookies.get('auth-token')?.value;
+    // Get auth token from cookie or header (check both names for backward compatibility)
+    const authToken = request.cookies.get('auth_token')?.value || 
+                      request.cookies.get('auth-token')?.value;
     
     // Clear user cache if we can identify the user
     if (authToken) {
@@ -14,14 +15,14 @@ export async function POST(request: NextRequest) {
         const payload = JSON.parse(atob(authToken.split('.')[1]));
         if (payload.email) {
           // Clear user profile cache
-          await redis.del(`user:profile:${payload.email}`);
+          await redis?.del(`user:profile:${payload.email}`);
           // Clear any OTP codes
-          await redis.del(`otp:login:${payload.email}`);
-          await redis.del(`otp:activation:${payload.email}`);
+          await redis?.del(`otp:login:${payload.email}`);
+          await redis?.del(`otp:activation:${payload.email}`);
         }
         if (payload.userId) {
           // Clear employee profile cache
-          await redis.del(`portal:employee:${payload.userId}`);
+          await redis?.del(`portal:employee:${payload.userId}`);
         }
       } catch (e) {
         // Token decode failed, continue with logout
@@ -37,14 +38,18 @@ export async function POST(request: NextRequest) {
       message: 'Logged out successfully' 
     });
 
-    // Clear auth cookie
-    response.cookies.set('auth-token', '', {
+    // Clear auth cookies (both naming conventions for backward compatibility)
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'lax' as const,
       maxAge: 0,
       path: '/',
-    });
+    };
+
+    response.cookies.set('auth_token', '', cookieOptions);
+    response.cookies.set('auth-token', '', cookieOptions);
+    response.cookies.set('sb-access-token', '', cookieOptions);
 
     return response;
 
@@ -55,14 +60,18 @@ export async function POST(request: NextRequest) {
       message: 'Logged out' 
     });
 
-    // Clear cookie even on error
-    response.cookies.set('auth-token', '', {
+    // Clear cookies even on error
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'lax' as const,
       maxAge: 0,
       path: '/',
-    });
+    };
+
+    response.cookies.set('auth_token', '', cookieOptions);
+    response.cookies.set('auth-token', '', cookieOptions);
+    response.cookies.set('sb-access-token', '', cookieOptions);
 
     return response;
   }

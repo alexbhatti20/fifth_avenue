@@ -1,7 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
-import { supabase } from "@/lib/supabase";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
 // Types
@@ -47,33 +46,43 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   const [favoritesDetails, setFavoritesDetails] = useState<FavoriteDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  const hasFetchedRef = React.useRef(false);
+  const lastUserIdRef = React.useRef<string | null>(null);
 
   // Load favorites on mount or user change
   useEffect(() => {
+    // Prevent duplicate fetches for same user
+    if (user && lastUserIdRef.current === user.id && hasFetchedRef.current) return;
+    
     if (user) {
+      lastUserIdRef.current = user.id;
+      hasFetchedRef.current = false; // Reset for new user
       loadFavoriteIds();
     } else {
+      lastUserIdRef.current = null;
+      hasFetchedRef.current = false;
       // Load from local storage for guests
       loadGuestFavorites();
     }
   }, [user]);
 
-  // Load just the IDs (fast initial load)
+  // Load just the IDs (fast initial load) - uses API route to hide from Network tab
   const loadFavoriteIds = useCallback(async () => {
-    if (!user) return;
+    if (!user || hasFetchedRef.current) return;
     
+    hasFetchedRef.current = true;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.rpc("get_favorite_ids", {
-        p_customer_id: user.id,
-      });
+      const res = await fetch("/api/favorites");
+      const { data, error } = await res.json();
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       
       setFavorites(data || []);
       setIsInitialized(true);
     } catch {
       // Fallback to local storage on error
+      hasFetchedRef.current = false; // Allow retry
       loadGuestFavorites();
     } finally {
       setIsLoading(false);
@@ -124,16 +133,17 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
         setFavorites((prev) => [{ id: itemId, type: itemType }, ...prev]);
       }
 
-      // If logged in, sync with server
+      // If logged in, sync with server via API route
       if (user) {
         try {
-          const { data, error } = await supabase.rpc("toggle_favorite", {
-            p_customer_id: user.id,
-            p_item_id: itemId,
-            p_item_type: itemType,
+          const res = await fetch("/api/favorites", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ itemId, itemType }),
           });
+          const { data, error } = await res.json();
 
-          if (error) throw error;
+          if (error) throw new Error(error);
           
           // Server is source of truth, update from response
           const serverFavorites = (data?.favorites || []).map((f: any) => ({
@@ -164,6 +174,8 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     [user, favorites, isFavorite, saveGuestFavorites]
   );
 
+  const hasLoadedDetailsRef = React.useRef(false);
+
   // Load full favorite details (for favorites page)
   const loadFavoriteDetails = useCallback(async () => {
     if (!user) {
@@ -172,24 +184,28 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       setFavoritesDetails([]);
       return;
     }
+    
+    // Prevent duplicate fetches
+    if (hasLoadedDetailsRef.current && favoritesDetails.length > 0) return;
+    hasLoadedDetailsRef.current = true;
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.rpc("get_customer_favorites", {
-        p_customer_id: user.id,
-      });
+      const res = await fetch("/api/favorites/details");
+      const { data, error } = await res.json();
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       
       // RPC returns jsonb array directly, ensure it's parsed correctly
       const details = Array.isArray(data) ? data : [];
       setFavoritesDetails(details);
     } catch {
+      hasLoadedDetailsRef.current = false; // Allow retry on error
       setFavoritesDetails([]);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, favoritesDetails.length]);
 
   // Clear all favorites
   const clearAllFavorites = useCallback(async () => {
@@ -199,10 +215,9 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 
     if (user) {
       try {
-        const { error } = await supabase.rpc("clear_all_favorites", {
-          p_customer_id: user.id,
-        });
-        if (error) throw error;
+        const res = await fetch("/api/favorites/clear", { method: "POST" });
+        const { error } = await res.json();
+        if (error) throw new Error(error);
       } catch {
         // Reload on error
         loadFavoriteIds();

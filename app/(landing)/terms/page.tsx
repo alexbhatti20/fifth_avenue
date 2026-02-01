@@ -2,8 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Shield, FileText, Clock, Phone, Mail, MapPin } from "lucide-react";
-import Navbar from "@/components/custom/Navbar";
-import Footer from "@/components/custom/Footer";
 
 const termsData = [
   {
@@ -50,8 +48,7 @@ const termsData = [
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-black">
-      <Navbar />
+    <div className="min-h-screen bg-black pt-20">
       
       {/* Hero Section */}
       <section className="relative py-24 overflow-hidden">
@@ -154,8 +151,6 @@ export default function TermsPage() {
           </motion.div>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 }

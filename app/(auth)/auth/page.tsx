@@ -34,6 +34,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { TwoFactorDialog } from "@/components/portal/TwoFactorDialog";
+
 type AuthFlow = 
   | 'initial'           // Enter email to check user type
   | 'customer-login'    // Existing customer login
@@ -67,6 +69,8 @@ export default function UnifiedAuth() {
   const [otp, setOtp] = useState("");
   const [userCheck, setUserCheck] = useState<UserCheckResult | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [show2FADialog, setShow2FADialog] = useState(false);
+  const [twoFAData, setTwoFAData] = useState<{ employeeId: string; email: string } | null>(null);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -207,10 +211,10 @@ export default function UnifiedAuth() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (formData.password.length < 6) {
+    if (formData.password.length < 8) {
       toast({
         title: "Invalid Password",
-        description: "Password must be at least 6 characters",
+        description: "Password must be at least 8 characters",
         variant: "destructive",
       });
       return;
@@ -219,6 +223,17 @@ export default function UnifiedAuth() {
     setIsLoading(true);
 
     const result = await sendLoginOTP(formData.email, formData.password);
+
+    // Check if 2FA is required
+    if (result.requires2FA && result.employeeId) {
+      setTwoFAData({
+        employeeId: result.employeeId,
+        email: formData.email,
+      });
+      setShow2FADialog(true);
+      setIsLoading(false);
+      return;
+    }
 
     if (result.error) {
       toast({
@@ -249,6 +264,18 @@ export default function UnifiedAuth() {
       setFlow('otp-verify');
       setIsLoading(false);
     }
+  };
+
+  const handle2FASuccess = () => {
+    setShow2FADialog(false);
+    toast({
+      title: "Welcome back!",
+      description: "2FA verification successful. Redirecting...",
+    });
+    setTimeout(() => {
+      router.push("/portal");
+      router.refresh();
+    }, 500);
   };
 
   // Handle customer registration
@@ -282,10 +309,24 @@ export default function UnifiedAuth() {
       return;
     }
 
-    if (formData.password.length < 6) {
+    if (formData.password.length < 8) {
       toast({
         title: "Weak Password",
-        description: "Password must be at least 6 characters",
+        description: "Password must be at least 8 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Additional password strength checks matching backend
+    const hasUppercase = /[A-Z]/.test(formData.password);
+    const hasLowercase = /[a-z]/.test(formData.password);
+    const hasNumber = /[0-9]/.test(formData.password);
+    
+    if (!hasUppercase || !hasLowercase || !hasNumber) {
+      toast({
+        title: "Weak Password",
+        description: "Password must contain uppercase, lowercase, and a number",
         variant: "destructive",
       });
       return;
@@ -379,10 +420,25 @@ export default function UnifiedAuth() {
 
     // Employee activation flow
     if (userCheck?.isEmployee && userCheck?.needsActivation) {
-      if (formData.password.length < 6) {
+      if (formData.password.length < 8) {
         toast({
           title: "Weak Password",
-          description: "Password must be at least 6 characters",
+          description: "Password must be at least 8 characters",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Additional password strength checks
+      const hasUppercase = /[A-Z]/.test(formData.password);
+      const hasLowercase = /[a-z]/.test(formData.password);
+      const hasNumber = /[0-9]/.test(formData.password);
+      
+      if (!hasUppercase || !hasLowercase || !hasNumber) {
+        toast({
+          title: "Weak Password",
+          description: "Password must contain uppercase, lowercase, and a number",
           variant: "destructive",
         });
         setIsLoading(false);
@@ -1566,6 +1622,17 @@ export default function UnifiedAuth() {
           </motion.div>
         </div>
       </div>
+
+      {/* 2FA Dialog */}
+      {twoFAData && (
+        <TwoFactorDialog
+          open={show2FADialog}
+          onClose={() => setShow2FADialog(false)}
+          employeeId={twoFAData.employeeId}
+          email={twoFAData.email}
+          onSuccess={handle2FASuccess}
+        />
+      )}
     </div>
   );
 }

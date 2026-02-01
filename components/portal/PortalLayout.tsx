@@ -50,7 +50,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { usePortalAuth, useNotifications } from '@/hooks/usePortal';
+import { usePortalAuth } from '@/hooks/usePortal';
 import { BlockedUserDialog } from './BlockedUserDialog';
 import { LogoutConfirmDialog } from './LogoutConfirmDialog';
 import { 
@@ -198,8 +198,7 @@ interface PortalSidebarProps {
 
 export function PortalSidebar({ collapsed, onCollapse }: PortalSidebarProps) {
   const pathname = usePathname();
-  const { employee, role, logout, fastLogout, isBlocked, blockReason } = usePortalAuth();
-  const { unreadCount } = useNotifications();
+  const { employee, role, logout, fastLogout, isBlocked, blockReason, unreadCount } = usePortalAuth();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   // Get user permissions (from cache or build new)
@@ -236,53 +235,46 @@ export function PortalSidebar({ collapsed, onCollapse }: PortalSidebarProps) {
 
   return (
     <>
-    <motion.aside
-      initial={false}
-      animate={{ width: collapsed ? 80 : 280 }}
+    <aside
       className={cn(
-        'fixed left-0 top-0 h-screen bg-zinc-900 text-white z-50 flex flex-col transition-all duration-300',
-        'border-r border-zinc-800'
+        'fixed left-0 top-0 h-screen bg-zinc-900 text-white z-50 flex flex-col',
+        'border-r border-zinc-800 transition-[width] duration-200',
+        collapsed ? 'w-20' : 'w-[280px]'
       )}
     >
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-zinc-800">
-        <AnimatePresence mode="wait">
-          {!collapsed ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center gap-2"
-            >
-              <div className="w-10 h-10 rounded-lg overflow-hidden shadow-md">
-                <img 
-                  src="/assets/zoiro-logo.png" 
-                  alt="ZOIRO" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div>
-                <span className="text-xl font-bebas text-primary">ZOIRO</span>
-                <span className="text-[10px] block text-zinc-400 -mt-1">
-                  {role?.replace('_', ' ').toUpperCase() || 'PORTAL'}
-                </span>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="w-10 h-10 rounded-lg overflow-hidden shadow-md mx-auto"
-            >
-              <img 
+        {!collapsed ? (
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-lg overflow-hidden shadow-md relative">
+              <Image 
                 src="/assets/zoiro-logo.png" 
                 alt="ZOIRO" 
-                className="w-full h-full object-cover"
+                fill
+                sizes="40px"
+                className="object-cover"
+                priority
               />
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+            <div>
+              <span className="text-xl font-bebas text-primary">ZOIRO</span>
+              <span className="text-[10px] block text-zinc-400 -mt-1">
+                {role?.replace('_', ' ').toUpperCase() || 'PORTAL'}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="w-10 h-10 rounded-lg overflow-hidden shadow-md mx-auto relative">
+            <Image 
+              src="/assets/zoiro-logo.png" 
+              alt="ZOIRO" 
+              fill
+              sizes="40px"
+              className="object-cover"
+              priority
+            />
+          </div>
+        )}
         
         <Button
           variant="ghost"
@@ -292,7 +284,7 @@ export function PortalSidebar({ collapsed, onCollapse }: PortalSidebarProps) {
         >
           <ChevronLeft
             className={cn(
-              'h-5 w-5 transition-transform duration-300',
+              'h-5 w-5 transition-transform duration-200',
               collapsed && 'rotate-180'
             )}
           />
@@ -309,33 +301,25 @@ export function PortalSidebar({ collapsed, onCollapse }: PortalSidebarProps) {
 
             return (
               <Link key={item.path} href={item.path} prefetch={false}>
-                <motion.div
-                  whileHover={{ x: 4 }}
+                <div
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-150',
                     'hover:bg-zinc-800/80',
                     isActive && 'bg-primary/20 text-primary'
                   )}
                 >
                   <Icon className={cn('h-5 w-5 flex-shrink-0', isActive && 'text-primary')} />
-                  <AnimatePresence mode="wait">
-                    {!collapsed && (
-                      <motion.span
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 'auto' }}
-                        exit={{ opacity: 0, width: 0 }}
-                        className="text-sm font-medium whitespace-nowrap overflow-hidden"
-                      >
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
+                  {!collapsed && (
+                    <span className="text-sm font-medium whitespace-nowrap overflow-hidden">
+                      {item.label}
+                    </span>
+                  )}
                   {item.badge && !collapsed && (
                     <Badge variant="destructive" className="ml-auto text-xs">
                       {item.badge}
                     </Badge>
                   )}
-                </motion.div>
+                </div>
               </Link>
             );
           })}
@@ -344,61 +328,49 @@ export function PortalSidebar({ collapsed, onCollapse }: PortalSidebarProps) {
 
       {/* User Info & Logout */}
       <div className="border-t border-zinc-800 p-4">
-        <AnimatePresence mode="wait">
-          {!collapsed ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-3"
-            >
-              <div className="flex items-center gap-3 p-2 rounded-lg bg-zinc-800/50">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={employee?.avatar_url} />
-                  <AvatarFallback className="bg-primary text-white">
-                    {employee?.name?.charAt(0) || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{employee?.name}</p>
-                  <p className="text-xs text-zinc-400 truncate">{employee?.email}</p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                onClick={handleLogoutClick}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-2"
-            >
+        {!collapsed ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-2 rounded-lg bg-zinc-800/50">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={employee?.avatar_url} />
                 <AvatarFallback className="bg-primary text-white">
                   {employee?.name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                onClick={handleLogoutClick}
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{employee?.name}</p>
+                <p className="text-xs text-zinc-400 truncate">{employee?.email}</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              onClick={handleLogoutClick}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={employee?.avatar_url} />
+              <AvatarFallback className="bg-primary text-white">
+                {employee?.name?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              onClick={handleLogoutClick}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
-    </motion.aside>
+    </aside>
 
     {/* Logout Confirmation Dialog */}
     <LogoutConfirmDialog
@@ -419,7 +391,7 @@ export function PortalSidebar({ collapsed, onCollapse }: PortalSidebarProps) {
 }
 
 // =============================================
-// PORTAL APPBAR
+// PORTAL APPBAR - Mobile Optimized
 // =============================================
 
 interface PortalAppbarProps {
@@ -428,8 +400,8 @@ interface PortalAppbarProps {
 }
 
 export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProps) {
-  const { employee, role, logout, fastLogout, isBlocked, blockReason } = usePortalAuth();
-  const { notifications, unreadCount, markAsRead } = useNotifications();
+  const pathname = usePathname(); // Move hook to component top level
+  const { employee, role, logout, fastLogout, isBlocked, blockReason, notifications, unreadCount, markNotificationAsRead } = usePortalAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
@@ -437,37 +409,38 @@ export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProp
     setLogoutDialogOpen(true);
   };
 
-  const getPageTitle = () => {
-    const pathname = usePathname();
+  // Memoize page title to prevent recalculation on every render
+  const pageTitle = React.useMemo(() => {
     const item = navItems.find(
       (i) => i.path === pathname || (i.path !== '/portal' && pathname.startsWith(i.path))
     );
     return item?.label || 'Dashboard';
-  };
+  }, [pathname]);
 
   return (
     <>
     <header
       className={cn(
-        'fixed top-0 right-0 h-16 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 z-40 flex items-center justify-between px-4 md:px-6 transition-all duration-300',
-        sidebarCollapsed ? 'left-20' : 'left-0 md:left-[280px]'
+        'fixed top-0 right-0 h-14 sm:h-16 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 z-40',
+        'flex items-center justify-between px-3 sm:px-4 md:px-6 transition-[left] duration-200',
+        sidebarCollapsed ? 'left-0 md:left-20' : 'left-0 md:left-[280px]'
       )}
     >
       {/* Left side */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="md:hidden flex-shrink-0"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <div>
-          <h1 className="text-lg font-semibold tracking-wide portal-heading">
-            {getPageTitle()}
+        <div className="min-w-0">
+          <h1 className="text-base sm:text-lg font-semibold tracking-wide truncate">
+            {pageTitle}
           </h1>
-          <p className="text-xs text-muted-foreground hidden sm:block">
+          <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">
             {new Date().toLocaleDateString('en-US', {
               weekday: 'long',
               year: 'numeric',
@@ -479,23 +452,23 @@ export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProp
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
         {/* Notifications */}
         <DropdownMenu open={notificationsOpen} onOpenChange={setNotificationsOpen}>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="relative h-9 w-9 sm:h-10 sm:w-10">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
               {unreadCount > 0 && (
                 <Badge 
                   variant="destructive" 
-                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center p-0 text-[10px] sm:text-xs"
                 >
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </Badge>
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
+          <DropdownMenuContent align="end" className="w-72 sm:w-80">
             <DropdownMenuLabel className="flex items-center justify-between">
               <span>Notifications</span>
               {unreadCount > 0 && (
@@ -503,7 +476,7 @@ export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProp
                   variant="ghost"
                   size="sm"
                   className="text-xs h-auto py-1"
-                  onClick={() => markAsRead(notifications.filter(n => !n.is_read).map(n => n.id))}
+                  onClick={() => markNotificationAsRead(notifications.filter(n => !n.is_read).map(n => n.id))}
                 >
                   Mark all as read
                 </Button>
@@ -525,7 +498,7 @@ export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProp
                     )}
                     onClick={() => {
                       if (!notification.is_read) {
-                        markAsRead([notification.id]);
+                        markNotificationAsRead([notification.id]);
                       }
                     }}
                   >
@@ -574,12 +547,6 @@ export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProp
               <Link href="/portal/settings" className="cursor-pointer" prefetch={false}>
                 <User className="h-4 w-4 mr-2" />
                 Profile Settings
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/portal/settings/security" className="cursor-pointer" prefetch={false}>
-                <Settings className="h-4 w-4 mr-2" />
-                Security
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -657,9 +624,9 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-[280px] p-0 bg-zinc-900 text-white border-zinc-800">
+      <SheetContent side="left" className="w-[280px] p-0 bg-zinc-900 text-white border-zinc-800" showCloseButton>
         <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-        <SheetHeader className="h-16 flex flex-row items-center justify-between px-4 border-b border-zinc-800">
+        <SheetHeader className="h-16 flex flex-row items-center px-4 border-b border-zinc-800">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-xl font-bebas text-white">Z</span>
@@ -671,14 +638,6 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
               </span>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-zinc-400 hover:text-white"
-            onClick={onClose}
-          >
-            <X className="h-5 w-5" />
-          </Button>
         </SheetHeader>
 
         <ScrollArea className="flex-1 py-4 h-[calc(100vh-10rem)]">

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { createClient, createAuthenticatedClient } from '@/lib/supabase';
 import { verifyToken } from '@/lib/jwt';
 import { redis, CACHE_KEYS, CACHE_DURATION, getFromCache, setInCache, rateLimiters } from '@/lib/redis';
 
@@ -73,11 +73,9 @@ export async function GET(request: NextRequest) {
 // POST - Submit a new review (auth required, rate limited)
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
-
     // Get auth token from header or cookie
     const authHeader = request.headers.get('authorization');
-    const cookieToken = request.cookies.get('auth-token')?.value;
+    const cookieToken = request.cookies.get('auth_token')?.value;
     const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : cookieToken;
     
     if (!token) {
@@ -87,7 +85,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const decoded = verifyToken(token);
+    const decoded = await verifyToken(token);
     
     // Allow customers and admins to submit reviews
     const allowedUserTypes = ['customer', 'admin'];
@@ -100,6 +98,9 @@ export async function POST(request: NextRequest) {
     }
 
     const customerId = decoded.userId;
+    
+    // Create authenticated client to run as 'authenticated' role
+    const supabase = createAuthenticatedClient(token);
 
     // Verify customer exists in database
     const { data: customer, error: customerError } = await supabase

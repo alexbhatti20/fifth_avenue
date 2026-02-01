@@ -1,10 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { rateLimiters } from '@/lib/redis';
+import { verifyToken } from '@/lib/jwt';
+
+// Helper to verify employee authentication
+async function verifyAuth(request: NextRequest): Promise<{ valid: boolean; error?: string; status?: number; user?: any }> {
+  const token = request.headers.get('authorization')?.replace('Bearer ', '');
+  if (!token) {
+    return { valid: false, error: 'Unauthorized', status: 401 };
+  }
+
+  const decoded = await verifyToken(token);
+  if (!decoded) {
+    return { valid: false, error: 'Invalid token', status: 401 };
+  }
+
+  return { valid: true, user: decoded };
+}
 
 // POST /api/upload/image - Upload image to Supabase Storage
 export async function POST(request: NextRequest) {
   try {
+    // Require authentication for uploads
+    const auth = await verifyAuth(request);
+    if (!auth.valid) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status || 401 });
+    }
+
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const { success } = await rateLimiters.api.limit(ip);
     
@@ -66,6 +88,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (error) {
+      console.error('Upload error:', error);
       return NextResponse.json(
         { error: 'Failed to upload image' },
         { status: 500 }
@@ -83,6 +106,7 @@ export async function POST(request: NextRequest) {
       path: data.path,
     });
   } catch (error) {
+    console.error('Upload failed:', error);
     return NextResponse.json(
       { error: 'Upload failed' },
       { status: 500 }
@@ -93,6 +117,17 @@ export async function POST(request: NextRequest) {
 // DELETE /api/upload/image - Delete image from Supabase Storage
 export async function DELETE(request: NextRequest) {
   try {
+    // Require authentication for deletes - only employees can delete
+    const auth = await verifyAuth(request);
+    if (!auth.valid) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status || 401 });
+    }
+
+    // Only employees can delete files
+    if (auth.user?.type !== 'employee') {
+      return NextResponse.json({ error: 'Only employees can delete files' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const path = searchParams.get('path');
     const bucket = searchParams.get('bucket') || 'images';
@@ -109,6 +144,7 @@ export async function DELETE(request: NextRequest) {
       .remove([path]);
 
     if (error) {
+      console.error('Delete error:', error);
       return NextResponse.json(
         { error: 'Failed to delete image' },
         { status: 500 }
@@ -120,6 +156,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Image deleted successfully',
     });
   } catch (error) {
+    console.error('Delete failed:', error);
     return NextResponse.json(
       { error: 'Delete failed' },
       { status: 500 }

@@ -574,7 +574,7 @@ CREATE POLICY "Anyone can view helpful votes" ON public.review_helpful_votes
 CREATE POLICY "Anyone can insert helpful votes" ON public.review_helpful_votes
     FOR INSERT WITH CHECK (true);
 
--- Grant execute permissions on functions
+-- Grant execute permissions on functions (authenticated only for protected functions)
 GRANT EXECUTE ON FUNCTION get_public_reviews TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_item_reviews TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_meal_reviews TO anon, authenticated;

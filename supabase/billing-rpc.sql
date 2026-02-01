@@ -674,11 +674,22 @@ BEGIN
                 v_promo_discount := LEAST(v_promo.value, v_order.subtotal);
             END IF;
             
-            -- Update promo usage
+            -- Update promo usage in promo_codes table
             UPDATE promo_codes
             SET current_usage = current_usage + 1,
-                updated_at = NOW()
+                updated_at = NOW(),
+                is_active = CASE WHEN usage_limit IS NOT NULL AND current_usage + 1 >= usage_limit THEN false ELSE is_active END
             WHERE id = v_promo.id;
+            
+            -- ALSO mark as used in customer_promo_codes if this is a customer-specific promo
+            IF v_promo.customer_id IS NOT NULL THEN
+                UPDATE customer_promo_codes
+                SET is_used = true, 
+                    used_at = NOW(), 
+                    used_on_order_id = p_order_id, 
+                    is_active = false
+                WHERE code = UPPER(p_promo_code) AND customer_id = v_promo.customer_id;
+            END IF;
         END IF;
     END IF;
     
@@ -1629,3 +1640,150 @@ COMMENT ON FUNCTION get_recent_invoices IS 'Returns list of invoices with filter
 COMMENT ON FUNCTION get_customer_invoice_history IS 'Returns invoice history for registered customer';
 COMMENT ON FUNCTION get_billing_pending_orders IS 'Optimized function for billing dashboard pending orders';
 COMMENT ON FUNCTION get_new_online_orders IS 'Returns new online orders for notification system';
+
+-- =============================================
+-- 16. QUICK BILL GENERATION (OPTIMIZED)
+-- Fast bill generation with minimal overhead
+-- For instant billing from Orders page
+-- =============================================
+
+DROP FUNCTION IF EXISTS generate_quick_bill(UUID, UUID);
+
+CREATE OR REPLACE FUNCTION generate_quick_bill(
+    p_order_id UUID,
+    p_biller_id UUID DEFAULT NULL
+)
+RETURNS JSON AS $$
+DECLARE
+    v_order RECORD;
+    v_invoice_number TEXT;
+    v_invoice_id UUID;
+    v_tax DECIMAL(10, 2);
+    v_final_total DECIMAL(10, 2);
+    v_effective_payment_method TEXT;
+BEGIN
+    -- Get order with lock (fast lookup)
+    SELECT id, order_number, customer_id, customer_name, customer_phone, customer_email,
+           order_type, items, subtotal, discount, delivery_fee, total, 
+           payment_status, transaction_id, table_number
+    INTO v_order 
+    FROM orders 
+    WHERE id = p_order_id 
+    FOR UPDATE SKIP LOCKED;
+    
+    IF v_order IS NULL THEN
+        RETURN json_build_object('success', false, 'error', 'Order not found or locked');
+    END IF;
+    
+    -- Check if invoice already exists
+    IF EXISTS (SELECT 1 FROM invoices WHERE order_id = p_order_id) THEN
+        -- Return existing invoice info
+        SELECT id, invoice_number INTO v_invoice_id, v_invoice_number 
+        FROM invoices WHERE order_id = p_order_id;
+        RETURN json_build_object(
+            'success', true, 
+            'invoice_id', v_invoice_id,
+            'invoice_number', v_invoice_number,
+            'message', 'Invoice already exists'
+        );
+    END IF;
+    
+    -- Auto-detect payment method for online orders
+    IF v_order.transaction_id IS NOT NULL THEN
+        v_effective_payment_method := 'online';
+    ELSE
+        v_effective_payment_method := 'cash';
+    END IF;
+    
+    -- Simple calculations (no promo, no loyalty, no extras)
+    v_tax := ROUND(COALESCE(v_order.subtotal, v_order.total * 0.95) * 0.05, 2); -- 5% GST
+    v_final_total := COALESCE(v_order.subtotal, v_order.total * 0.95) - COALESCE(v_order.discount, 0) + v_tax + COALESCE(v_order.delivery_fee, 0);
+    
+    -- Generate invoice number
+    v_invoice_number := 'INV-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || 
+                        LPAD((SELECT COUNT(*) + 1 FROM invoices WHERE DATE(created_at) = CURRENT_DATE)::TEXT, 4, '0');
+    
+    -- Generate invoice ID
+    v_invoice_id := gen_random_uuid();
+    
+    -- Create invoice (minimal fields for speed)
+    INSERT INTO invoices (
+        id,
+        invoice_number,
+        order_id,
+        customer_id,
+        customer_name,
+        customer_phone,
+        customer_email,
+        order_type,
+        items,
+        subtotal,
+        discount,
+        tax,
+        delivery_fee,
+        total,
+        payment_method,
+        payment_status,
+        bill_status,
+        billed_by,
+        table_number,
+        created_at
+    ) VALUES (
+        v_invoice_id,
+        v_invoice_number,
+        p_order_id,
+        v_order.customer_id,
+        v_order.customer_name,
+        v_order.customer_phone,
+        v_order.customer_email,
+        v_order.order_type,
+        v_order.items,
+        COALESCE(v_order.subtotal, v_order.total * 0.95),
+        COALESCE(v_order.discount, 0),
+        v_tax,
+        COALESCE(v_order.delivery_fee, 0),
+        v_final_total,
+        v_effective_payment_method::payment_method,
+        'pending',
+        'generated',
+        p_biller_id,
+        v_order.table_number,
+        NOW()
+    );
+    
+    -- Update order status (payment_status stays as-is, just mark updated)
+    UPDATE orders 
+    SET updated_at = NOW()
+    WHERE id = p_order_id;
+    
+    RETURN json_build_object(
+        'success', true,
+        'invoice_id', v_invoice_id,
+        'invoice_number', v_invoice_number,
+        'total', v_final_total,
+        'tax', v_tax,
+        'subtotal', COALESCE(v_order.subtotal, v_order.total * 0.95),
+        'discount', COALESCE(v_order.discount, 0),
+        'delivery_fee', COALESCE(v_order.delivery_fee, 0),
+        'payment_method', v_effective_payment_method,
+        'order_number', v_order.order_number,
+        'order_type', v_order.order_type,
+        'customer_name', COALESCE(v_order.customer_name, 'Walk-in Customer'),
+        'customer_phone', v_order.customer_phone,
+        'items', v_order.items,
+        'table_number', v_order.table_number,
+        'message', 'Bill generated successfully'
+    );
+    
+EXCEPTION WHEN OTHERS THEN
+    RETURN json_build_object(
+        'success', false,
+        'error', SQLERRM
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION generate_quick_bill(UUID, UUID) TO authenticated;
+
+COMMENT ON FUNCTION generate_quick_bill IS 'Fast bill generation for instant billing from Orders page. Skips promo/loyalty calculations.';
+

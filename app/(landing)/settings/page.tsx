@@ -26,12 +26,10 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/lib/supabase";
 import { isMobile } from "@/lib/utils";
-import Navbar from "@/components/custom/Navbar";
-import Footer from "@/components/custom/Footer";
 
-const API_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+// Use relative URLs for API calls - works for same-origin requests
+const getApiUrl = () => typeof window !== 'undefined' ? '' : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000');
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -65,13 +63,20 @@ export default function SettingsPage() {
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [is2FALoading, setIs2FALoading] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+
+  // Delay auth check to allow localStorage to be read
+  useEffect(() => {
+    setIsMobileDevice(isMobile());
+    const timer = setTimeout(() => setHasCheckedAuth(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (hasCheckedAuth && !authLoading && !user) {
       router.push("/auth");
     }
-    setIsMobileDevice(isMobile());
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, hasCheckedAuth]);
 
   useEffect(() => {
     if (user) {
@@ -90,15 +95,19 @@ export default function SettingsPage() {
 
     setIsProfileLoading(true);
     try {
-      // Use RPC for optimized update with validation
-      const { data, error } = await supabase.rpc("update_customer_profile", {
-        p_customer_id: user.id,
-        p_name: profileData.name || null,
-        p_phone: profileData.phone || null,
-        p_address: profileData.address || null
+      // Use API route for profile update
+      const res = await fetch('/api/customer/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: profileData.name || null,
+          phone: profileData.phone || null,
+          address: profileData.address || null,
+        }),
       });
+      const { data, error } = await res.json();
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       
       const result = data?.[0];
       if (result && !result.success) {
@@ -153,10 +162,11 @@ export default function SettingsPage() {
 
     setIsPasswordLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/auth/send-password-otp`, {
+      const response = await fetch(`${getApiUrl()}/api/auth/send-password-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: user.email }),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -188,7 +198,7 @@ export default function SettingsPage() {
 
     setIsPasswordLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/auth/change-password`, {
+      const response = await fetch(`${getApiUrl()}/api/auth/change-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -197,6 +207,7 @@ export default function SettingsPage() {
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword,
         }),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -234,12 +245,14 @@ export default function SettingsPage() {
 
     setIs2FALoading(true);
     try {
-      const { error } = await supabase
-        .from("customers")
-        .update({ is_2fa_enabled: !is2FAEnabled })
-        .eq("id", user.id);
+      const res = await fetch('/api/customer/2fa', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: !is2FAEnabled }),
+      });
+      const { error } = await res.json();
 
-      if (error) throw error;
+      if (error) throw new Error(error);
 
       setIs2FAEnabled(!is2FAEnabled);
       toast({
@@ -273,10 +286,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <>
-      <Navbar />
-      <main className="min-h-screen pt-32 pb-16 bg-gradient-to-b from-background to-secondary/20">
-        <div className="container-custom max-w-2xl">
+    <div className="min-h-screen pt-32 pb-16 bg-gradient-to-b from-background to-secondary/20">
+      <div className="container-custom max-w-2xl">
           {/* Back Button */}
           <Button
             variant="ghost"
@@ -701,9 +712,7 @@ export default function SettingsPage() {
               </TabsContent>
             </Tabs>
           </motion.div>
-        </div>
-      </main>
-      <Footer />
-    </>
+      </div>
+    </div>
   );
 }

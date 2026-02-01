@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { redis } from '@/lib/redis';
-import { generateToken } from '@/lib/jwt';
 import { generateOTP, sendLoginOTP } from '@/lib/brevo';
 import { 
   checkLoginRateLimit, 
@@ -37,13 +36,13 @@ async function getUserProfile(email: string, forceRefresh: boolean = false): Pro
   // Skip cache if forceRefresh is true
   if (!forceRefresh) {
     // Try cache first
-    const cached = await redis.get<string | UserProfile>(USER_CACHE_KEY(email));
+    const cached = await redis?.get<string | UserProfile>(USER_CACHE_KEY(email));
     if (cached) {
       return typeof cached === 'string' ? JSON.parse(cached) : cached;
     }
   } else {
     // Clear existing cache
-    await redis.del(USER_CACHE_KEY(email));
+    await redis?.del(USER_CACHE_KEY(email));
   }
 
   if (!supabase) return null;
@@ -68,7 +67,7 @@ async function getUserProfile(email: string, forceRefresh: boolean = false): Pro
     };
     
     // Cache for 1 hour
-    await redis.set(USER_CACHE_KEY(email), JSON.stringify(profile), { ex: 3600 });
+    await redis?.set(USER_CACHE_KEY(email), JSON.stringify(profile), { ex: 3600 });
     return profile;
   }
 
@@ -93,7 +92,7 @@ async function getUserProfile(email: string, forceRefresh: boolean = false): Pro
     };
     
     // Cache for 1 hour
-    await redis.set(USER_CACHE_KEY(email), JSON.stringify(profile), { ex: 3600 });
+    await redis?.set(USER_CACHE_KEY(email), JSON.stringify(profile), { ex: 3600 });
     return profile;
   }
 
@@ -117,7 +116,7 @@ async function getUserProfile(email: string, forceRefresh: boolean = false): Pro
     };
     
     // Cache for 1 hour
-    await redis.set(USER_CACHE_KEY(email), JSON.stringify(profile), { ex: 3600 });
+    await redis?.set(USER_CACHE_KEY(email), JSON.stringify(profile), { ex: 3600 });
     return profile;
   }
 
@@ -291,6 +290,55 @@ export async function POST(request: NextRequest) {
     const isEmployee = userProfile.type === 'employee';
     const isCustomer = userProfile.type === 'customer';
 
+    // Check if 2FA is required for employees/admins
+    if (requires2FA && (isEmployee || isAdmin)) {
+      // Include session tokens so 2FA verify can set cookies after verification
+      const sessionToken = authData.session?.access_token || '';
+      const refreshToken = authData.session?.refresh_token || '';
+      
+      // Set cookies now (they'll be validated after 2FA)
+      const isSecure = process.env.NEXT_PUBLIC_APP_URL?.startsWith('https') || process.env.NODE_ENV === 'production';
+      const response = NextResponse.json({
+        success: true,
+        requires2FA: true,
+        employeeId: userProfile.id,
+        email: userProfile.email,
+        message: 'Please enter your 2FA code',
+        userType: userProfile.type,
+        // Include tokens for 2FA flow to use
+        sessionToken,
+      });
+
+      // Pre-set the cookies - they'll be active after 2FA verification
+      if (sessionToken) {
+        response.cookies.set('auth_token', sessionToken, {
+          httpOnly: true,
+          secure: isSecure,
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7,
+          path: '/',
+        });
+        response.cookies.set('sb-access-token', sessionToken, {
+          httpOnly: true,
+          secure: isSecure,
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7,
+          path: '/',
+        });
+      }
+      if (refreshToken) {
+        response.cookies.set('sb-refresh-token', refreshToken, {
+          httpOnly: true,
+          secure: isSecure,
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7,
+          path: '/',
+        });
+      }
+
+      return response;
+    }
+
     // Debug log for troubleshooting (remove in production)
     // OTP disabled - direct login for all users
     const shouldRequireOTP = false;
@@ -301,7 +349,7 @@ export async function POST(request: NextRequest) {
       const expiresAt = Date.now() + (OTP_EXPIRY_MINUTES * 60 * 1000);
 
       // Store OTP in Redis
-      await redis.set(
+      await redis?.set(
         LOGIN_OTP_KEY(normalizedEmail),
         JSON.stringify({
           code: otp,
@@ -364,13 +412,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Generate JWT token
-    const token = generateToken({
-      userId: userProfile.id,
-      email: userProfile.email,
-      userType: userProfile.type as 'customer' | 'admin' | 'employee',
-      role: userProfile.role as any,
-    });
+    // Use Supabase session token as the auth token
+    const token = authData.session?.access_token || '';
 
     const response = NextResponse.json({
       success: true,
@@ -393,9 +436,9 @@ export async function POST(request: NextRequest) {
       supabaseAccessToken: authData.session?.access_token,
     });
 
-    // Set secure HTTP-only cookie
+    // Set secure HTTP-only cookie with Supabase token
     const isSecure = process.env.NEXT_PUBLIC_APP_URL?.startsWith('https') || process.env.NODE_ENV === 'production';
-    response.cookies.set('auth-token', token, {
+    response.cookies.set('auth_token', token, {
       httpOnly: true,
       secure: isSecure,
       sameSite: 'lax',
@@ -409,7 +452,18 @@ export async function POST(request: NextRequest) {
         httpOnly: true,
         secure: isSecure,
         sameSite: 'lax',
-        maxAge: 60 * 60, // 1 hour (Supabase token expiry)
+        maxAge: 60 * 60 * 24 * 7, // 7 days (match the other token)
+        path: '/',
+      });
+    }
+
+    // Set refresh token for session persistence
+    if (authData.session?.refresh_token) {
+      response.cookies.set('sb-refresh-token', authData.session.refresh_token, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
         path: '/',
       });
     }

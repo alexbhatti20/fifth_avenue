@@ -46,8 +46,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import Navbar from "@/components/custom/Navbar";
-import Footer from "@/components/custom/Footer";
 
 // Payment method type from API
 interface OnlinePaymentMethod {
@@ -361,9 +359,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <>
-        <Navbar />
-        <main className="min-h-screen bg-background pt-32">
+      <div className="min-h-screen bg-background pt-32">
           {/* Empty Cart Hero */}
           <section className="relative py-20 overflow-hidden">
             {/* Animated background */}
@@ -483,16 +479,12 @@ export default function CartPage() {
               </motion.div>
             </div>
           </section>
-        </main>
-        <Footer />
-      </>
+        </div>
     );
   }
 
   return (
-    <>
-      <Navbar />
-      <main className="min-h-screen bg-background pt-32">
+    <div className="min-h-screen bg-background pt-32">
         {/* Advanced Mini Hero */}
         <section className="relative py-12 overflow-hidden">
           {/* Background Image */}
@@ -1149,8 +1141,6 @@ export default function CartPage() {
             </div>
           </div>
         </section>
-      </main>
-      <Footer />
-    </>
+      </div>
   );
 }

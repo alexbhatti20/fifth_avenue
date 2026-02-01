@@ -508,6 +508,21 @@
   animation: wiggle 1s ease-in-out infinite;
 }
 
+/* Cookie Banner Gradient Animation */
+.animate-gradient {
+  background-size: 200% auto;
+  animation: gradient-flow 3s ease infinite;
+}
+
+@keyframes gradient-flow {
+  0%, 100% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
+}
+
 /* Mobile-first responsive utilities */
 @media (max-width: 640px) {
   .container-custom {
@@ -528,8 +543,225 @@
 }
 
 /* ==========================================
-   MOBILE-FRIENDLY PORTAL STYLES
+   MOBILE-FRIENDLY PORTAL STYLES - ENHANCED
+   Beautiful, modern mobile UI with premium feel
    ========================================== */
+
+/* Mobile Premium Effects */
+@media (max-width: 768px) {
+  /* Smooth page transitions */
+  .portal-page {
+    @apply px-3 py-3;
+  }
+  
+  /* Mobile cards with subtle shadows */
+  .mobile-card {
+    @apply rounded-xl shadow-md border-0;
+    background: linear-gradient(180deg, 
+      hsl(var(--card)) 0%, 
+      hsl(var(--card) / 0.95) 100%
+    );
+  }
+  
+  /* Touch-friendly interactive elements */
+  button, 
+  [role="button"],
+  .clickable {
+    @apply min-h-[44px];
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Better touch targets */
+  input, 
+  select, 
+  textarea {
+    @apply min-h-[44px] text-base;
+    font-size: 16px !important; /* Prevents iOS zoom */
+  }
+  
+  /* Mobile-optimized spacing */
+  .mobile-compact {
+    @apply gap-2 p-2;
+  }
+  
+  /* Premium gradient headers on mobile */
+  .mobile-header {
+    @apply rounded-b-2xl;
+    background: linear-gradient(135deg, 
+      hsl(var(--primary)) 0%, 
+      hsl(var(--primary) / 0.85) 100%
+    );
+  }
+  
+  /* Floating action button style */
+  .mobile-fab {
+    @apply fixed bottom-4 right-4 z-50;
+    @apply w-14 h-14 rounded-full shadow-xl;
+    @apply flex items-center justify-center;
+    background: linear-gradient(135deg, 
+      hsl(var(--primary)) 0%, 
+      hsl(var(--accent)) 100%
+    );
+  }
+  
+  /* Mobile bottom sheet enhancements */
+  [data-state="open"][role="dialog"] {
+    @apply rounded-t-[24px];
+  }
+  
+  /* Swipeable card style */
+  .swipe-card {
+    @apply rounded-2xl overflow-hidden;
+    touch-action: pan-x pan-y;
+  }
+  
+  /* Mobile navigation pills */
+  .mobile-nav-pill {
+    @apply px-4 py-2 rounded-full text-sm font-medium;
+    @apply bg-muted/50 backdrop-blur-sm;
+    @apply active:scale-95 transition-transform;
+  }
+  
+  .mobile-nav-pill.active {
+    @apply bg-primary text-primary-foreground;
+  }
+  
+  /* Glassmorphism cards on mobile */
+  .glass-card {
+    @apply rounded-2xl border-0;
+    background: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  
+  /* Mobile stat cards with gradient borders */
+  .stat-card-mobile {
+    @apply rounded-xl p-3;
+    @apply border-0 shadow-sm;
+    background: linear-gradient(135deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--muted) / 0.5) 100%
+    );
+  }
+  
+  /* Smooth scroll momentum */
+  .scroll-container {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Hide scrollbars on mobile for cleaner look */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Mobile list item with swipe hint */
+  .list-item-mobile {
+    @apply rounded-xl p-3;
+    @apply active:bg-muted/50;
+    @apply transition-colors duration-150;
+  }
+  
+  /* Skeleton loading animation enhancement */
+  .skeleton-mobile {
+    @apply rounded-lg;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted) / 0.5) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+  }
+  
+  @keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  
+  /* Mobile badge styling */
+  .badge-mobile {
+    @apply px-2.5 py-1 rounded-full text-xs font-semibold;
+    @apply shadow-sm;
+  }
+  
+  /* Pull to refresh indicator area */
+  .pull-indicator {
+    @apply h-12 flex items-center justify-center;
+    @apply text-muted-foreground text-sm;
+  }
+  
+  /* Mobile section divider */
+  .section-divider {
+    @apply my-4 mx-3;
+    @apply h-px bg-gradient-to-r from-transparent via-border to-transparent;
+  }
+  
+  /* Mobile action sheet style buttons */
+  .action-sheet-btn {
+    @apply w-full py-4 px-4;
+    @apply text-left font-medium;
+    @apply border-b border-border last:border-0;
+    @apply active:bg-muted/50;
+  }
+  
+  /* Mobile chip/tag style */
+  .chip-mobile {
+    @apply inline-flex items-center gap-1;
+    @apply px-3 py-1.5 rounded-full;
+    @apply text-xs font-medium;
+    @apply bg-muted/80;
+  }
+  
+  /* Mobile search bar enhancement */
+  .search-mobile {
+    @apply rounded-full px-4;
+    @apply bg-muted/50 border-0;
+    @apply focus:bg-background focus:ring-2 focus:ring-primary/20;
+  }
+  
+  /* Sticky mobile header */
+  .sticky-header-mobile {
+    @apply sticky top-0 z-40;
+    @apply bg-background/80 backdrop-blur-md;
+    @apply border-b border-border/50;
+    @apply px-3 py-2;
+  }
+  
+  /* Mobile bottom bar */
+  .bottom-bar-mobile {
+    @apply fixed bottom-0 inset-x-0 z-50;
+    @apply bg-background/95 backdrop-blur-md;
+    @apply border-t border-border/50;
+    @apply px-4 py-3;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+  
+  /* Improved mobile typography */
+  h1 { @apply text-xl font-bold; }
+  h2 { @apply text-lg font-semibold; }
+  h3 { @apply text-base font-semibold; }
+  
+  /* Mobile-optimized table to cards transformation */
+  .table-to-cards [role="row"] {
+    @apply block rounded-xl mb-2 p-3;
+    @apply bg-card shadow-sm;
+  }
+  
+  .table-to-cards [role="cell"] {
+    @apply block py-1;
+  }
+  
+  .table-to-cards [role="columnheader"] {
+    @apply hidden;
+  }
+}
 
 /* Mobile Portal Container */
 @media (max-width: 768px) {
@@ -815,6 +1047,81 @@ html, body {
   }
 }
 
+/* ==========================================
+   MOBILE ANIMATION OPTIMIZATION
+   Disable heavy animations on mobile for better performance
+   ========================================== */
+
+/* Mobile: Disable heavy/continuous animations */
+@media (max-width: 768px) {
+  /* Disable gradient animations on mobile */
+  .portal-heading,
+  .portal-card-title,
+  .text-gradient-animated {
+    animation: none !important;
+    background-size: 100% 100% !important;
+  }
+
+  /* Disable floating and pulsing animations */
+  .animate-float,
+  .animate-pulse-glow,
+  .animate-bounce-soft,
+  .animate-wiggle,
+  .lava-glow,
+  .lava-shimmer::after {
+    animation: none !important;
+  }
+
+  /* Reduce lava border animation intensity */
+  .lava-border::before {
+    animation: none !important;
+    opacity: 0.5;
+  }
+
+  /* Faster, simpler transitions */
+  .card-elevated:hover {
+    transform: none;
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Disable complex hover transforms */
+  .btn-zoiro:hover,
+  .btn-zoiro-outline:hover {
+    transform: none !important;
+  }
+
+  /* Reduce motion intensity */
+  * {
+    transition-duration: 0.15s !important;
+  }
+
+  /* Static gradients on mobile */
+  .animate-gradient,
+  .animate-gradient-x {
+    animation: none !important;
+    background-position: 0% 50% !important;
+  }
+}
+
+/* Class to explicitly disable animations */
+.no-animation {
+  animation: none !important;
+  transition: none !important;
+}
+
+.no-animation * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Mobile-optimized motion class */
+.mobile-reduced-motion {
+  @media (max-width: 768px) {
+    animation: none !important;
+    transition-duration: 0.1s !important;
+  }
+}
+
 /* Custom scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
@@ -862,4 +1169,36 @@ html, body {
 
 .animate-gradient {
   animation: gradient-shift 3s ease infinite;
+}
+
+/* FIX #19: Portal animations moved from dynamic injection to global CSS */
+/* Used by: OrdersClient, DeliveryClient, KitchenClient */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+@keyframes pulse-urgency {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.animate-gradient-shift {
+  animation: gradientShift 3s ease infinite;
+  background-size: 200% 200%;
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+}
+
+.animate-pulse-urgency {
+  animation: pulse-urgency 1.5s ease-in-out infinite;
 }

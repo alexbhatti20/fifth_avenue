@@ -1,8 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { createAuthenticatedClient } from '@/lib/supabase';
+import { verifyToken } from '@/lib/jwt';
+import { cookies } from 'next/headers';
 import { redis } from '@/lib/redis';
 
 const REVIEWS_CACHE_KEY = 'cache:public_reviews';
+
+// Helper to get authenticated customer from JWT
+async function getAuthenticatedCustomer() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth_token')?.value;
+  
+  if (!token) return { customer: null, token: null };
+
+  const decoded = await verifyToken(token);
+  if (!decoded || !decoded.userId || decoded.userType !== 'customer') {
+    return { customer: null, token: null };
+  }
+  
+  // Create authenticated client
+  const supabase = createAuthenticatedClient(token);
+  
+  // Verify the customer exists
+  const { data: customer } = await supabase
+    .from('customers')
+    .select('id')
+    .eq('id', decoded.userId)
+    .single();
+
+  return { customer, token };
+}
 
 // DELETE - Delete customer's own review
 export async function DELETE(
@@ -11,31 +38,18 @@ export async function DELETE(
 ) {
   try {
     const { id: reviewId } = await params;
-    const supabase = createClient();
-
-    // Get customer session
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    if (authError || !user) {
+    const { customer, token } = await getAuthenticatedCustomer();
+    
+    if (!customer || !token) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    // Get customer ID
-    const { data: customer } = await supabase
-      .from('customers')
-      .select('id')
-      .eq('auth_user_id', user.id)
-      .single();
-
-    if (!customer) {
-      return NextResponse.json(
-        { error: 'Customer not found' },
-        { status: 403 }
-      );
-    }
+    // Create authenticated client for RPC call
+    const supabase = createAuthenticatedClient(token);
 
     // Delete review via RPC
     const { data, error } = await supabase.rpc('delete_customer_review', {
