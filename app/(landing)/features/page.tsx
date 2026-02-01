@@ -337,7 +337,7 @@ const STATS = [
 // Main Features Page Component
 // ============================================
 export default function FeaturesPage() {
-  const containerRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(true);
 
