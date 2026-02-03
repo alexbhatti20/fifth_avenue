@@ -68,6 +68,7 @@ export default function Hero() {
   const [currentWord, setCurrentWord] = useState(0);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [isLowEndDevice, setIsLowEndDevice] = useState(false);
   const words = ["SAUCY", "JUICY", "CRISPY"];
   const punchline = "Saucy. Juicy. Crispy.";
 
@@ -77,10 +78,38 @@ export default function Hero() {
   const smoothMouseX = useSpring(mouseX, { stiffness: 50, damping: 20 });
   const smoothMouseY = useSpring(mouseY, { stiffness: 50, damping: 20 });
 
+  // Detect low-end devices using performance API and memory info
+  const detectLowEndDevice = () => {
+    if (typeof window === 'undefined') return false;
+    
+    // Check device memory if available (Chrome/Edge)
+    const deviceMemory = (navigator as any).deviceMemory;
+    if (deviceMemory && deviceMemory <= 2) return true;
+    
+    // Check if device is slow using performance observer
+    if ('PerformanceObserver' in window) {
+      try {
+        const observer = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          // If paint timing is high, device is likely slow
+          if (entries.some((e) => e.duration > 100)) {
+            setIsLowEndDevice(true);
+          }
+        });
+        observer.observe({ entryTypes: ['paint', 'navigation'] });
+      } catch (e) {
+        // Silently fail if not supported
+      }
+    }
+    
+    return isMobile();
+  };
+
   useEffect(() => {
     setIsLoaded(true);
     setIsMobileDevice(isMobile());
     setReduceMotion(prefersReducedMotion());
+    setIsLowEndDevice(detectLowEndDevice());
     
     const interval = setInterval(() => {
       setCurrentWord((prev) => (prev + 1) % words.length);
@@ -142,11 +171,13 @@ export default function Hero() {
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-transparent" />
       </motion.div>
 
-      {/* Parallax Decorative Layers */}
-      <div className="absolute inset-0 z-[1] pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
-      </div>
+      {/* Parallax Decorative Layers - Disabled on low-end devices */}
+      {!isLowEndDevice && !reduceMotion && (
+        <div className="absolute inset-0 z-[1] pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
+        </div>
+      )}
 
       {/* Floating Food Elements with Parallax - Simplified on mobile */}
       <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden">
@@ -159,22 +190,25 @@ export default function Hero() {
           initial={{ opacity: 0, x: -100, scale: 0.5 }}
           animate={{ opacity: 1, x: 0, scale: 1 }}
           transition={{ duration: isMobileDevice ? 0.3 : 1, delay: 0.6, type: "spring" }}
+          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
         >
           <motion.img
             src={chickenBurger}
             alt=""
             className="w-28 xl:w-36 drop-shadow-2xl"
-            animate={!isMobileDevice && !reduceMotion ? { 
+            animate={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
               y: [0, -15, 0],
               rotate: [-5, 5, -5]
             } : {}}
-            transition={!isMobileDevice && !reduceMotion ? { 
-              y: { duration: 5, repeat: Infinity, ease: "easeInOut" },
-              rotate: { duration: 6, repeat: Infinity, ease: "easeInOut" }
+            transition={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
+              y: { duration: 6, repeat: Infinity, ease: "easeInOut" },
+              rotate: { duration: 8, repeat: Infinity, ease: "easeInOut" }
             } : {}}
           />
-          {/* Glow Effect */}
-          <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl -z-10 scale-150" />
+          {/* Glow Effect - Disabled on low-end devices */}
+          {!isLowEndDevice && !reduceMotion && (
+            <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl -z-10 scale-150" />
+          )}
         </motion.div>
 
         {/* Fries - Left Middle */}
@@ -183,18 +217,19 @@ export default function Hero() {
           initial={{ opacity: 0, x: -80, rotate: -20 }}
           animate={{ opacity: 1, x: 0, rotate: 0 }}
           transition={{ duration: isMobileDevice ? 0.3 : 0.8, delay: 0.8 }}
+          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
         >
           <motion.img
             src={fries}
             alt=""
             className="w-20 lg:w-28 xl:w-32 drop-shadow-2xl"
-            animate={!isMobileDevice && !reduceMotion ? { 
+            animate={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
               rotate: [-10, 10, -10],
               scale: [1, 1.05, 1]
             } : {}}
-            transition={!isMobileDevice && !reduceMotion ? { 
-              rotate: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-              scale: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+            transition={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
+              rotate: { duration: 6, repeat: Infinity, ease: "easeInOut" },
+              scale: { duration: 5, repeat: Infinity, ease: "easeInOut" }
             } : {}}
           />
         </motion.div>
@@ -205,20 +240,21 @@ export default function Hero() {
           initial={{ opacity: 0, y: 50, scale: 0.5 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.8, delay: 1 }}
+          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
         >
           <motion.img
             src={drink}
             alt=""
             className="w-20 xl:w-28 drop-shadow-2xl"
-            animate={{ 
+            animate={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
               y: [0, -10, 0],
               rotate: [0, 5, 0]
-            }}
-            transition={{ 
-              duration: 4,
+            } : {}}
+            transition={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
+              duration: 6,
               repeat: Infinity,
               ease: "easeInOut"
-            }}
+            } : {}}
           />
         </motion.div>
 
@@ -227,6 +263,7 @@ export default function Hero() {
         {/* Main Chicken Piece - Top Right */}
         <motion.div
           className="absolute top-16 sm:top-20 right-[8%] sm:right-[10%]"
+          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
         >
           <motion.img
             src={chickenPiece}
@@ -235,23 +272,25 @@ export default function Hero() {
             initial={{ opacity: 0, y: -50, rotate: -15, scale: 0.8 }}
             animate={{ 
               opacity: 1, 
-              y: [0, -20, 0], 
-              rotate: [-15, -5, -15],
+              y: !isMobileDevice && !reduceMotion && !isLowEndDevice ? [0, -20, 0] : 0, 
+              rotate: !isMobileDevice && !reduceMotion && !isLowEndDevice ? [-15, -5, -15] : -15,
               scale: 1
             }}
             transition={{ 
               opacity: { duration: 0.8, delay: 0.5 },
-              y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-              rotate: { duration: 5, repeat: Infinity, ease: "easeInOut" },
+              y: !isMobileDevice && !reduceMotion && !isLowEndDevice ? { duration: 6, repeat: Infinity, ease: "easeInOut" } : undefined,
+              rotate: !isMobileDevice && !reduceMotion && !isLowEndDevice ? { duration: 7, repeat: Infinity, ease: "easeInOut" } : undefined,
               scale: { duration: 0.8, delay: 0.5 }
             }}
           />
           {/* Animated ring around main chicken */}
-          <motion.div
-            className="absolute inset-0 border-2 border-dashed border-primary/30 rounded-full scale-150"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          />
+          {!isMobileDevice && !reduceMotion && !isLowEndDevice && (
+            <motion.div
+              className="absolute inset-0 border-2 border-dashed border-primary/30 rounded-full scale-150"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+            />
+          )}
         </motion.div>
 
         {/* Wings - Right Middle */}
@@ -262,14 +301,15 @@ export default function Hero() {
           initial={{ opacity: 0, x: 50, rotate: 10 }}
           animate={{ 
             opacity: 1, 
-            x: [0, -15, 0],
-            rotate: [10, -5, 10]
+            x: !isMobileDevice && !reduceMotion && !isLowEndDevice ? [0, -15, 0] : 0,
+            rotate: !isMobileDevice && !reduceMotion && !isLowEndDevice ? [10, -5, 10] : 10
           }}
           transition={{ 
             opacity: { duration: 0.8, delay: 0.7 },
-            x: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-            rotate: { duration: 5, repeat: Infinity, ease: "easeInOut" }
+            x: !isMobileDevice && !reduceMotion && !isLowEndDevice ? { duration: 6, repeat: Infinity, ease: "easeInOut" } : undefined,
+            rotate: !isMobileDevice && !reduceMotion && !isLowEndDevice ? { duration: 7, repeat: Infinity, ease: "easeInOut" } : undefined
           }}
+          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
         />
 
         {/* Fries - Bottom Right */}
@@ -280,14 +320,15 @@ export default function Hero() {
           initial={{ opacity: 0, y: 50, rotate: 5 }}
           animate={{ 
             opacity: 1, 
-            rotate: [5, -5, 5],
-            y: [0, -10, 0]
+            rotate: !isMobileDevice && !reduceMotion && !isLowEndDevice ? [5, -5, 5] : 5,
+            y: !isMobileDevice && !reduceMotion && !isLowEndDevice ? [0, -10, 0] : 0
           }}
           transition={{ 
             opacity: { duration: 0.8, delay: 0.9 },
-            rotate: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-            y: { duration: 3.5, repeat: Infinity, ease: "easeInOut" }
+            rotate: !isMobileDevice && !reduceMotion && !isLowEndDevice ? { duration: 6, repeat: Infinity, ease: "easeInOut" } : undefined,
+            y: !isMobileDevice && !reduceMotion && !isLowEndDevice ? { duration: 5, repeat: Infinity, ease: "easeInOut" } : undefined
           }}
+          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
         />
 
         {/* Drink - Far Right */}
@@ -296,25 +337,27 @@ export default function Hero() {
           alt=""
           className="absolute bottom-[20%] right-[1%] sm:right-[2%] w-16 sm:w-24 lg:w-32 drop-shadow-2xl hidden sm:block"
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={!isMobileDevice && !reduceMotion ? { 
+          animate={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
             opacity: 1, 
             scale: [1, 1.08, 1],
             y: [0, -8, 0]
           } : { opacity: 1 }}
-          transition={!isMobileDevice && !reduceMotion ? { 
+          transition={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
             opacity: { duration: 0.8, delay: 1.1 },
-            scale: { duration: 5, repeat: Infinity, ease: "easeInOut" },
-            y: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+            scale: { duration: 7, repeat: Infinity, ease: "easeInOut" },
+            y: { duration: 6, repeat: Infinity, ease: "easeInOut" }
           } : { duration: 0.3, delay: 0.3 }}
+          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
         />
 
         {/* Extra Burger - Bottom Right - Hidden on mobile */}
-        {!isMobileDevice && !reduceMotion && (
+        {!isMobileDevice && !reduceMotion && !isLowEndDevice && (
           <motion.div
             className="absolute bottom-16 right-[25%] hidden xl:block"
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 0.8, scale: 1 }}
             transition={{ duration: 0.8, delay: 1.3 }}
+            style={{ willChange: 'transform' }}
           >
             <motion.img
               src={chickenBurger}
@@ -325,7 +368,7 @@ export default function Hero() {
                 y: [0, 10, 0]
               }}
               transition={{ 
-                duration: 5,
+                duration: 7,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
@@ -333,16 +376,17 @@ export default function Hero() {
           </motion.div>
         )}
 
-        {/* ===== SPARKLE & PARTICLE EFFECTS - Only on desktop ===== */}
+        {/* ===== SPARKLE & PARTICLE EFFECTS - Only on desktop, disabled on low-end ===== */}
         
         {/* Primary Sparkles - Right Side */}
-        {!isMobileDevice && !reduceMotion && SPARKLE_RIGHT_POSITIONS.map((pos, i) => (
+        {!isMobileDevice && !reduceMotion && !isLowEndDevice && SPARKLE_RIGHT_POSITIONS.map((pos, i) => (
           <motion.div
             key={`sparkle-right-${i}`}
             className="absolute w-1.5 sm:w-2 h-1.5 sm:h-2 bg-primary rounded-full"
             style={{
               top: `${pos.top}%`,
               right: `${pos.right}%`,
+              willChange: 'opacity, transform'
             }}
             initial={{ opacity: 0, scale: 0 }}
             animate={{ 
@@ -359,13 +403,14 @@ export default function Hero() {
         ))}
 
         {/* Secondary Sparkles - Left Side */}
-        {!isMobileDevice && !reduceMotion && SPARKLE_LEFT_POSITIONS.map((pos, i) => (
+        {!isMobileDevice && !reduceMotion && !isLowEndDevice && SPARKLE_LEFT_POSITIONS.map((pos, i) => (
           <motion.div
             key={`sparkle-left-${i}`}
             className="absolute w-1 sm:w-1.5 h-1 sm:h-1.5 bg-accent rounded-full hidden lg:block"
             style={{
               top: `${pos.top}%`,
               left: `${pos.left}%`,
+              willChange: 'opacity, transform'
             }}
             initial={{ opacity: 0, scale: 0 }}
             animate={{ 
@@ -373,7 +418,7 @@ export default function Hero() {
               scale: [0, 1.2, 0] 
             }}
             transition={{ 
-              duration: 2.5,
+              duration: 3,
               repeat: Infinity,
               delay: i * 0.5,
               ease: "easeInOut"
@@ -382,7 +427,7 @@ export default function Hero() {
         ))}
 
         {/* Floating Circles/Orbs - Only on desktop */}
-        {!isMobileDevice && !reduceMotion && (
+        {!isMobileDevice && !reduceMotion && !isLowEndDevice && (
           <>
             <motion.div
               className="absolute top-1/4 right-1/4 w-4 h-4 bg-primary/30 rounded-full blur-sm hidden md:block"
@@ -392,7 +437,8 @@ export default function Hero() {
                 scale: [1, 1.5, 1],
                 opacity: [0.3, 0.6, 0.3]
               }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              style={{ willChange: 'transform' }}
             />
             <motion.div
               className="absolute bottom-1/3 right-1/3 w-3 h-3 bg-accent/40 rounded-full blur-sm hidden md:block"
@@ -402,7 +448,8 @@ export default function Hero() {
                 scale: [1, 1.3, 1],
                 opacity: [0.4, 0.7, 0.4]
               }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              style={{ willChange: 'transform' }}
             />
             <motion.div
               className="absolute top-1/3 left-[10%] w-3 h-3 bg-primary/20 rounded-full blur-sm hidden lg:block"
@@ -411,7 +458,26 @@ export default function Hero() {
                 scale: [1, 1.4, 1],
                 opacity: [0.2, 0.5, 0.2]
               }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+              style={{ willChange: 'transform' }}
+            />
+          </>
+        )}
+
+        {/* ===== PULSING GLOW EFFECTS ===== */}
+        {!isLowEndDevice && !reduceMotion && (
+          <>
+            <motion.div
+              className="absolute top-1/3 left-[5%] w-40 h-40 bg-primary/10 rounded-full blur-3xl hidden lg:block pointer-events-none"
+              animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              style={{ willChange: 'transform' }}
+            />
+            <motion.div
+              className="absolute bottom-1/4 right-[30%] w-60 h-60 bg-accent/5 rounded-full blur-3xl hidden lg:block pointer-events-none"
+              animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              style={{ willChange: 'transform' }}
             />
           </>
         )}
@@ -431,10 +497,11 @@ export default function Hero() {
             whileHover={isMobileDevice ? undefined : "hover"}
             className="inline-flex items-center gap-2 bg-primary/20 backdrop-blur-md border border-primary/30 rounded-full px-3 sm:px-4 py-1.5 sm:py-2 mb-4 sm:mb-6 cursor-pointer"
           >
-            {!isMobileDevice && !reduceMotion ? (
+            {!isMobileDevice && !reduceMotion && !isLowEndDevice ? (
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                style={{ willChange: 'transform' }}
               >
                 <Star className="h-3 w-3 sm:h-4 sm:w-4 text-accent fill-accent" />
               </motion.div>
@@ -444,7 +511,7 @@ export default function Hero() {
             <span className="text-primary-foreground text-xs sm:text-sm font-medium">
               #1 Broast in Vehari City
             </span>
-            <Sparkles className={`h-3 w-3 sm:h-4 sm:w-4 text-accent ${!isMobileDevice && !reduceMotion ? 'animate-pulse' : ''}`} />
+            <Sparkles className={`h-3 w-3 sm:h-4 sm:w-4 text-accent ${!isMobileDevice && !reduceMotion && !isLowEndDevice ? 'animate-pulse' : ''}`} />
           </motion.div>
 
           {/* Logo and Brand Section */}
@@ -692,160 +759,171 @@ export default function Hero() {
         </div>
       </motion.div>
 
-      {/* ===== ADVANCED CORNER DECORATIONS ===== */}
+      {/* ===== ADVANCED CORNER DECORATIONS - Disabled on low-end ===== */}
       
       {/* Top Left Corner */}
-      <motion.div
-        className="absolute top-16 left-4 hidden md:block"
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1, duration: 0.5 }}
-      >
-        <div className="relative">
-          <div className="w-24 h-24 lg:w-32 lg:h-32 border-l-2 border-t-2 border-primary/40" />
-          <motion.div
-            className="absolute top-0 left-0 w-3 h-3 bg-primary rounded-full"
-            animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-        </div>
-      </motion.div>
+      {!isLowEndDevice && (
+        <motion.div
+          className="absolute top-16 left-4 hidden md:block"
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1, duration: 0.5 }}
+        >
+          <div className="relative">
+            <div className="w-24 h-24 lg:w-32 lg:h-32 border-l-2 border-t-2 border-primary/40" />
+            <motion.div
+              className="absolute top-0 left-0 w-3 h-3 bg-primary rounded-full"
+              animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+              transition={{ duration: 3, repeat: Infinity }}
+              style={{ willChange: 'transform' }}
+            />
+          </div>
+        </motion.div>
+      )}
 
       {/* Top Right Corner */}
-      <motion.div
-        className="absolute top-16 right-4 hidden lg:block"
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1.1, duration: 0.5 }}
-      >
-        <div className="relative">
-          <div className="w-24 h-24 border-r-2 border-t-2 border-accent/30" />
-          <motion.div
-            className="absolute top-0 right-0 w-2 h-2 bg-accent rounded-full"
-            animate={{ scale: [1, 1.3, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
-          />
-        </div>
-      </motion.div>
+      {!isLowEndDevice && (
+        <motion.div
+          className="absolute top-16 right-4 hidden lg:block"
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1.1, duration: 0.5 }}
+        >
+          <div className="relative">
+            <div className="w-24 h-24 border-r-2 border-t-2 border-accent/30" />
+            <motion.div
+              className="absolute top-0 right-0 w-2 h-2 bg-accent rounded-full"
+              animate={{ scale: [1, 1.3, 1] }}
+              transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+              style={{ willChange: 'transform' }}
+            />
+          </div>
+        </motion.div>
+      )}
 
       {/* Bottom Left Corner */}
-      <motion.div
-        className="absolute bottom-16 left-4 hidden lg:block"
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1.2, duration: 0.5 }}
-      >
-        <div className="relative">
-          <div className="w-20 h-20 border-l-2 border-b-2 border-accent/30" />
-          <motion.div
-            className="absolute bottom-0 left-0 w-2 h-2 bg-accent rounded-full"
-            animate={{ scale: [1, 1.3, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
-          />
-        </div>
-      </motion.div>
+      {!isLowEndDevice && (
+        <motion.div
+          className="absolute bottom-16 left-4 hidden lg:block"
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1.2, duration: 0.5 }}
+        >
+          <div className="relative">
+            <div className="w-20 h-20 border-l-2 border-b-2 border-accent/30" />
+            <motion.div
+              className="absolute bottom-0 left-0 w-2 h-2 bg-accent rounded-full"
+              animate={{ scale: [1, 1.3, 1] }}
+              transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}
+              style={{ willChange: 'transform' }}
+            />
+          </div>
+        </motion.div>
+      )}
 
       {/* Bottom Right Corner */}
-      <motion.div
-        className="absolute bottom-16 right-4 hidden md:block"
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1.3, duration: 0.5 }}
-      >
-        <div className="relative">
-          <div className="w-28 h-28 lg:w-36 lg:h-36 border-r-2 border-b-2 border-primary/40" />
-          <motion.div
-            className="absolute bottom-0 right-0 w-3 h-3 bg-primary rounded-full"
-            animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
-            transition={{ duration: 2, repeat: Infinity, delay: 0.7 }}
-          />
-        </div>
-      </motion.div>
-
-      {/* ===== ANIMATED LINES ===== */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none z-[2] hidden lg:block" preserveAspectRatio="none">
-        <motion.line
-          x1="0" y1="20%" x2="15%" y2="20%"
-          stroke="hsl(var(--primary))"
-          strokeWidth="1"
-          strokeOpacity="0.3"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 1.5, delay: 1 }}
-        />
-        <motion.line
-          x1="85%" y1="80%" x2="100%" y2="80%"
-          stroke="hsl(var(--primary))"
-          strokeWidth="1"
-          strokeOpacity="0.3"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 1.5, delay: 1.2 }}
-        />
-      </svg>
-
-      {/* ===== FLOATING AWARD BADGE ===== */}
-      <motion.div
-        className="absolute top-28 left-8 hidden xl:flex items-center gap-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-full px-4 py-2 z-[6]"
-        initial={{ opacity: 0, x: -50 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 1.5, type: "spring" }}
-        whileHover={{ scale: 1.05 }}
-      >
+      {!isLowEndDevice && (
         <motion.div
-          animate={{ rotate: [0, 10, -10, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
+          className="absolute bottom-16 right-4 hidden md:block"
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1.3, duration: 0.5 }}
         >
-          <Award className="h-6 w-6 text-accent" />
+          <div className="relative">
+            <div className="w-28 h-28 lg:w-36 lg:h-36 border-r-2 border-b-2 border-primary/40" />
+            <motion.div
+              className="absolute bottom-0 right-0 w-3 h-3 bg-primary rounded-full"
+              animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+              transition={{ duration: 3, repeat: Infinity, delay: 0.7 }}
+              style={{ willChange: 'transform' }}
+            />
+          </div>
         </motion.div>
-        <div>
-          <p className="text-white text-xs font-semibold">Premium Quality</p>
-          <p className="text-white/60 text-[10px]">Since 2020</p>
-        </div>
-      </motion.div>
+      )}
 
-      {/* ===== ROTATING CIRCLE DECORATION ===== */}
-      <motion.div
-        className="absolute top-1/4 left-[8%] w-32 h-32 hidden xl:block pointer-events-none"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-      >
-        <div className="w-full h-full border border-dashed border-white/10 rounded-full" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-primary/50 rounded-full" />
-      </motion.div>
+      {/* ===== ANIMATED LINES - Disabled on low-end ===== */}
+      {!isLowEndDevice && (
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-[2] hidden lg:block" preserveAspectRatio="none">
+          <motion.line
+            x1="0" y1="20%" x2="15%" y2="20%"
+            stroke="hsl(var(--primary))"
+            strokeWidth="1"
+            strokeOpacity="0.3"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 2, delay: 1 }}
+          />
+          <motion.line
+            x1="85%" y1="80%" x2="100%" y2="80%"
+            stroke="hsl(var(--primary))"
+            strokeWidth="1"
+            strokeOpacity="0.3"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 2, delay: 1.2 }}
+          />
+        </svg>
+      )}
 
-      {/* ===== PULSING GLOW EFFECTS ===== */}
-      <motion.div
-        className="absolute top-1/3 left-[5%] w-40 h-40 bg-primary/10 rounded-full blur-3xl hidden lg:block"
-        animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute bottom-1/4 right-[30%] w-60 h-60 bg-accent/5 rounded-full blur-3xl hidden lg:block"
-        animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-      />
-
-      {/* ===== FOOD ICON TRAIL - Left Side ===== */}
-      <div className="absolute left-6 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-6 z-[6]">
-        {["🍗", "🍔", "🍟", "🥤"].map((emoji, index) => (
+      {/* ===== FLOATING AWARD BADGE - Disabled on low-end ===== */}
+      {!isLowEndDevice && (
+        <motion.div
+          className="absolute top-28 left-8 hidden xl:flex items-center gap-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-full px-4 py-2 z-[6]"
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 1.5, type: "spring" }}
+          whileHover={{ scale: 1.05 }}
+        >
           <motion.div
-            key={index}
-            className="w-10 h-10 bg-white/5 backdrop-blur-sm rounded-full flex items-center justify-center text-lg border border-white/10"
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1.5 + index * 0.15 }}
-            whileHover={{ scale: 1.2, backgroundColor: "rgba(255,255,255,0.15)" }}
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            style={{ willChange: 'transform' }}
           >
-            <motion.span
-              animate={{ y: [0, -3, 0] }}
-              transition={{ duration: 2, repeat: Infinity, delay: index * 0.2 }}
-            >
-              {emoji}
-            </motion.span>
+            <Award className="h-6 w-6 text-accent" />
           </motion.div>
-        ))}
-      </div>
+          <div>
+            <p className="text-white text-xs font-semibold">Premium Quality</p>
+            <p className="text-white/60 text-[10px]">Since 2020</p>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ===== ROTATING CIRCLE DECORATION - Disabled on low-end ===== */}
+      {!isLowEndDevice && (
+        <motion.div
+          className="absolute top-1/4 left-[8%] w-32 h-32 hidden xl:block pointer-events-none"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 35, repeat: Infinity, ease: "linear" }}
+          style={{ willChange: 'transform' }}
+        >
+          <div className="w-full h-full border border-dashed border-white/10 rounded-full" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-primary/50 rounded-full" />
+        </motion.div>
+      )}
+
+      {/* ===== FOOD ICON TRAIL - Left Side - Disabled on low-end ===== */}
+      {!isLowEndDevice && (
+        <div className="absolute left-6 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-6 z-[6]">
+          {["🍗", "🍔", "🍟", "🥤"].map((emoji, index) => (
+            <motion.div
+              key={index}
+              className="w-10 h-10 bg-white/5 backdrop-blur-sm rounded-full flex items-center justify-center text-lg border border-white/10"
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 1.5 + index * 0.15 }}
+              whileHover={{ scale: 1.2, backgroundColor: "rgba(255,255,255,0.15)" }}
+              style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
+            >
+              <motion.span
+                animate={{ y: [0, -3, 0] }}
+                transition={{ duration: 2.5, repeat: Infinity, delay: index * 0.2 }}
+              >
+                {emoji}
+              </motion.span>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
