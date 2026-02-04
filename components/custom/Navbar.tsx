@@ -15,7 +15,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { BlockedCustomerDialog } from "./BlockedCustomerDialog";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { useReducedMotion, usePerformanceMode } from "@/hooks/useReducedMotion";
 import dynamic from "next/dynamic";
 
 // Dynamically import Lottie to avoid SSR issues - with loading placeholder
@@ -139,6 +139,10 @@ function Navbar() {
   const { totalItems } = useCart();
   const { user, signOut, fastSignOut, isBanned, banReason } = useAuth();
   const shouldReduceMotion = useReducedMotion();
+  const { shouldReduce, performanceLevel } = usePerformanceMode();
+  
+  // Use more aggressive reduction on mobile - combines system preference with device capability
+  const disableAnimations = shouldReduceMotion || shouldReduce;
 
   // Track hydration to prevent mismatch
   useEffect(() => {
@@ -571,18 +575,19 @@ function Navbar() {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
+            initial={disableAnimations ? { opacity: 1 } : { opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            exit={disableAnimations ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            transition={disableAnimations ? { duration: 0.1 } : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="md:hidden bg-background/95 backdrop-blur-xl border-t border-border/50 shadow-2xl overflow-hidden"
           >
             <div className="container-custom py-5 flex flex-col gap-2">
               {/* Premium User Info - Mobile */}
               {user && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
+                  initial={disableAnimations ? false : { opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
+                  transition={disableAnimations ? { duration: 0 } : undefined}
                   className="mb-4 p-5 bg-gradient-to-br from-primary/15 via-orange-500/10 to-primary/5 rounded-3xl border border-primary/10 relative overflow-hidden"
                 >
                   {/* Decorative elements */}
@@ -601,7 +606,7 @@ function Navbar() {
                       <p className="font-bold text-lg">{user.name}</p>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
                       <div className="flex items-center gap-1.5 mt-1">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        <div className={`w-2 h-2 rounded-full bg-green-500 ${disableAnimations ? '' : 'animate-pulse'}`} />
                         <span className="text-[11px] text-green-600 font-medium">Active Now</span>
                       </div>
                     </div>
@@ -616,9 +621,9 @@ function Navbar() {
                   return (
                     <motion.div
                       key={link.path}
-                      initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
+                      initial={disableAnimations ? false : { opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={shouldReduceMotion ? { duration: 0.1 } : { delay: index * 0.08 }}
+                      transition={disableAnimations ? { duration: 0 } : { delay: index * 0.05 }}
                     >
                       <Link
                         href={link.path}
@@ -628,11 +633,14 @@ function Navbar() {
                             : "text-foreground hover:bg-secondary/80"
                         }`}
                       >
-                        {pathname === link.path && (
+                        {pathname === link.path && !disableAnimations && (
                           <motion.div
                             layoutId="mobileActive"
                             className="w-1 h-6 bg-gradient-to-b from-primary to-orange-500 rounded-full"
                           />
+                        )}
+                        {pathname === link.path && disableAnimations && (
+                          <div className="w-1 h-6 bg-gradient-to-b from-primary to-orange-500 rounded-full" />
                         )}
                         {Icon && (
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
@@ -662,9 +670,9 @@ function Navbar() {
                     {userMenuItems.map((item, index) => (
                       <motion.div
                         key={item.href}
-                        initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
+                        initial={disableAnimations ? false : { opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={shouldReduceMotion ? { duration: 0.1 } : { delay: (navLinks.length + index) * 0.08 }}
+                        transition={disableAnimations ? { duration: 0 } : { delay: (navLinks.length + index) * 0.05 }}
                       >
                         <Link
                           href={item.href}
@@ -681,9 +689,9 @@ function Navbar() {
                     ))}
                   </div>
                   <motion.div
-                    initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -20 }}
+                    initial={disableAnimations ? false : { opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={shouldReduceMotion ? { duration: 0.1 } : { delay: (navLinks.length + userMenuItems.length) * 0.08 }}
+                    transition={disableAnimations ? { duration: 0 } : { delay: (navLinks.length + userMenuItems.length) * 0.05 }}
                     className="mt-2"
                   >
                     <button
@@ -701,17 +709,19 @@ function Navbar() {
 
               {/* Premium Order Now Button - Mobile */}
               <motion.div
-                initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 10 }}
+                initial={disableAnimations ? false : { opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={shouldReduceMotion ? { duration: 0.1 } : { delay: 0.4 }}
+                transition={disableAnimations ? { duration: 0 } : { delay: 0.3 }}
                 className="pt-4 mt-2"
               >
                 <Link href="/menu">
                   <Button className="w-full bg-gradient-to-r from-primary via-primary to-orange-500 hover:opacity-90 rounded-2xl py-6 text-base font-bold shadow-lg shadow-primary/25 relative overflow-hidden group">
-                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                    {!disableAnimations && (
+                      <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                    )}
                     <Flame className="w-5 h-5 mr-2 text-orange-200" />
                     Order Now
-                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className={`w-5 h-5 ml-2 ${disableAnimations ? '' : 'group-hover:translate-x-1 transition-transform'}`} />
                   </Button>
                 </Link>
               </motion.div>
@@ -719,9 +729,9 @@ function Navbar() {
               {/* Premium Login Button - Mobile (when not logged in) */}
               {!user && (
                 <motion.div
-                  initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 10 }}
+                  initial={disableAnimations ? false : { opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={shouldReduceMotion ? { duration: 0.1 } : { delay: 0.5 }}
+                  transition={disableAnimations ? { duration: 0 } : { delay: 0.35 }}
                 >
                   <Link href="/auth">
                     <Button variant="outline" className="w-full rounded-2xl py-6 text-base font-bold border-2 hover:bg-secondary/50 transition-all">

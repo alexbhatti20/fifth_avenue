@@ -54,6 +54,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { usePortalAuth } from '@/hooks/usePortal';
 import { useIsMobile, useDeviceType } from '@/hooks/use-mobile';
+import { useReducedMotion, usePerformanceMode } from '@/hooks/useReducedMotion';
 import { BlockedUserDialog } from './BlockedUserDialog';
 import { LogoutConfirmDialog } from './LogoutConfirmDialog';
 import { 
@@ -607,6 +608,11 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
   const pathname = usePathname();
   const { employee, role, fastLogout, isBlocked, blockReason } = usePortalAuth();
   const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false);
+  const shouldReduceMotion = useReducedMotion();
+  const { shouldReduce } = usePerformanceMode();
+  
+  // Use more aggressive reduction on mobile - combines system preference with device capability
+  const disableAnimations = shouldReduceMotion || shouldReduce;
 
   const handleLogoutClick = useCallback(() => {
     onClose();
@@ -711,11 +717,10 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
 
                 return (
                   <Link key={item.path} href={item.path} onClick={onClose} prefetch={false}>
-                    <motion.div
-                      whileTap={{ scale: 0.98 }}
+                    <div
                       className={cn(
                         'flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200',
-                        'active:scale-[0.98]',
+                        !disableAnimations && 'active:scale-[0.98]',
                         isActive 
                           ? 'bg-gradient-to-r from-primary/20 to-primary/5 text-primary shadow-sm' 
                           : 'hover:bg-zinc-800/60 text-zinc-300 hover:text-white'
@@ -739,7 +744,7 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
                       {isActive && (
                         <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                       )}
-                    </motion.div>
+                    </div>
                   </Link>
                 );
               })}
@@ -758,10 +763,10 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
 
                   return (
                     <Link key={item.path} href={item.path} onClick={onClose} prefetch={false}>
-                      <motion.div
-                        whileTap={{ scale: 0.98 }}
+                      <div
                         className={cn(
                           'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
+                          !disableAnimations && 'active:scale-[0.98]',
                           isActive 
                             ? 'bg-gradient-to-r from-primary/20 to-primary/5 text-primary' 
                             : 'hover:bg-zinc-800/60 text-zinc-400 hover:text-white'
@@ -774,7 +779,7 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
                             {item.badge}
                           </Badge>
                         )}
-                      </motion.div>
+                      </div>
                     </Link>
                   );
                 })}
