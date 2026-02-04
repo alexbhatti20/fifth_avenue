@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PortalSidebar, PortalAppbar, MobileSidebar } from './PortalLayout';
+import { PortalSidebar, PortalAppbar, MobileSidebar, MobileBottomNav } from './PortalLayout';
 import { BlockedUserDialog } from './BlockedUserDialog';
 import { ErrorBoundary, SectionErrorBoundary } from '@/components/ui/error-boundary';
 import { QueryProvider } from '@/lib/query-provider';
@@ -108,6 +108,22 @@ export function PortalProvider({ children }: PortalProviderProps) {
   
   const router = useRouter();
   const pathname = usePathname();
+
+  // CRITICAL: Ensure body scroll is restored when mobile menu closes
+  // This fixes Radix UI Dialog scroll lock not being properly cleaned up
+  useEffect(() => {
+    if (!mobileMenuOpen) {
+      // Small delay to allow Radix to cleanup first
+      const timer = setTimeout(() => {
+        document.body.style.overflow = '';
+        document.body.style.pointerEvents = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [mobileMenuOpen]);
 
   // Check if current page is auth page (unified auth or old portal auth pages)
   const isAuthPage = pathname === '/portal/login' || pathname === '/portal/activate' || pathname === '/auth';
@@ -673,7 +689,7 @@ export function PortalProvider({ children }: PortalProviderProps) {
   return (
     <QueryProvider>
     <PortalAuthContext.Provider value={authContextValue}>
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen min-h-[100dvh] bg-zinc-50 dark:bg-zinc-950 portal-mobile-container overflow-y-auto">
       {/* Blocked Account Dialog - Triggered when admin blocks employee in real-time */}
       <BlockedUserDialog
         open={blockDialogOpen}
@@ -703,14 +719,21 @@ export function PortalProvider({ children }: PortalProviderProps) {
         onMenuClick={() => setMobileMenuOpen(true)} 
       />
 
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav onMenuClick={() => setMobileMenuOpen(true)} />
+
       {/* Main Content - Mobile optimized with Error Boundary */}
       <main
         className={cn(
-          'pt-16 min-h-screen transition-all duration-300',
-          sidebarCollapsed ? 'md:ml-20' : 'md:ml-[280px]'
+          'pt-14 sm:pt-16 transition-all duration-300',
+          sidebarCollapsed ? 'md:ml-20' : 'md:ml-[280px]',
+          // Add padding for mobile bottom nav - ensure content isn't cut off
+          'pb-24 md:pb-6',
+          // Ensure proper scrolling on mobile
+          'min-h-[calc(100vh-3.5rem)] sm:min-h-[calc(100vh-4rem)]'
         )}
       >
-        <div className="p-3 sm:p-4 md:p-6 pb-20 sm:pb-6">
+        <div className="p-2.5 xs:p-3 sm:p-4 md:p-6">
           <ErrorBoundary>
             {children}
           </ErrorBoundary>

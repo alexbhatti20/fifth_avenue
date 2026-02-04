@@ -29,6 +29,12 @@ import {
   Sparkles,
   TrendingUp,
   Zap,
+  History,
+  CalendarDays,
+  Trophy,
+  Target,
+  Loader2,
+  ChevronDown,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,6 +55,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
@@ -61,6 +72,8 @@ import {
   updateKitchenOrderStatusServer,
   fetchKitchenOrdersServer,
   fetchKitchenStatsServer,
+  fetchKitchenCompletedOrdersServer,
+  fetchKitchenCompletedStatsServer,
 } from '@/lib/actions';
 
 // Props interface for SSR data
@@ -856,6 +869,410 @@ function OrderDetailModal({
   );
 }
 
+// Types for completed orders
+interface CompletedOrder {
+  id: string;
+  order_number: string;
+  customer_name: string;
+  customer_phone: string;
+  order_type: string;
+  status: string;
+  items: any[];
+  total_items: number;
+  subtotal: number;
+  total: number;
+  notes: string;
+  table_number: number;
+  created_at: string;
+  kitchen_started_at: string;
+  kitchen_completed_at: string;
+  prepared_by: string;
+  prepared_by_name: string;
+  prep_time_minutes: number;
+}
+
+interface CompletedStats {
+  total_completed: number;
+  total_items_prepared: number;
+  avg_prep_time_minutes: number;
+  fastest_order_minutes: number;
+  slowest_order_minutes: number;
+  total_revenue: number;
+}
+
+type DateFilterType = 'today' | 'week' | 'month' | 'year' | 'custom';
+
+// Helper to get date ranges
+function getCompletedDateRange(preset: DateFilterType): { startDate: string; endDate: string } {
+  const today = new Date();
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  
+  switch (preset) {
+    case 'today':
+      return { startDate: formatDate(today), endDate: formatDate(today) };
+    case 'week':
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - 7);
+      return { startDate: formatDate(weekStart), endDate: formatDate(today) };
+    case 'month':
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      return { startDate: formatDate(monthStart), endDate: formatDate(today) };
+    case 'year':
+      const yearStart = new Date(today.getFullYear(), 0, 1);
+      return { startDate: formatDate(yearStart), endDate: formatDate(today) };
+    default:
+      return { startDate: formatDate(today), endDate: formatDate(today) };
+  }
+}
+
+// Completed Orders Tab Component
+function CompletedOrdersTab() {
+  const [orders, setOrders] = useState<CompletedOrder[]>([]);
+  const [stats, setStats] = useState<CompletedStats | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('today');
+  const [customStart, setCustomStart] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [customEnd, setCustomEnd] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [isCustomOpen, setIsCustomOpen] = useState(false);
+
+  const dateFilterOptions: { value: DateFilterType; label: string }[] = [
+    { value: 'today', label: 'Today' },
+    { value: 'week', label: 'Last 7 Days' },
+    { value: 'month', label: 'This Month' },
+    { value: 'year', label: 'This Year' },
+    { value: 'custom', label: 'Custom' },
+  ];
+
+  const fetchCompletedOrders = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      let params: any = {
+        filterType: dateFilter,
+        limit: 100,
+        offset: 0,
+      };
+
+      if (dateFilter === 'custom') {
+        params.startDate = customStart;
+        params.endDate = customEnd;
+      }
+
+      const [ordersResult, statsResult] = await Promise.all([
+        fetchKitchenCompletedOrdersServer(params),
+        fetchKitchenCompletedStatsServer(params),
+      ]);
+
+      if (ordersResult.success) {
+        setOrders(ordersResult.data);
+      }
+      if (statsResult.success) {
+        setStats(statsResult.data);
+      }
+    } catch (error) {
+      console.error('Error fetching completed orders:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [dateFilter, customStart, customEnd]);
+
+  useEffect(() => {
+    fetchCompletedOrders();
+  }, [fetchCompletedOrders]);
+
+  const handleDateFilterChange = (filter: DateFilterType) => {
+    if (filter === 'custom') {
+      setIsCustomOpen(true);
+      setDateFilter(filter);
+      return;
+    }
+    setDateFilter(filter);
+    setIsCustomOpen(false);
+  };
+
+  const handleCustomApply = () => {
+    setDateFilter('custom');
+    setIsCustomOpen(false);
+  };
+
+  const getDisplayText = () => {
+    if (dateFilter === 'custom') {
+      return `${customStart} - ${customEnd}`;
+    }
+    return dateFilterOptions.find(p => p.value === dateFilter)?.label || 'Today';
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Date Filter Controls */}
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+        <Popover open={isCustomOpen} onOpenChange={setIsCustomOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="gap-2 h-9">
+              <CalendarDays className="h-4 w-4" />
+              <span>{getDisplayText()}</span>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-4" align="start">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                {dateFilterOptions.filter(p => p.value !== 'custom').map((option) => (
+                  <Button
+                    key={option.value}
+                    variant={dateFilter === option.value ? 'default' : 'outline'}
+                    size="sm"
+                    className={cn(
+                      'w-full',
+                      dateFilter === option.value && 'bg-gradient-to-r from-green-500 to-emerald-500'
+                    )}
+                    onClick={() => {
+                      handleDateFilterChange(option.value);
+                    }}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+              
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium mb-2">Custom Range</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Start Date</label>
+                    <input
+                      type="date"
+                      value={customStart}
+                      onChange={(e) => setCustomStart(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">End Date</label>
+                    <input
+                      type="date"
+                      value={customEnd}
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+                    />
+                  </div>
+                </div>
+                <Button 
+                  className="w-full mt-3 bg-gradient-to-r from-green-500 to-emerald-500" 
+                  size="sm"
+                  onClick={handleCustomApply}
+                >
+                  Apply Custom Range
+                </Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <div className="flex-1" />
+        
+        <Button variant="outline" size="sm" onClick={fetchCompletedOrders} disabled={isLoading} className="h-9">
+          <RefreshCw className={cn('h-4 w-4 mr-2', isLoading && 'animate-spin')} />
+          Refresh
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      {stats && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20"
+          >
+            <div className="flex items-center gap-2 text-green-600 mb-1">
+              <Trophy className="h-4 w-4" />
+              <span className="text-xs font-medium">Completed</span>
+            </div>
+            <p className="text-2xl font-bold">{stats.total_completed}</p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20"
+          >
+            <div className="flex items-center gap-2 text-blue-600 mb-1">
+              <Package className="h-4 w-4" />
+              <span className="text-xs font-medium">Items Made</span>
+            </div>
+            <p className="text-2xl font-bold">{stats.total_items_prepared}</p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="p-4 rounded-2xl bg-gradient-to-br from-orange-500/10 to-amber-500/10 border border-orange-500/20"
+          >
+            <div className="flex items-center gap-2 text-orange-600 mb-1">
+              <Timer className="h-4 w-4" />
+              <span className="text-xs font-medium">Avg Time</span>
+            </div>
+            <p className="text-2xl font-bold">{stats.avg_prep_time_minutes || 0}<span className="text-sm font-normal ml-1">min</span></p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20"
+          >
+            <div className="flex items-center gap-2 text-emerald-600 mb-1">
+              <Zap className="h-4 w-4" />
+              <span className="text-xs font-medium">Fastest</span>
+            </div>
+            <p className="text-2xl font-bold">{stats.fastest_order_minutes || 0}<span className="text-sm font-normal ml-1">min</span></p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="p-4 rounded-2xl bg-gradient-to-br from-red-500/10 to-rose-500/10 border border-red-500/20"
+          >
+            <div className="flex items-center gap-2 text-red-600 mb-1">
+              <Target className="h-4 w-4" />
+              <span className="text-xs font-medium">Slowest</span>
+            </div>
+            <p className="text-2xl font-bold">{stats.slowest_order_minutes || 0}<span className="text-sm font-normal ml-1">min</span></p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-violet-500/10 border border-purple-500/20"
+          >
+            <div className="flex items-center gap-2 text-purple-600 mb-1">
+              <TrendingUp className="h-4 w-4" />
+              <span className="text-xs font-medium">Revenue</span>
+            </div>
+            <p className="text-xl font-bold">Rs.{Number(stats.total_revenue || 0).toLocaleString()}</p>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Orders List */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : orders.length === 0 ? (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center justify-center py-20 text-muted-foreground"
+        >
+          <History className="h-16 w-16 mb-4 opacity-40" />
+          <p className="text-lg font-medium">No completed orders</p>
+          <p className="text-sm">Completed orders will appear here</p>
+        </motion.div>
+      ) : (
+        <div className="space-y-3">
+          <AnimatePresence mode="popLayout">
+            {orders.map((order, index) => (
+              <motion.div
+                key={order.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ delay: index * 0.03 }}
+                className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-green-500/30 transition-colors"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  {/* Order Number & Status */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="min-w-[56px] h-12 px-2 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex flex-col items-center justify-center text-white shadow-lg">
+                      <span className="text-[8px] text-white/80">ORD</span>
+                      <span className="text-xs font-bold">#{order.order_number}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Completed
+                        </Badge>
+                        <OrderTypeBadge type={order.order_type} tableNumber={order.table_number} />
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                        <User className="h-3 w-3" />
+                        {order.customer_name}
+                        <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                        <Package className="h-3 w-3" />
+                        {order.total_items} items
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Prep Time & Timestamps */}
+                  <div className="flex-1 flex flex-wrap items-center gap-3 sm:justify-end">
+                    {order.prep_time_minutes !== null && (
+                      <div className={cn(
+                        'px-3 py-1.5 rounded-lg font-medium text-sm flex items-center gap-1.5',
+                        order.prep_time_minutes <= 10 
+                          ? 'bg-green-500/10 text-green-600' 
+                          : order.prep_time_minutes <= 20 
+                            ? 'bg-yellow-500/10 text-yellow-600'
+                            : 'bg-red-500/10 text-red-600'
+                      )}>
+                        <Timer className="h-3.5 w-3.5" />
+                        {order.prep_time_minutes} min
+                      </div>
+                    )}
+                    <div className="text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {order.kitchen_completed_at && new Date(order.kitchen_completed_at).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </div>
+                    </div>
+                    <div className="font-bold text-green-600">
+                      Rs.{Number(order.total).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Items Preview */}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {order.items?.slice(0, 4).map((item: any, i: number) => (
+                    <span 
+                      key={i}
+                      className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xs font-medium"
+                    >
+                      {item.quantity}x {item.name}
+                    </span>
+                  ))}
+                  {order.items?.length > 4 && (
+                    <span className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xs text-muted-foreground">
+                      +{order.items.length - 4} more
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Enhanced Stats Card Component with animated lava gradients
 function StatsCard({ 
   title, 
@@ -933,7 +1350,7 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
   const [orders, setOrders] = useState<KitchenOrder[]>(initialOrders);
   const [stats, setStats] = useState<KitchenStats | null>(initialStats);
   const [isLoading, setIsLoading] = useState(false); // Start with false since we have SSR data
-  const [viewMode, setViewMode] = useState<'cards' | 'kds'>('kds');
+  const [viewMode, setViewMode] = useState<'cards' | 'kds' | 'completed'>('kds');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<KitchenOrder | null>(null);
@@ -1182,18 +1599,24 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
           <TabsList>
             <TabsTrigger value="kds" className="gap-2">
               <Zap className="h-4 w-4" />
-              KDS View
+              <span className="hidden sm:inline">KDS</span>
             </TabsTrigger>
             <TabsTrigger value="cards" className="gap-2">
               <Package className="h-4 w-4" />
-              Cards
+              <span className="hidden sm:inline">Cards</span>
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="gap-2">
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Completed</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
       {/* Orders Display */}
-      {isLoading ? (
+      {viewMode === 'completed' ? (
+        <CompletedOrdersTab />
+      ) : isLoading ? (
         <div className="flex items-center justify-center h-64">
           <motion.div
             animate={{ rotate: 360 }}

@@ -35,6 +35,7 @@ import {
   Receipt,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
 } from 'lucide-react';
 import type { PortalOrder, OrdersStats as ServerOrdersStats } from '@/lib/server-queries';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -244,7 +245,7 @@ function LiveTimer({ createdAt }: { createdAt: string }) {
   );
 }
 
-// Order Details Dialog
+// Order Details Dialog - Mobile Optimized Premium Design
 function OrderDetailsDialog({
   order,
   open,
@@ -266,6 +267,8 @@ function OrderDetailsDialog({
   const [assigningRider, setAssigningRider] = useState(false);
   const [selectedRiderId, setSelectedRiderId] = useState<string>('');
   const [showItems, setShowItems] = useState(true);
+  const [showCustomerInfo, setShowCustomerInfo] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   
   // Load delivery riders when order is ready and online
   useEffect(() => {
@@ -308,6 +311,16 @@ function OrderDetailsDialog({
     }
   };
 
+  const handleStatusChange = async (status: OrderStatus) => {
+    if (!order) return;
+    setUpdatingStatus(true);
+    try {
+      await onStatusChange(order.id, status);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   if (!order) return null;
 
   const statusConfig = getStatusDisplay(order.status, order.order_type);
@@ -316,163 +329,46 @@ function OrderDetailsDialog({
   // Show assign rider option when: order is ready, order type is online, no rider assigned yet
   const canAssignRider = order.status === 'ready' && order.order_type === 'online' && !order.delivery_rider;
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-xl">Order #{order.order_number}</DialogTitle>
-              <DialogDescription className="flex items-center gap-2 mt-1">
-                <LiveTimer createdAt={order.created_at} />
-                <span>•</span>
-                {new Date(order.created_at).toLocaleString()}
-              </DialogDescription>
+  // Collapsible Section Component for mobile
+  const CollapsibleSection = ({ 
+    title, 
+    icon: Icon, 
+    defaultOpen = true, 
+    children,
+    badge,
+    className = ''
+  }: { 
+    title: string; 
+    icon: React.ElementType; 
+    defaultOpen?: boolean; 
+    children: React.ReactNode;
+    badge?: React.ReactNode;
+    className?: string;
+  }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    return (
+      <div className={cn("rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 overflow-hidden", className)}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex items-center justify-between p-3.5 sm:p-4 text-left active:bg-zinc-100 dark:active:bg-zinc-700/50 transition-colors"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-white dark:bg-zinc-700 shadow-sm">
+              <Icon className="h-4 w-4 text-primary" />
             </div>
-            <Badge className={cn('gap-1 text-sm px-3 py-1', statusConfig.bgColor, statusConfig.color)}>
-              {statusConfig.icon}
-              {statusConfig.label}
-            </Badge>
+            <span className="font-semibold text-sm">{title}</span>
+            {badge}
           </div>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          {/* Customer Info & Order Type */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Customer Card */}
-            <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 space-y-3">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-gradient-to-br from-orange-500 to-pink-500 text-white">
-                    {order.customer_name?.charAt(0) || 'G'}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-semibold">{order.customer_name}</p>
-                  {order.customer?.email && (
-                    <p className="text-xs text-muted-foreground">{order.customer?.email}</p>
-                  )}
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-2 text-sm">
-                {order.customer_phone && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Phone className="h-4 w-4" />
-                    <span>{order.customer_phone}</span>
-                  </div>
-                )}
-                {order.customer_email && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Mail className="h-4 w-4" />
-                    <span>{order.customer_email}</span>
-                  </div>
-                )}
-                {order.customer_address && (
-                  <div className="flex items-start gap-2 text-muted-foreground">
-                    <MapPin className="h-4 w-4 mt-0.5" />
-                    <span>{order.customer_address}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Order Type & Table Info */}
-            <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 space-y-3">
-              <div className="flex items-center justify-between">
-                <Badge className={cn('px-3 py-1', typeConfig?.color)}>
-                  {typeConfig?.icon}
-                  <span className="ml-1">{typeConfig?.label}</span>
-                </Badge>
-                {order.payment_method && (
-                  <Badge variant="outline">
-                    <DollarSign className="h-3 w-3 mr-1" />
-                    {order.payment_method}
-                  </Badge>
-                )}
-              </div>
-
-              {/* Table Details */}
-              {(order.table_number || order.table_details) && (
-                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                  <div className="flex items-center gap-2 text-blue-600">
-                    <Building className="h-4 w-4" />
-                    <span className="font-medium">Table {order.table_number}</span>
-                  </div>
-                  {order.table_details && (
-                    <div className="text-xs text-muted-foreground mt-1 space-y-1">
-                      <p>Capacity: {order.table_details?.capacity} seats</p>
-                      {order.table_details?.section && (
-                        <p>Section: {order.table_details?.section}</p>
-                      )}
-                      {order.table_details?.floor && (
-                        <p>Floor: {order.table_details?.floor}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Waiter Info */}
-              {order.waiter && (
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                  <UserCircle className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Served by: <span className="font-medium">{order.waiter?.name}</span></span>
-                </div>
-              )}
-
-              {/* Delivery Rider */}
-              {order.delivery_rider && (
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-green-500/10 border border-green-500/20">
-                  <Truck className="h-4 w-4 text-green-600" />
-                  <span className="text-sm">Rider: <span className="font-medium">{order.delivery_rider?.name}</span></span>
-                </div>
-              )}
-
-              {/* Transaction ID for online payments */}
-              {(order.payment_method === 'online' || order.transaction_id || (order as any).online_payment_details) && (
-                <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                  <div className="flex items-center gap-2 text-purple-600 mb-1">
-                    <Receipt className="h-4 w-4" />
-                    <span className="font-medium text-sm">Online Payment Details</span>
-                  </div>
-                  {order.transaction_id ? (
-                    <p className="text-xs font-mono bg-purple-500/10 px-2 py-1 rounded">
-                      TXN: {order.transaction_id}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      No transaction ID recorded
-                    </p>
-                  )}
-                  {(order as any).online_payment_details?.method_name && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      via {(order as any).online_payment_details.method_name}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Items */}
-          <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
-            <button
-              type="button"
-              onClick={() => setShowItems(!showItems)}
-              className="w-full flex items-center justify-between text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <span>Order Items ({order.total_items || order.items.length})</span>
-              {showItems ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
-            <AnimatePresence>
-            {showItems && (
+          <motion.div
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </motion.div>
+        </button>
+        <AnimatePresence>
+          {isOpen && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -480,122 +376,317 @@ function OrderDetailsDialog({
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-            <div className="space-y-2 mt-3">
+              <div className="px-3.5 pb-3.5 sm:px-4 sm:pb-4 pt-0">
+                {children}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[92vh] sm:max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 rounded-t-3xl sm:rounded-2xl">
+        {/* Fixed Header - Premium Design */}
+        <div className="sticky top-0 z-10 bg-gradient-to-b from-white via-white to-white/95 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-900/95 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 px-4 py-3.5 sm:p-5">
+          {/* Mobile Pull Indicator */}
+          <div className="w-10 h-1 bg-zinc-300 dark:bg-zinc-600 rounded-full mx-auto mb-3 sm:hidden" />
+          
+          <DialogHeader className="space-y-0">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2 flex-wrap">
+                  <span>Order #{order.order_number}</span>
+                  <Badge className={cn('text-xs px-2 py-0.5', typeConfig?.color)}>
+                    {typeConfig?.label}
+                  </Badge>
+                </DialogTitle>
+                <DialogDescription className="flex items-center gap-2 mt-1.5 flex-wrap text-xs sm:text-sm">
+                  <LiveTimer createdAt={order.created_at} />
+                  <span className="text-zinc-300 dark:text-zinc-600">•</span>
+                  <span className="text-muted-foreground">
+                    {new Date(order.created_at).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </DialogDescription>
+              </div>
+              
+              {/* Status Badge - Larger on Mobile */}
+              <Badge className={cn(
+                'gap-1.5 text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 rounded-xl shrink-0',
+                statusConfig.bgColor, 
+                statusConfig.color
+              )}>
+                {statusConfig.icon}
+                <span className="hidden xs:inline">{statusConfig.label}</span>
+              </Badge>
+            </div>
+          </DialogHeader>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-3.5 py-4 sm:px-5 sm:py-5 space-y-3 sm:space-y-4">
+          
+          {/* Delayed Warning - Top Priority */}
+          {order.is_delayed && (
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="p-3.5 rounded-2xl bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/20 flex items-center gap-3"
+            >
+              <div className="p-2 rounded-xl bg-red-500/20">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-red-600 text-sm">Order Delayed</p>
+                <p className="text-xs text-muted-foreground">Waiting longer than expected</p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Quick Stats Row */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-orange-500/10 to-pink-500/10 text-center">
+              <p className="text-xs text-muted-foreground mb-0.5">Items</p>
+              <p className="text-lg sm:text-xl font-bold text-orange-600">{order.total_items || order.items.length}</p>
+            </div>
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 text-center">
+              <p className="text-xs text-muted-foreground mb-0.5">Total</p>
+              <p className="text-lg sm:text-xl font-bold text-green-600">Rs.{order.total.toLocaleString()}</p>
+            </div>
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 text-center">
+              <p className="text-xs text-muted-foreground mb-0.5">Payment</p>
+              <p className="text-sm sm:text-base font-bold text-blue-600 capitalize truncate">{order.payment_method || 'Cash'}</p>
+            </div>
+          </div>
+
+          {/* Customer Info - Collapsible on Mobile */}
+          <CollapsibleSection 
+            title="Customer" 
+            icon={UserCircle}
+            defaultOpen={true}
+          >
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-zinc-700/50 mb-3">
+              <Avatar className="h-11 w-11 ring-2 ring-primary/10">
+                <AvatarFallback className="bg-gradient-to-br from-orange-500 to-pink-500 text-white font-bold">
+                  {order.customer_name?.charAt(0) || 'G'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold truncate">{order.customer_name || 'Guest'}</p>
+                {order.customer?.email && (
+                  <p className="text-xs text-muted-foreground truncate">{order.customer?.email}</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              {order.customer_phone && (
+                <a 
+                  href={`tel:${order.customer_phone}`}
+                  className="flex items-center gap-3 p-2.5 rounded-xl bg-white dark:bg-zinc-700/50 active:bg-zinc-100 dark:active:bg-zinc-600 transition-colors"
+                >
+                  <div className="p-1.5 rounded-lg bg-green-500/10">
+                    <Phone className="h-4 w-4 text-green-600" />
+                  </div>
+                  <span className="text-sm flex-1">{order.customer_phone}</span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </a>
+              )}
+              {order.customer_address && (
+                <div className="flex items-start gap-3 p-2.5 rounded-xl bg-white dark:bg-zinc-700/50">
+                  <div className="p-1.5 rounded-lg bg-blue-500/10 mt-0.5">
+                    <MapPin className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <span className="text-sm flex-1">{order.customer_address}</span>
+                </div>
+              )}
+            </div>
+          </CollapsibleSection>
+
+          {/* Table / Waiter / Rider Info */}
+          {(order.table_number || order.waiter || order.delivery_rider) && (
+            <CollapsibleSection 
+              title="Service Info" 
+              icon={Building}
+              defaultOpen={true}
+            >
+              <div className="space-y-2">
+                {/* Table Details */}
+                {order.table_number && (
+                  <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4 text-blue-600" />
+                      <span className="font-semibold text-blue-600">Table {order.table_number}</span>
+                    </div>
+                    {order.table_details && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <Badge variant="outline" className="text-xs">
+                          {order.table_details?.capacity} seats
+                        </Badge>
+                        {order.table_details?.section && (
+                          <Badge variant="outline" className="text-xs">
+                            {order.table_details?.section}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Waiter Info */}
+                {order.waiter && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-zinc-700/50">
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback className="bg-violet-500/20 text-violet-600 font-medium">
+                        {order.waiter?.name?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{order.waiter?.name}</p>
+                      <p className="text-xs text-muted-foreground">Waiter</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Delivery Rider */}
+                {order.delivery_rider && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+                    <div className="p-2 rounded-full bg-green-500/20">
+                      <Bike className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{order.delivery_rider.name}</p>
+                      <p className="text-xs text-muted-foreground">Delivery Rider</p>
+                    </div>
+                    {order.delivery_rider.phone && (
+                      <a href={`tel:${order.delivery_rider.phone}`}>
+                        <Button size="sm" variant="outline" className="h-8 rounded-lg">
+                          <Phone className="h-3.5 w-3.5" />
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {/* Order Items - Collapsible */}
+          <CollapsibleSection 
+            title="Order Items" 
+            icon={ShoppingBag}
+            badge={
+              <Badge variant="secondary" className="text-xs ml-1">
+                {order.total_items || order.items.length}
+              </Badge>
+            }
+            defaultOpen={true}
+          >
+            <div className="space-y-2">
               {order.items.map((item, index) => (
-                <div key={index} className="flex items-center justify-between py-2 border-b border-zinc-200 dark:border-zinc-700 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium bg-orange-500/10 text-orange-600 px-2 py-0.5 rounded">
+                <motion.div 
+                  key={index} 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-zinc-700/50"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className="text-sm font-bold bg-gradient-to-r from-orange-500 to-pink-500 text-white px-2.5 py-1 rounded-lg shrink-0">
                       {item.quantity}x
                     </span>
-                    <span className="font-medium">{item.name}</span>
+                    <span className="font-medium text-sm truncate">{item.name}</span>
                   </div>
-                  <span className="font-semibold">Rs. {(item.price * item.quantity).toLocaleString()}</span>
-                </div>
+                  <span className="font-bold text-sm shrink-0 ml-2">Rs.{(item.price * item.quantity).toLocaleString()}</span>
+                </motion.div>
               ))}
               
-              <Separator className="my-3" />
-              
               {/* Price Breakdown */}
-              <div className="space-y-1 text-sm">
+              <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-600 space-y-2">
                 {order.subtotal && order.subtotal !== order.total && (
-                  <div className="flex justify-between text-muted-foreground">
+                  <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Subtotal</span>
-                    <span>Rs. {order.subtotal.toLocaleString()}</span>
+                    <span>Rs.{order.subtotal.toLocaleString()}</span>
                   </div>
                 )}
                 {order.discount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount</span>
-                    <span>-Rs. {order.discount.toLocaleString()}</span>
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span className="flex items-center gap-1">
+                      <span className="text-xs">🎉</span> Discount
+                    </span>
+                    <span>-Rs.{order.discount.toLocaleString()}</span>
                   </div>
                 )}
                 {order.delivery_fee > 0 && (
-                  <div className="flex justify-between text-muted-foreground">
+                  <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Delivery Fee</span>
-                    <span>Rs. {order.delivery_fee.toLocaleString()}</span>
+                    <span>Rs.{order.delivery_fee.toLocaleString()}</span>
                   </div>
                 )}
                 {order.tax > 0 && (
-                  <div className="flex justify-between text-muted-foreground">
+                  <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Tax</span>
-                    <span>Rs. {order.tax.toLocaleString()}</span>
+                    <span>Rs.{order.tax.toLocaleString()}</span>
                   </div>
                 )}
-              </div>
-              
-              <div className="flex justify-between text-lg font-bold pt-2 border-t border-zinc-300 dark:border-zinc-600">
-                <span>Total</span>
-                <span
-                  style={{
-                    background: 'linear-gradient(135deg, #ff6b35, #f72585)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }}
-                >
-                  Rs. {order.total.toLocaleString()}
-                </span>
+                
+                <div className="flex justify-between items-center pt-2 border-t border-dashed border-zinc-300 dark:border-zinc-600">
+                  <span className="font-bold">Total</span>
+                  <span className="text-xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">
+                    Rs.{order.total.toLocaleString()}
+                  </span>
+                </div>
               </div>
             </div>
-            </motion.div>
-            )}
-            </AnimatePresence>
-          </div>
+          </CollapsibleSection>
 
           {/* Special Instructions */}
           {order.notes && (
-            <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/20">
               <div className="flex items-center gap-2 text-yellow-600 mb-2">
                 <MessageSquare className="h-4 w-4" />
-                <p className="text-sm font-medium">Special Instructions</p>
+                <p className="text-sm font-semibold">Special Instructions</p>
               </div>
-              <p className="text-sm">{order.notes}</p>
+              <p className="text-sm text-foreground/80">{order.notes}</p>
             </div>
           )}
 
-          {/* Delayed Warning */}
-          {order.is_delayed && (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              <div>
-                <p className="font-medium text-red-600">Order Delayed</p>
-                <p className="text-sm text-muted-foreground">This order has been waiting longer than expected</p>
-              </div>
-            </div>
-          )}
-
-          {/* Assign Delivery Rider (only for ready online orders) */}
+          {/* Assign Delivery Rider */}
           {canAssignRider && (
-            <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 space-y-3">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 space-y-3">
               <div className="flex items-center gap-2 text-green-600">
                 <Bike className="h-5 w-5" />
-                <p className="font-medium">Assign Delivery Rider</p>
+                <p className="font-semibold text-sm">Assign Delivery Rider</p>
               </div>
               
               {loadingRiders ? (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Loading available riders...</span>
+                <div className="flex items-center justify-center gap-2 text-muted-foreground py-4">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span className="text-sm">Loading riders...</span>
                 </div>
               ) : riders.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No delivery riders available</p>
+                <p className="text-sm text-muted-foreground text-center py-2">No riders available</p>
               ) : (
                 <div className="space-y-3">
                   <Select value={selectedRiderId} onValueChange={setSelectedRiderId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a delivery rider" />
+                    <SelectTrigger className="h-12 rounded-xl">
+                      <SelectValue placeholder="Select a rider" />
                     </SelectTrigger>
                     <SelectContent>
                       {riders.map((rider) => (
                         <SelectItem key={rider.id} value={rider.id}>
                           <div className="flex items-center gap-2">
-                            <div className="flex-1">
-                              <span className="font-medium">{rider.name}</span>
-                              {(rider.active_deliveries !== undefined || rider.deliveries_today !== undefined) && (
-                                <span className="text-xs text-muted-foreground ml-2">
-                                  ({rider.active_deliveries ?? 0} active • {rider.deliveries_today ?? 0} today)
-                                </span>
-                              )}
-                            </div>
+                            <span className="font-medium">{rider.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              ({rider.active_deliveries ?? 0} active)
+                            </span>
                           </div>
                         </SelectItem>
                       ))}
@@ -605,7 +696,7 @@ function OrderDetailsDialog({
                   <Button 
                     onClick={handleAssignRider} 
                     disabled={!selectedRiderId || assigningRider}
-                    className="w-full bg-green-600 hover:bg-green-700"
+                    className="w-full h-12 rounded-xl bg-green-600 hover:bg-green-700 font-semibold"
                   >
                     {assigningRider ? (
                       <>
@@ -615,7 +706,7 @@ function OrderDetailsDialog({
                     ) : (
                       <>
                         <Truck className="h-4 w-4 mr-2" />
-                        Assign & Start Delivery
+                        Assign Rider
                       </>
                     )}
                   </Button>
@@ -624,72 +715,62 @@ function OrderDetailsDialog({
             </div>
           )}
 
-          {/* Current Delivery Rider Info (if assigned) */}
-          {order.delivery_rider && (
-            <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-purple-500/20">
-                    <Bike className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{order.delivery_rider.name}</p>
-                    <p className="text-sm text-muted-foreground">Delivery Rider</p>
-                  </div>
-                </div>
-                {order.delivery_rider.phone && (
-                  <a href={`tel:${order.delivery_rider.phone}`}>
-                    <Button size="sm" variant="outline">
-                      <Phone className="h-4 w-4 mr-1" />
-                      Call
-                    </Button>
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Update Status */}
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Update Status</p>
-            <Select
-              value={order.status}
-              onValueChange={(value) => onStatusChange(order.id, value as OrderStatus)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(STATUS_CONFIG).map(([status, config]) => (
-                  <SelectItem key={status} value={status}>
-                    <span className="flex items-center gap-2">
-                      <span className={config.color}>{config.icon}</span>
-                      {getStatusLabel(status as OrderStatus, order.order_type)}
+          {/* Update Status Section */}
+          <CollapsibleSection 
+            title="Update Status" 
+            icon={RefreshCw}
+            defaultOpen={false}
+          >
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(STATUS_CONFIG).map(([status, config]) => {
+                const isCurrentStatus = order.status === status;
+                return (
+                  <Button
+                    key={status}
+                    variant={isCurrentStatus ? "default" : "outline"}
+                    size="sm"
+                    disabled={isCurrentStatus || updatingStatus}
+                    onClick={() => handleStatusChange(status as OrderStatus)}
+                    className={cn(
+                      "h-11 rounded-xl justify-start gap-2 text-xs font-medium",
+                      isCurrentStatus && "bg-primary/10 text-primary border-primary/30"
+                    )}
+                  >
+                    <span className={isCurrentStatus ? "text-primary" : config.color}>
+                      {config.icon}
                     </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                    <span className="truncate">{getStatusLabel(status as OrderStatus, order.order_type)}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </CollapsibleSection>
         </div>
 
-        <DialogFooter className="gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-          {order.status !== 'cancelled' && order.payment_status !== 'paid' && (
+        {/* Fixed Footer Actions */}
+        <div className="sticky bottom-0 z-10 bg-gradient-to-t from-white via-white to-white/95 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-900/95 backdrop-blur-xl border-t border-zinc-100 dark:border-zinc-800 px-3.5 py-3 sm:px-5 sm:py-4">
+          <div className="flex gap-2.5 sm:gap-3">
             <Button 
-              className="bg-green-600 hover:bg-green-700"
-              onClick={() => {
-                onGenerateBill(order.id);
-                onOpenChange(false);
-              }}
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              className="flex-1 h-12 sm:h-11 rounded-xl font-semibold"
             >
-              <DollarSign className="h-4 w-4 mr-2" />
-              Generate Bill
+              Close
             </Button>
-          )}
-        </DialogFooter>
+            {order.status !== 'cancelled' && order.payment_status !== 'paid' && (
+              <Button 
+                className="flex-1 h-12 sm:h-11 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 font-semibold shadow-lg shadow-green-500/20"
+                onClick={() => {
+                  onGenerateBill(order.id);
+                  onOpenChange(false);
+                }}
+              >
+                <DollarSign className="h-4 w-4 mr-1.5" />
+                Generate Bill
+              </Button>
+            )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

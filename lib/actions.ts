@@ -524,6 +524,54 @@ export async function fetchKitchenStatsServer() {
   }
 }
 
+// Fetch completed orders by the current employee (kitchen history)
+export async function fetchKitchenCompletedOrdersServer(params: {
+  filterType: 'today' | 'week' | 'month' | 'year' | 'custom';
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  try {
+    const { data, error } = await (await getAuthenticatedClient()).rpc('get_kitchen_completed_orders', {
+      p_employee_id: null, // Will use current employee from auth context or pass null to see all
+      p_filter_type: params.filterType,
+      p_start_date: params.startDate || null,
+      p_end_date: params.endDate || null,
+      p_limit: params.limit || 50,
+      p_offset: params.offset || 0,
+    });
+
+    if (error) throw error;
+
+    return { success: true, data: data || [] };
+  } catch (error: any) {
+    return { success: false, error: error.message, data: [] };
+  }
+}
+
+// Fetch stats for completed kitchen orders
+export async function fetchKitchenCompletedStatsServer(params: {
+  filterType: 'today' | 'week' | 'month' | 'year' | 'custom';
+  startDate?: string;
+  endDate?: string;
+}) {
+  try {
+    const { data, error } = await (await getAuthenticatedClient()).rpc('get_kitchen_completed_stats', {
+      p_employee_id: null,
+      p_filter_type: params.filterType,
+      p_start_date: params.startDate || null,
+      p_end_date: params.endDate || null,
+    });
+
+    if (error) throw error;
+
+    return { success: true, data: data?.[0] || null };
+  } catch (error: any) {
+    return { success: false, error: error.message, data: null };
+  }
+}
+
 // Fetch orders advanced (for refresh/pagination, hidden from Network tab)
 export async function fetchOrdersAdvancedServer(params?: {
   status?: string;

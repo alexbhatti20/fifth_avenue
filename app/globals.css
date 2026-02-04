@@ -1016,6 +1016,22 @@ html, body {
   @apply overflow-x-hidden;
 }
 
+/* CRITICAL: Ensure body scrolls vertically on mobile */
+@media (max-width: 768px) {
+  html {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto !important;
+  }
+  
+  body {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto !important;
+    position: relative;
+  }
+}
+
 /* Better focus states on mobile */
 @media (pointer: coarse) {
   button:active,
@@ -1201,4 +1217,324 @@ html, body {
 
 .animate-pulse-urgency {
   animation: pulse-urgency 1.5s ease-in-out infinite;
+}
+
+/* =============================================
+   MOBILE PORTAL OPTIMIZATIONS
+   Production-ready responsive styles
+   ============================================= */
+
+/* Safe area insets for notched devices */
+:root {
+  --sat: env(safe-area-inset-top);
+  --sar: env(safe-area-inset-right);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+}
+
+/* Safe area padding utilities */
+.safe-area-top {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+.safe-area-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.safe-area-left {
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+}
+
+.safe-area-right {
+  padding-right: max(0.5rem, env(safe-area-inset-right));
+}
+
+/* Portal mobile container */
+.portal-mobile-container {
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Mobile-specific card improvements */
+@media (max-width: 640px) {
+  /* Improve touch targets */
+  .portal-mobile-container button,
+  .portal-mobile-container [role="button"],
+  .portal-mobile-container a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Smaller buttons can override */
+  .portal-mobile-container button.btn-sm,
+  .portal-mobile-container [data-size="sm"] {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  /* Card styling for mobile */
+  .portal-mobile-container .card,
+  .portal-mobile-container [class*="Card"] {
+    border-radius: 12px;
+  }
+
+  /* Reduce padding on mobile */
+  .portal-mobile-container .p-6 {
+    padding: 1rem;
+  }
+  
+  .portal-mobile-container .p-4 {
+    padding: 0.75rem;
+  }
+
+  /* Improve table responsiveness */
+  .portal-mobile-container table {
+    font-size: 0.8125rem;
+  }
+  
+  .portal-mobile-container th,
+  .portal-mobile-container td {
+    padding: 0.5rem 0.375rem;
+  }
+
+  /* Stats cards mobile optimization */
+  .portal-mobile-container .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  /* Form inputs mobile optimization */
+  .portal-mobile-container input,
+  .portal-mobile-container select,
+  .portal-mobile-container textarea {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+
+  /* Dialog/Modal mobile fullscreen */
+  .portal-mobile-container [role="dialog"] {
+    max-height: 90vh;
+    max-height: 90dvh;
+  }
+
+  /* Dropdown menus */
+  .portal-mobile-container [role="menu"] {
+    max-height: 60vh;
+    max-height: 60dvh;
+    overflow-y: auto;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .portal-mobile-container .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 374px) {
+  .portal-mobile-container {
+    font-size: 14px;
+  }
+  
+  .portal-mobile-container h1 {
+    font-size: 1.25rem;
+  }
+  
+  .portal-mobile-container h2 {
+    font-size: 1.125rem;
+  }
+}
+
+/* Mobile bottom navigation styles */
+.portal-mobile-container .mobile-bottom-nav {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Touch-friendly hover states */
+@media (hover: none) and (pointer: coarse) {
+  .portal-mobile-container .hover\:bg-zinc-800:hover {
+    background-color: transparent;
+  }
+  
+  .portal-mobile-container .hover\:bg-zinc-800:active {
+    background-color: rgb(39 39 42);
+  }
+  
+  /* Remove hover effects on touch devices */
+  .card-elevated:hover {
+    transform: none;
+    box-shadow: var(--shadow-md);
+  }
+}
+
+/* Smooth scrolling for mobile */
+@media (max-width: 768px) {
+  .portal-mobile-container {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto !important;
+    height: auto;
+  }
+  
+  /* Ensure main content scrolls */
+  .portal-mobile-container main {
+    overflow-y: visible;
+    min-height: auto;
+  }
+  
+  /* Hide scrollbars on mobile for cleaner look */
+  .portal-mobile-container ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  
+  .portal-mobile-container ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.2);
+  }
+}
+
+/* Mobile skeleton loading states */
+@media (max-width: 640px) {
+  .portal-mobile-container .skeleton {
+    animation-duration: 1.5s;
+  }
+}
+
+/* Mobile-optimized badge sizes */
+@media (max-width: 640px) {
+  .portal-mobile-container .badge,
+  .portal-mobile-container [class*="Badge"] {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.375rem;
+  }
+}
+
+/* Prevent content shift on mobile keyboard */
+@supports (height: 100dvh) {
+  .portal-mobile-container {
+    min-height: 100dvh;
+  }
+}
+
+/* Mobile pull-to-refresh disabled (handled by app) */
+.portal-mobile-container {
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+/* Reduce animation intensity on mobile */
+@media (max-width: 768px) {
+  .portal-mobile-container .animate-float {
+    animation: float 8s ease-in-out infinite;
+  }
+  
+  .portal-mobile-container .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+  
+  /* Faster transitions for snappier feel */
+  .portal-mobile-container * {
+    transition-duration: 150ms !important;
+  }
+  
+  /* Exception for intentionally slow animations */
+  .portal-mobile-container .slow-transition {
+    transition-duration: 300ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .portal-mobile-container {
+    --primary: 352 100% 45%;
+    --border: 0 0% 30%;
+  }
+}
+
+/* Reduced data mode - lighter images */
+@media (prefers-reduced-data: reduce) {
+  .portal-mobile-container img {
+    content-visibility: auto;
+  }
+}
+
+/* Print styles for receipts */
+@media print {
+  .portal-mobile-container .no-print,
+  .portal-mobile-container nav,
+  .portal-mobile-container header,
+  .portal-mobile-container aside {
+    display: none !important;
+  }
+  
+  .portal-mobile-container main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* Mobile grid utilities */
+@layer utilities {
+  .grid-cols-auto-fit-sm {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  
+  .grid-cols-auto-fit-md {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  
+  .grid-cols-auto-fit-lg {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+  
+  /* Mobile-friendly flexbox gap */
+  .gap-mobile {
+    gap: 0.5rem;
+  }
+  
+  @media (min-width: 640px) {
+    .gap-mobile {
+      gap: 1rem;
+    }
+  }
+  
+  /* Text truncation utilities */
+  .truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* Portal section headers mobile */
+@media (max-width: 640px) {
+  .portal-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .portal-section-header > div:last-child {
+    width: 100%;
+  }
+  
+  .portal-section-header button {
+    width: 100%;
+    justify-content: center;
+  }
 }

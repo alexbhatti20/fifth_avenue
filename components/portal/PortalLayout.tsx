@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -29,6 +29,8 @@ import {
   ChefHat,
   Gift,
   Star,
+  Home,
+  MoreHorizontal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -51,6 +53,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { usePortalAuth } from '@/hooks/usePortal';
+import { useIsMobile, useDeviceType } from '@/hooks/use-mobile';
 import { BlockedUserDialog } from './BlockedUserDialog';
 import { LogoutConfirmDialog } from './LogoutConfirmDialog';
 import { 
@@ -391,7 +394,7 @@ export function PortalSidebar({ collapsed, onCollapse }: PortalSidebarProps) {
 }
 
 // =============================================
-// PORTAL APPBAR - Mobile Optimized
+// PORTAL APPBAR - Mobile Optimized with Memoization
 // =============================================
 
 interface PortalAppbarProps {
@@ -399,15 +402,16 @@ interface PortalAppbarProps {
   onMenuClick: () => void;
 }
 
-export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProps) {
+export const PortalAppbar = memo(function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProps) {
   const pathname = usePathname(); // Move hook to component top level
   const { employee, role, logout, fastLogout, isBlocked, blockReason, notifications, unreadCount, markNotificationAsRead } = usePortalAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
 
-  const handleLogoutClick = () => {
+  const handleLogoutClick = useCallback(() => {
     setLogoutDialogOpen(true);
-  };
+  }, []);
 
   // Memoize page title to prevent recalculation on every render
   const pageTitle = React.useMemo(() => {
@@ -417,11 +421,21 @@ export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProp
     return item?.label || 'Dashboard';
   }, [pathname]);
 
+  // Format date only once per day
+  const formattedDate = React.useMemo(() => {
+    return new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }, []);
+
   return (
     <>
     <header
       className={cn(
-        'fixed top-0 right-0 h-14 sm:h-16 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 z-40',
+        'fixed top-0 right-0 h-14 sm:h-16 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-200 dark:border-zinc-800 z-40',
         'flex items-center justify-between px-3 sm:px-4 md:px-6 transition-[left] duration-200',
         sidebarCollapsed ? 'left-0 md:left-20' : 'left-0 md:left-[280px]'
       )}
@@ -431,22 +445,17 @@ export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProp
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden flex-shrink-0"
+          className="md:hidden flex-shrink-0 h-9 w-9"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
         </Button>
         <div className="min-w-0">
-          <h1 className="text-base sm:text-lg font-semibold tracking-wide truncate">
+          <h1 className="text-sm sm:text-base md:text-lg font-semibold tracking-wide truncate">
             {pageTitle}
           </h1>
           <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
+            {formattedDate}
           </p>
         </div>
       </div>
@@ -461,39 +470,40 @@ export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProp
               {unreadCount > 0 && (
                 <Badge 
                   variant="destructive" 
-                  className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center p-0 text-[10px] sm:text-xs"
+                  className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center p-0 text-[10px] sm:text-xs animate-pulse"
                 >
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </Badge>
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72 sm:w-80">
+          <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] sm:w-80 max-w-80">
             <DropdownMenuLabel className="flex items-center justify-between">
-              <span>Notifications</span>
+              <span className="font-semibold">Notifications</span>
               {unreadCount > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs h-auto py-1"
+                  className="text-xs h-auto py-1 px-2"
                   onClick={() => markNotificationAsRead(notifications.filter(n => !n.is_read).map(n => n.id))}
                 >
-                  Mark all as read
+                  Mark all read
                 </Button>
               )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <ScrollArea className="h-80">
+            <ScrollArea className="h-72 sm:h-80">
               {notifications.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
-                  No notifications
+                  <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No notifications</p>
                 </div>
               ) : (
                 notifications.slice(0, 10).map((notification) => (
                   <DropdownMenuItem
                     key={notification.id}
                     className={cn(
-                      'flex flex-col items-start p-3 cursor-pointer',
+                      'flex flex-col items-start p-3 cursor-pointer rounded-lg mx-1 my-0.5',
                       !notification.is_read && 'bg-primary/5'
                     )}
                     onClick={() => {
@@ -502,11 +512,16 @@ export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProp
                       }
                     }}
                   >
-                    <span className="font-medium text-sm">{notification.title}</span>
+                    <div className="flex items-start justify-between w-full gap-2">
+                      <span className="font-medium text-sm">{notification.title}</span>
+                      {!notification.is_read && (
+                        <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+                      )}
+                    </div>
                     <span className="text-xs text-muted-foreground line-clamp-2">
                       {notification.message}
                     </span>
-                    <span className="text-xs text-muted-foreground mt-1">
+                    <span className="text-[10px] text-muted-foreground mt-1">
                       {new Date(notification.created_at).toLocaleTimeString()}
                     </span>
                   </DropdownMenuItem>
@@ -516,28 +531,28 @@ export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProp
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* User Menu */}
+        {/* User Menu - Simplified for mobile */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-2">
+            <Button variant="ghost" className="flex items-center gap-1.5 sm:gap-2 px-1.5 sm:px-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={employee?.avatar_url} />
-                <AvatarFallback className="bg-primary text-white text-sm">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white text-sm font-semibold">
                   {employee?.name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
-              <span className="hidden sm:block text-sm font-medium">
+              <span className="hidden sm:block text-sm font-medium max-w-[100px] truncate">
                 {employee?.name?.split(' ')[0]}
               </span>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">{employee?.name}</p>
-                <p className="text-xs text-muted-foreground">{employee?.email}</p>
-                <Badge variant="outline" className="w-fit mt-1 capitalize">
+                <p className="text-sm font-medium truncate">{employee?.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{employee?.email}</p>
+                <Badge variant="outline" className="w-fit mt-1 capitalize text-xs">
                   {role?.replace('_', ' ')}
                 </Badge>
               </div>
@@ -551,11 +566,11 @@ export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProp
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
-              className="text-red-500 cursor-pointer"
+              className="text-red-500 cursor-pointer focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-950"
               onClick={handleLogoutClick}
             >
               <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -577,10 +592,10 @@ export function PortalAppbar({ sidebarCollapsed, onMenuClick }: PortalAppbarProp
     </header>
     </>
   );
-}
+});
 
 // =============================================
-// MOBILE SIDEBAR
+// MOBILE SIDEBAR - Enhanced Premium Design
 // =============================================
 
 interface MobileSidebarProps {
@@ -588,15 +603,15 @@ interface MobileSidebarProps {
   onClose: () => void;
 }
 
-export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
+export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: MobileSidebarProps) {
   const pathname = usePathname();
   const { employee, role, fastLogout, isBlocked, blockReason } = usePortalAuth();
   const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false);
 
-  const handleLogoutClick = () => {
+  const handleLogoutClick = useCallback(() => {
     onClose();
     setLogoutDialogOpen(true);
-  };
+  }, [onClose]);
 
   // Get user permissions (from cache or build new)
   const permissions: UserPermissions | null = React.useMemo(() => {
@@ -616,97 +631,258 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
   }, [role, employee?.permissions]);
 
   // Filter nav items based on permissions
-  const visibleNavItems = navItems.filter((item) => {
+  const visibleNavItems = React.useMemo(() => navItems.filter((item) => {
     if (!item.pageKey) return true;
     if (!permissions) return false;
     return canAccessPage(permissions, item.pageKey);
-  });
+  }), [permissions]);
+
+  // Group nav items into categories for better mobile UX
+  const mainNavItems = visibleNavItems.slice(0, 8);
+  const secondaryNavItems = visibleNavItems.slice(8);
 
   return (
-    <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-[280px] p-0 bg-zinc-900 text-white border-zinc-800" showCloseButton>
+    <>
+    <Sheet open={open} onOpenChange={onClose} modal={true}>
+      <SheetContent 
+        side="left" 
+        className="w-[300px] sm:w-[320px] p-0 bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 text-white border-zinc-800/50 overflow-hidden"
+        showCloseButton
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-        <SheetHeader className="h-16 flex flex-row items-center px-4 border-b border-zinc-800">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-xl font-bebas text-white">Z</span>
+        
+        {/* Premium Header with Gradient */}
+        <SheetHeader className="h-auto px-4 py-4 border-b border-zinc-800/50 bg-gradient-to-r from-primary/10 via-transparent to-transparent">
+          <div className="flex items-center gap-3">
+            <div className="relative w-12 h-12 rounded-xl overflow-hidden shadow-lg ring-2 ring-primary/20">
+              <Image 
+                src="/assets/zoiro-logo.png" 
+                alt="ZOIRO" 
+                fill
+                sizes="48px"
+                className="object-cover"
+                priority
+              />
             </div>
             <div>
-              <span className="text-xl font-bebas text-primary">ZOIRO</span>
-              <span className="text-[10px] block text-zinc-400 -mt-1">
-                {role?.replace('_', ' ').toUpperCase() || 'PORTAL'}
-              </span>
+              <span className="text-2xl font-bebas text-primary tracking-wide">ZOIRO</span>
+              <div className="flex items-center gap-2 -mt-1">
+                <Badge 
+                  variant="outline" 
+                  className="text-[10px] px-2 py-0 border-primary/30 text-primary bg-primary/5 capitalize"
+                >
+                  {role?.replace('_', ' ') || 'Staff'}
+                </Badge>
+              </div>
             </div>
           </div>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 py-4 h-[calc(100vh-10rem)]">
-          <nav className="px-3 space-y-1">
-            {visibleNavItems.map((item) => {
-              const Icon = iconMap[item.icon];
-              const isActive = pathname === item.path ||
-                (item.path !== '/portal' && pathname.startsWith(item.path));
-
-              return (
-                <Link key={item.path} href={item.path} onClick={onClose} prefetch={false}>
-                  <div
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                      'hover:bg-zinc-800/80',
-                      isActive && 'bg-primary/20 text-primary'
-                    )}
-                  >
-                    <Icon className={cn('h-5 w-5', isActive && 'text-primary')} />
-                    <span className="text-sm font-medium">{item.label}</span>
-                    {item.badge && (
-                      <Badge variant="destructive" className="ml-auto text-xs">
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </nav>
-        </ScrollArea>
-
-        <div className="absolute bottom-0 left-0 right-0 border-t border-zinc-800 p-4">
-          <div className="flex items-center gap-3 p-2 rounded-lg bg-zinc-800/50 mb-3">
-            <Avatar className="h-10 w-10">
+        {/* User Profile Card - Compact Mobile Style */}
+        <div className="px-4 py-3 border-b border-zinc-800/30">
+          <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gradient-to-r from-zinc-800/80 to-zinc-800/40 backdrop-blur-sm">
+            <Avatar className="h-11 w-11 ring-2 ring-primary/20">
               <AvatarImage src={employee?.avatar_url} />
-              <AvatarFallback className="bg-primary text-white">
+              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white font-semibold">
                 {employee?.name?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{employee?.name}</p>
+              <p className="text-sm font-semibold truncate text-white">{employee?.name || 'User'}</p>
               <p className="text-xs text-zinc-400 truncate">{employee?.email}</p>
             </div>
           </div>
+        </div>
+
+        {/* Navigation with Smooth Scrolling */}
+        <ScrollArea className="flex-1 h-[calc(100vh-15rem)] py-2">
+          <nav className="px-3 space-y-1">
+            {/* Main Navigation */}
+            <div className="mb-3">
+              <p className="px-3 py-2 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                Main Menu
+              </p>
+              {mainNavItems.map((item) => {
+                const Icon = iconMap[item.icon];
+                const isActive = pathname === item.path ||
+                  (item.path !== '/portal' && pathname.startsWith(item.path));
+
+                return (
+                  <Link key={item.path} href={item.path} onClick={onClose} prefetch={false}>
+                    <motion.div
+                      whileTap={{ scale: 0.98 }}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200',
+                        'active:scale-[0.98]',
+                        isActive 
+                          ? 'bg-gradient-to-r from-primary/20 to-primary/5 text-primary shadow-sm' 
+                          : 'hover:bg-zinc-800/60 text-zinc-300 hover:text-white'
+                      )}
+                    >
+                      <div className={cn(
+                        'p-2 rounded-lg',
+                        isActive ? 'bg-primary/20' : 'bg-zinc-800/50'
+                      )}>
+                        <Icon className={cn('h-4 w-4', isActive && 'text-primary')} />
+                      </div>
+                      <span className="text-sm font-medium flex-1">{item.label}</span>
+                      {item.badge && (
+                        <Badge 
+                          variant="destructive" 
+                          className="text-[10px] h-5 min-w-5 flex items-center justify-center"
+                        >
+                          {item.badge}
+                        </Badge>
+                      )}
+                      {isActive && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      )}
+                    </motion.div>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Secondary Navigation */}
+            {secondaryNavItems.length > 0 && (
+              <div className="pt-2 border-t border-zinc-800/30">
+                <p className="px-3 py-2 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                  More Options
+                </p>
+                {secondaryNavItems.map((item) => {
+                  const Icon = iconMap[item.icon];
+                  const isActive = pathname === item.path ||
+                    (item.path !== '/portal' && pathname.startsWith(item.path));
+
+                  return (
+                    <Link key={item.path} href={item.path} onClick={onClose} prefetch={false}>
+                      <motion.div
+                        whileTap={{ scale: 0.98 }}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
+                          isActive 
+                            ? 'bg-gradient-to-r from-primary/20 to-primary/5 text-primary' 
+                            : 'hover:bg-zinc-800/60 text-zinc-400 hover:text-white'
+                        )}
+                      >
+                        <Icon className={cn('h-4 w-4', isActive && 'text-primary')} />
+                        <span className="text-sm font-medium">{item.label}</span>
+                        {item.badge && (
+                          <Badge variant="destructive" className="ml-auto text-xs">
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </motion.div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </nav>
+        </ScrollArea>
+
+        {/* Bottom Action Bar */}
+        <div className="absolute bottom-0 left-0 right-0 border-t border-zinc-800/50 p-3 bg-gradient-to-t from-zinc-950 to-zinc-900/95 backdrop-blur-sm safe-area-bottom">
           <Button
             variant="ghost"
-            className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/10"
+            className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl py-3"
             onClick={handleLogoutClick}
           >
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
+            <LogOut className="h-4 w-4 mr-3" />
+            <span className="font-medium">Sign Out</span>
           </Button>
         </div>
       </SheetContent>
-
-      {/* Logout Confirmation Dialog */}
-      <LogoutConfirmDialog
-        open={logoutDialogOpen}
-        onOpenChange={setLogoutDialogOpen}
-        onConfirm={async () => fastLogout()}
-      />
-
-      {/* Blocked User Warning Dialog */}
-      <BlockedUserDialog
-        open={isBlocked}
-        reason={blockReason}
-        onLogout={fastLogout}
-      />
     </Sheet>
+
+    {/* Logout Confirmation Dialog */}
+    <LogoutConfirmDialog
+      open={logoutDialogOpen}
+      onOpenChange={setLogoutDialogOpen}
+      onConfirm={async () => fastLogout()}
+    />
+
+    {/* Blocked User Warning Dialog */}
+    <BlockedUserDialog
+      open={isBlocked}
+      reason={blockReason}
+      onLogout={fastLogout}
+    />
+    </>
   );
+});
+
+// =============================================
+// MOBILE BOTTOM NAVIGATION BAR
+// =============================================
+
+interface MobileBottomNavProps {
+  onMenuClick: () => void;
 }
+
+export const MobileBottomNav = memo(function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
+  const pathname = usePathname();
+  const { unreadCount } = usePortalAuth();
+  
+  // Quick access items for bottom nav
+  const quickItems = [
+    { path: '/portal', icon: Home, label: 'Home' },
+    { path: '/portal/orders', icon: ShoppingBag, label: 'Orders' },
+    { path: '/portal/kitchen', icon: ChefHat, label: 'Kitchen' },
+    { path: '/portal/billing', icon: Receipt, label: 'Billing' },
+  ];
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 safe-area-bottom">
+      <div className="flex items-center justify-around px-2 py-1">
+        {quickItems.map((item) => {
+          const isActive = pathname === item.path || 
+            (item.path !== '/portal' && pathname.startsWith(item.path));
+          
+          return (
+            <Link 
+              key={item.path} 
+              href={item.path}
+              className="flex-1"
+              prefetch={false}
+            >
+              <div className={cn(
+                'flex flex-col items-center py-2 px-1 rounded-lg transition-colors',
+                isActive ? 'text-primary' : 'text-muted-foreground'
+              )}>
+                <item.icon className={cn(
+                  'h-5 w-5 mb-0.5',
+                  isActive && 'text-primary'
+                )} />
+                <span className={cn(
+                  'text-[10px] font-medium',
+                  isActive && 'text-primary'
+                )}>
+                  {item.label}
+                </span>
+              </div>
+            </Link>
+          );
+        })}
+        
+        {/* More Menu Button */}
+        <button 
+          onClick={onMenuClick}
+          className="flex-1 flex flex-col items-center py-2 px-1 rounded-lg text-muted-foreground active:bg-zinc-100 dark:active:bg-zinc-800 transition-colors"
+        >
+          <div className="relative">
+            <MoreHorizontal className="h-5 w-5 mb-0.5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-[8px] text-white flex items-center justify-center">
+                {unreadCount > 9 ? '!' : unreadCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] font-medium">More</span>
+        </button>
+      </div>
+    </div>
+  );
+});
