@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useReducedMotion, usePerformanceMode } from '@/hooks/useReducedMotion';
 import {
   Clock,
   Calendar,
@@ -1504,6 +1505,12 @@ export default function AttendanceClient({
   const [absentEmployees, setAbsentEmployees] = useState(initialAbsentEmployees);
   const [pendingLeaveCount, setPendingLeaveCount] = useState(initialPendingLeaveCount);
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Performance optimization for mobile
+  const shouldReduceMotion = useReducedMotion();
+  const { shouldReduce: lowEndDevice } = usePerformanceMode();
+  const disableAnimations = shouldReduceMotion || lowEndDevice;
+  const tabsListRef = useRef<HTMLDivElement>(null);
 
   // Refresh handler - uses API route (SSR) instead of direct Supabase calls
   const handleRefresh = useCallback(async () => {
@@ -1565,84 +1572,119 @@ export default function AttendanceClient({
 
       {/* Stats Cards - only for admin/manager */}
       {isAdminOrManager && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 mb-6">
           <StatsCard
-            title="Present Today"
+            title="Present"
             value={stats.present}
             change={`${stats.attendanceRate || 0}%`}
             changeType="positive"
-            icon={<UserCheck className="h-5 w-5 text-green-500" />}
+            icon={<UserCheck className="h-4 w-4 md:h-5 md:w-5 text-green-500" />}
           />
           <StatsCard
             title="Absent"
             value={stats.absent}
-            icon={<UserX className="h-5 w-5 text-red-500" />}
+            icon={<UserX className="h-4 w-4 md:h-5 md:w-5 text-red-500" />}
           />
           <StatsCard
-            title="Late Arrivals"
+            title="Late"
             value={stats.late}
-            icon={<Clock className="h-5 w-5 text-yellow-500" />}
+            icon={<Clock className="h-4 w-4 md:h-5 md:w-5 text-yellow-500" />}
           />
           <StatsCard
             title="On Leave"
             value={stats.onLeave}
-            icon={<Calendar className="h-5 w-5 text-blue-500" />}
+            icon={<Calendar className="h-4 w-4 md:h-5 md:w-5 text-blue-500" />}
           />
           <StatsCard
-            title="Pending Leaves"
+            title="Pending"
             value={pendingLeaveCount}
-            icon={<ClipboardCheck className="h-5 w-5 text-orange-500" />}
+            icon={<ClipboardCheck className="h-4 w-4 md:h-5 md:w-5 text-orange-500" />}
           />
         </div>
       )}
 
-      <Tabs defaultValue={getDefaultTab()} className="space-y-6">
-        <TabsList className="flex flex-wrap">
-          {/* Employee tabs */}
-          {!isAdmin && (
-            <>
-              <TabsTrigger value="mark">
-                <QrCode className="h-4 w-4 mr-2" />
-                Mark Attendance
-              </TabsTrigger>
-              <TabsTrigger value="my-leaves">
-                <CalendarDays className="h-4 w-4 mr-2" />
-                My Leaves
-              </TabsTrigger>
-            </>
-          )}
-          
-          {/* Admin/Manager tabs */}
-          {isAdminOrManager && (
-            <>
-              <TabsTrigger value="overview">
-                <Users className="h-4 w-4 mr-2" />
-                Today's Overview
-              </TabsTrigger>
-              <TabsTrigger value="generate">
-                <QrCode className="h-4 w-4 mr-2" />
-                Generate Code
-              </TabsTrigger>
-              <TabsTrigger value="summary">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Monthly Summary
-              </TabsTrigger>
-              <TabsTrigger value="history">
-                <Calendar className="h-4 w-4 mr-2" />
-                History
-              </TabsTrigger>
-              <TabsTrigger value="leaves">
-                <ClipboardCheck className="h-4 w-4 mr-2" />
-                Leave Requests
-                {pendingLeaveCount > 0 && (
-                  <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 justify-center">
-                    {pendingLeaveCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            </>
-          )}
-        </TabsList>
+      <Tabs defaultValue={getDefaultTab()} className="space-y-4 md:space-y-6">
+        {/* Mobile-optimized horizontal scrolling tabs */}
+        <div className="relative -mx-4 px-4 md:mx-0 md:px-0">
+          <div 
+            ref={tabsListRef}
+            className="overflow-x-auto scrollbar-hide pb-2 md:pb-0 -mb-2 md:mb-0"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <TabsList className="inline-flex w-max md:w-auto md:flex-wrap gap-1 p-1 bg-muted/50 md:bg-muted rounded-xl">
+              {/* Employee tabs */}
+              {!isAdmin && (
+                <>
+                  <TabsTrigger 
+                    value="mark" 
+                    className="min-w-max px-4 py-2.5 text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  >
+                    <QrCode className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Mark</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="my-leaves" 
+                    className="min-w-max px-4 py-2.5 text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  >
+                    <CalendarDays className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="whitespace-nowrap">My Leaves</span>
+                  </TabsTrigger>
+                </>
+              )}
+              
+              {/* Admin/Manager tabs */}
+              {isAdminOrManager && (
+                <>
+                  <TabsTrigger 
+                    value="overview" 
+                    className="min-w-max px-3 md:px-4 py-2.5 text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  >
+                    <Users className="h-4 w-4 mr-1.5 md:mr-2 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Today</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="generate" 
+                    className="min-w-max px-3 md:px-4 py-2.5 text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  >
+                    <QrCode className="h-4 w-4 mr-1.5 md:mr-2 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Code</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="summary" 
+                    className="min-w-max px-3 md:px-4 py-2.5 text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  >
+                    <BarChart3 className="h-4 w-4 mr-1.5 md:mr-2 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Summary</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="history" 
+                    className="min-w-max px-3 md:px-4 py-2.5 text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  >
+                    <Calendar className="h-4 w-4 mr-1.5 md:mr-2 flex-shrink-0" />
+                    <span className="whitespace-nowrap">History</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="leaves" 
+                    className="min-w-max px-3 md:px-4 py-2.5 text-sm font-medium rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all relative"
+                  >
+                    <ClipboardCheck className="h-4 w-4 mr-1.5 md:mr-2 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Leaves</span>
+                    {pendingLeaveCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="ml-1.5 h-5 min-w-5 px-1.5 text-[10px] font-bold rounded-full"
+                      >
+                        {pendingLeaveCount > 9 ? '9+' : pendingLeaveCount}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                </>
+              )}
+            </TabsList>
+          </div>
+          {/* Fade gradient for scroll indication on mobile */}
+          <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none md:hidden" />
+        </div>
 
         {/* Employee Tabs Content */}
         {!isAdmin && (
