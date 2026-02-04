@@ -560,15 +560,38 @@ export async function deleteEmployeeCascade(
 export async function getEmployeeComplete(employeeId: string): Promise<any> {
   if (!isSupabaseConfigured) return null;
 
-  const { data, error } = await getAuthenticatedClient().rpc('get_employee_complete', {
+  const client = getAuthenticatedClient();
+  console.log('[getEmployeeComplete] Fetching for ID:', employeeId);
+  console.log('[getEmployeeComplete] Has auth token:', !!getAuthToken());
+  
+  const { data, error } = await client.rpc('get_employee_complete', {
     p_employee_id: employeeId,
   });
 
   if (error) {
-    console.error('getEmployeeComplete error:', error);
+    console.error('[getEmployeeComplete] RPC error:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     return null;
   }
 
+  console.log('[getEmployeeComplete] RPC returned:', data);
+  
+  // RPC returns {success: true/false, data: {...}} or {error: string}
+  if (data && data.success === true && data.data) {
+    return data.data;
+  }
+  
+  // Handle error response from RPC
+  if (data && data.success === false) {
+    console.error('[getEmployeeComplete] RPC returned error:', data.error);
+    return null;
+  }
+  
+  // Legacy format - if data doesn't have success wrapper, return as-is
   return data;
 }
 

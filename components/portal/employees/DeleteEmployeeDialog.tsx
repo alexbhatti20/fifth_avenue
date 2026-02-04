@@ -112,15 +112,15 @@ export function DeleteEmployeeDialog({
           <Avatar className="h-12 w-12">
             <AvatarImage src={employee.avatar_url || undefined} />
             <AvatarFallback className="bg-gradient-to-br from-red-500 to-red-600 text-white">
-              {employee.name.charAt(0)}
+              {employee.name?.charAt(0) || '?'}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-medium">{employee.name}</p>
+            <p className="font-medium">{employee.name || 'Unknown'}</p>
             <div className="flex items-center gap-2">
-              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{employee.employee_id}</code>
+              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{employee.employee_id || 'N/A'}</code>
               <Badge className={ROLE_COLORS[employee.role]} variant="outline">
-                {ROLE_LABELS[employee.role]}
+                {ROLE_LABELS[employee.role] || employee.role}
               </Badge>
             </div>
           </div>

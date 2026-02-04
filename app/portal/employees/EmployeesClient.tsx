@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -230,21 +230,27 @@ export default function EmployeesClient({ initialData }: EmployeesClientProps) {
   }), [filteredEmployees]);
 
   // Handlers
-  const handleTogglePortal = (id: string, enabled: boolean) => {
+  const handleTogglePortal = useCallback((id: string, enabled: boolean) => {
     // Find the employee and show confirmation dialog
     const employee = employees.find(e => e.id === id);
     if (employee) {
-      setBlockDialogEmployee(employee);
-      setBlockDialogMode(enabled ? 'unblock' : 'block');
+      requestAnimationFrame(() => {
+        setBlockDialogMode(enabled ? 'unblock' : 'block');
+        setBlockDialogEmployee(employee);
+      });
     }
-  };
+  }, [employees]);
 
-  const handleBlockUnblockSuccess = (updatedEmployee: Partial<Employee>) => {
-    // Update local state immediately
-    setEmployees((prev) => prev.map((emp) =>
-      emp.id === updatedEmployee.id ? { ...emp, ...updatedEmployee } : emp
-    ));
-  };
+  const handleBlockUnblockSuccess = useCallback((updatedEmployee: Partial<Employee>) => {
+    // Defer state update to avoid race condition with dialog closing
+    requestAnimationFrame(() => {
+      startTransition(() => {
+        setEmployees((prev) => prev.map((emp) =>
+          emp.id === updatedEmployee.id ? { ...emp, ...updatedEmployee } : emp
+        ));
+      });
+    });
+  }, []);
 
   const handleViewDetails = (employee: Employee) => {
     router.push(`/portal/employees/${employee.id}`);
@@ -491,7 +497,7 @@ export default function EmployeesClient({ initialData }: EmployeesClientProps) {
         employee={blockDialogEmployee}
         mode={blockDialogMode}
         open={!!blockDialogEmployee}
-        onOpenChange={(open) => !open && setBlockDialogEmployee(null)}
+        onOpenChange={(open) => !open && requestAnimationFrame(() => setBlockDialogEmployee(null))}
         onSuccess={handleBlockUnblockSuccess}
       />
     </>

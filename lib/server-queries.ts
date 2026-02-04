@@ -629,6 +629,59 @@ export async function getEmployeesListServer(options: {
   };
 }
 
+// Toggle block/unblock employee (Server-side only - hidden from browser)
+export async function toggleBlockEmployeeServer(
+  employeeId: string,
+  reason?: string
+): Promise<{ 
+  success: boolean; 
+  action?: string;
+  portal_enabled?: boolean;
+  message?: string;
+  error?: string 
+}> {
+  if (!isSupabaseConfigured) {
+    return { success: false, error: 'Database not configured' };
+  }
+
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data, error } = await client.rpc('toggle_block_employee', {
+      p_employee_id: employeeId,
+      p_reason: reason || null,
+    });
+
+    if (error) {
+      console.error('[SSR] toggle_block_employee error:', error);
+      return { 
+        success: false, 
+        error: error.message || 'Failed to toggle employee block status' 
+      };
+    }
+
+    if (!data || !data.success) {
+      return { 
+        success: false, 
+        error: data?.error || 'Failed to toggle employee block status' 
+      };
+    }
+
+    return {
+      success: true,
+      action: data.action,
+      portal_enabled: data.portal_enabled,
+      message: data.message,
+    };
+  } catch (error: any) {
+    console.error('[SSR] toggleBlockEmployeeServer error:', error);
+    return { 
+      success: false, 
+      error: error.message || 'Server error while toggling employee block status' 
+    };
+  }
+}
+
 // Get inventory list
 export async function getInventoryListServer(options: {
   category?: string;
@@ -3598,6 +3651,46 @@ export async function resolveInventoryAlert(
   }
 
   return { success: true };
+}
+
+// =============================================
+// PAYROLL QUERIES (SSR)
+// =============================================
+
+/**
+ * Get employee payroll summary (SSR version)
+ * Fetches payroll settings, recent payslips, and payment totals
+ */
+export async function getEmployeePayrollSummaryServer(employeeId: string): Promise<any> {
+  if (!isSupabaseConfigured) {
+    console.error('[SSR] Supabase not configured');
+    return null;
+  }
+
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('get_employee_payroll_v2', {
+      p_employee_id: employeeId,
+      p_limit: 10
+    });
+
+    if (error) {
+      // Log detailed error info for debugging
+      console.error('[SSR] getEmployeePayrollSummaryServer error:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        raw: JSON.stringify(error)
+      });
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('[SSR] getEmployeePayrollSummaryServer catch:', error);
+    return null;
+  }
 }
 
 // =============================================

@@ -46,7 +46,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { getEmployeeComplete, getEmployeePayrollSummary } from '@/lib/portal-queries';
+import { getEmployeeComplete } from '@/lib/portal-queries';
+import { getEmployeePayrollSummaryAction } from '@/lib/actions';
 import { ROLE_LABELS, ROLE_COLORS, STATUS_COLORS } from './EmployeeCard';
 import type { Employee } from '@/types/portal';
 
@@ -78,7 +79,7 @@ export function EmployeeDetailSheet({
       // Fetch complete employee details
       Promise.all([
         getEmployeeComplete(employee.id),
-        getEmployeePayrollSummary(employee.id),
+        getEmployeePayrollSummaryAction(employee.id),
       ]).then(([empDetails, payrollData]) => {
         setDetails(empDetails);
         setPayroll(payrollData);

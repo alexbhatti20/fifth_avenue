@@ -1384,3 +1384,124 @@ export async function deleteInventoryTransactionServer(transactionId: string, it
     throw new Error(error.message || 'Failed to delete transaction');
   }
 }
+
+// =============================================
+// EMPLOYEE MANAGEMENT SERVER ACTIONS (SSR - HIDDEN FROM DEV TOOLS)
+// =============================================
+
+/**
+ * Toggle block/unblock employee - Server action (hidden from browser)
+ * Uses authenticated RPC with SECURITY DEFINER
+ */
+export async function toggleBlockEmployeeServer(
+  employeeId: string,
+  reason?: string,
+  options?: {
+    sendEmail?: boolean;
+    employeeEmail?: string;
+    employeeName?: string;
+    employeeIdNumber?: string;
+  }
+): Promise<{ 
+  success: boolean; 
+  action?: string;
+  portal_enabled?: boolean;
+  message?: string;
+  error?: string 
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data, error } = await client.rpc('toggle_block_employee', {
+      p_employee_id: employeeId,
+      p_reason: reason || null,
+    });
+
+    if (error) {
+      console.error('toggleBlockEmployeeServer RPC error:', error);
+      return { 
+        success: false, 
+        error: error.message || 'Failed to toggle employee block status' 
+      };
+    }
+
+    if (!data || !data.success) {
+      return { 
+        success: false, 
+        error: data?.error || 'Failed to toggle employee block status' 
+      };
+    }
+
+    // Send email notification if requested (server-side, secure)
+    if (options?.sendEmail && options?.employeeEmail && options?.employeeName) {
+      try {
+        const { sendEmployeeBlockedNotification, sendEmployeeUnblockedNotification } = await import('@/lib/brevo');
+        const actionDate = new Date().toLocaleDateString('en-GB', {
+          day: 'numeric', 
+          month: 'long', 
+          year: 'numeric'
+        });
+
+        if (data.action === 'blocked') {
+          await sendEmployeeBlockedNotification(
+            options.employeeEmail,
+            options.employeeName,
+            options.employeeIdNumber || employeeId,
+            reason || 'No reason provided',
+            actionDate
+          );
+        } else if (data.action === 'unblocked') {
+          await sendEmployeeUnblockedNotification(
+            options.employeeEmail,
+            options.employeeName,
+            options.employeeIdNumber || employeeId,
+            reason || 'No reason provided',
+            actionDate
+          );
+        }
+      } catch (emailError: any) {
+        // Don't fail the whole operation if email fails
+        console.error('Failed to send email notification:', emailError);
+      }
+    }
+
+    // Revalidate relevant paths
+    revalidatePath('/portal/employees');
+    revalidatePath(`/portal/employees/${employeeId}`);
+
+    return {
+      success: true,
+      action: data.action,
+      portal_enabled: data.portal_enabled,
+      message: data.message,
+    };
+  } catch (error: any) {
+    console.error('toggleBlockEmployeeServer error:', error);
+    return { 
+      success: false, 
+      error: error.message || 'Server error while toggling employee block status' 
+    };
+  }
+}
+
+// =============================================
+// EMPLOYEE PAYROLL SERVER ACTIONS
+// =============================================
+
+/**
+ * Get employee payroll summary - Server action (SSR, hidden from browser)
+ * Fetches payroll settings, recent payslips, and payment totals
+ */
+export async function getEmployeePayrollSummaryAction(
+  employeeId: string
+): Promise<any> {
+  try {
+    const { getEmployeePayrollSummaryServer } = await import('@/lib/server-queries');
+    const data = await getEmployeePayrollSummaryServer(employeeId);
+    return data;
+  } catch (error: any) {
+    console.error('getEmployeePayrollSummaryAction error:', error);
+    return null;
+  }
+}
+

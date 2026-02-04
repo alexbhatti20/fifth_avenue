@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Ban, UserCheck, Loader2, Mail } from 'lucide-react';
 import {
   Dialog,
@@ -24,8 +24,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
-import { getAuthToken } from '@/lib/cookies';
+import { toggleBlockEmployeeServer } from '@/lib/actions';
 import { ROLE_LABELS, ROLE_COLORS } from './EmployeeCard';
 import type { Employee } from '@/types/portal';
 
@@ -70,13 +69,37 @@ export function BlockUnblockDialog({
   const [selectedReason, setSelectedReason] = useState<string>('');
   const [customReason, setCustomReason] = useState('');
   const [sendEmail, setSendEmail] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const isBlocking = mode === 'block';
   const reasons = isBlocking ? BLOCK_REASONS : UNBLOCK_REASONS;
 
-  const handleSubmit = async () => {
-    if (!employee) return;
+  // Reset form when dialog opens with new employee
+  useEffect(() => {
+    if (open && employee) {
+      setSelectedReason('');
+      setCustomReason('');
+      setSendEmail(true);
+      setIsProcessing(false);
+    }
+  }, [open, employee]);
+
+  const resetForm = useCallback(() => {
+    setSelectedReason('');
+    setCustomReason('');
+    setSendEmail(true);
+    setIsProcessing(false);
+  }, []);
+
+  const handleOpenChange = useCallback((newOpen: boolean) => {
+    if (!newOpen && !isProcessing) {
+      resetForm();
+      onOpenChange(false);
+    }
+  }, [isProcessing, onOpenChange, resetForm]);
+
+  const handleSubmit = useCallback(() => {
+    if (!employee || isProcessing) return;
 
     const reasonObj = reasons.find(r => r.id === selectedReason);
     const reason = selectedReason === 'other' 
@@ -88,89 +111,90 @@ export function BlockUnblockDialog({
       return;
     }
 
-    setLoading(true);
-    try {
-      // Use the RPC function with SECURITY DEFINER to bypass RLS
-      // The function toggles status - if blocked, it unblocks; if active, it blocks
-      const { data, error } = await supabase.rpc('toggle_block_employee', {
-        p_employee_id: employee.id,
-        p_reason: isBlocking ? reason : null,
-      });
-      
-      if (error) {
-        throw new Error(error.message || `Failed to ${isBlocking ? 'block' : 'unblock'} employee`);
-      }
-      
-      // Check the response from RPC
-      if (!data?.success) {
-        throw new Error(data?.error || `Failed to ${isBlocking ? 'block' : 'unblock'} employee`);
-      }
-      
-      // Send email notification if enabled (via API to access server-side env vars)
-      if (sendEmail && employee.email) {
-        const actionDate = new Date().toLocaleDateString('en-GB', {
-          day: 'numeric', month: 'long', year: 'numeric'
-        });
-        
-        try {
-          const token = getAuthToken();
-          const emailResponse = await fetch('/api/admin/employees/notify', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              ...(token && { 'Authorization': `Bearer ${token}` })
-            },
-            body: JSON.stringify({
-              type: isBlocking ? 'blocked' : 'unblocked',
-              email: employee.email,
-              name: employee.name,
-              employeeId: employee.employee_id,
-              reason,
-              date: actionDate,
-            }),
-          });
-          
-          if (!emailResponse.ok) {
-            const emailError = await emailResponse.json();
-            }
-        } catch (emailErr) {
-          // Don't fail the whole operation if email fails
-        }
-      }
+    // Prevent multiple clicks
+    setIsProcessing(true);
 
-      toast.success(data.message || `${employee.name} has been ${isBlocking ? 'blocked' : 'unblocked'}`);
-      
-      // Call success callback with updated employee data from RPC response
-      onSuccess({
-        id: employee.id,
-        portal_enabled: data.portal_enabled,
-      });
-      
-      onOpenChange(false);
-      
-      // Reset form
+    // Store values before closing
+    const empId = employee.id;
+    const empName = employee.name;
+    const empEmail = employee.email;
+    const empIdNumber = employee.employee_id;
+    const shouldSendEmail = sendEmail;
+    const blockReason = isBlocking ? reason : null;
+    const newPortalEnabled = !isBlocking;
+    
+    // Close dialog IMMEDIATELY - no waiting
+    onOpenChange(false);
+    
+    // Reset form IMMEDIATELY
+    requestAnimationFrame(() => {
       setSelectedReason('');
       setCustomReason('');
       setSendEmail(true);
-    } catch (error: any) {
-      toast.error(error.message || `Failed to ${isBlocking ? 'block' : 'unblock'} employee`);
-    } finally {
-      setLoading(false);
-    }
-  };
+      setIsProcessing(false);
+    });
+    
+    // Update parent state IMMEDIATELY (optimistic)
+    requestAnimationFrame(() => {
+      onSuccess({
+        id: empId,
+        portal_enabled: newPortalEnabled,
+      });
+    });
+    
+    // Show loading toast
+    const loadingToast = toast.loading(`${isBlocking ? 'Blocking' : 'Unblocking'} ${empName}...`);
 
-  const handleClose = () => {
-    setSelectedReason('');
-    setCustomReason('');
-    setSendEmail(true);
-    onOpenChange(false);
-  };
+    // Run server action completely async (fire and forget)
+    Promise.resolve().then(async () => {
+      try {
+        const result = await toggleBlockEmployeeServer(
+          empId,
+          blockReason,
+          {
+            sendEmail: shouldSendEmail,
+            employeeEmail: empEmail,
+            employeeName: empName,
+            employeeIdNumber: empIdNumber,
+          }
+        );
+        
+        // Dismiss loading toast
+        toast.dismiss(loadingToast);
+        
+        if (!result.success) {
+          // Revert optimistic update on error
+          onSuccess({
+            id: empId,
+            portal_enabled: !newPortalEnabled,
+          });
+          toast.error(result.error || `Failed to ${isBlocking ? 'block' : 'unblock'} employee`);
+        } else {
+          // Success!
+          toast.success(result.message || `${empName} has been ${isBlocking ? 'blocked' : 'unblocked'}`);
+        }
+      } catch (error: any) {
+        toast.dismiss(loadingToast);
+        // Revert optimistic update on error
+        onSuccess({
+          id: empId,
+          portal_enabled: !newPortalEnabled,
+        });
+        toast.error(error.message || `Failed to ${isBlocking ? 'block' : 'unblock'} employee`);
+      }
+    });
+  }, [employee, isProcessing, selectedReason, customReason, reasons, isBlocking, sendEmail, onOpenChange, onSuccess]);
 
   if (!employee) return null;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent 
+        className="max-w-md" 
+        onPointerDownOutside={(e) => isProcessing && e.preventDefault()} 
+        onEscapeKeyDown={(e) => isProcessing && e.preventDefault()}
+        onInteractOutside={(e) => isProcessing && e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className={`flex items-center gap-2 ${isBlocking ? 'text-orange-600' : 'text-green-600'}`}>
             {isBlocking ? <Ban className="h-5 w-5" /> : <UserCheck className="h-5 w-5" />}
@@ -187,17 +211,17 @@ export function BlockUnblockDialog({
         {/* Employee Info */}
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
           <Avatar className="h-12 w-12">
-            <AvatarImage src={employee.avatar_url || undefined} />
+            <AvatarImage src={employee.avatar_url || undefined} alt={employee.name || 'Employee'} />
             <AvatarFallback className="bg-gradient-to-br from-primary to-orange-500 text-white">
-              {employee.name.charAt(0)}
+              {employee.name?.charAt(0)?.toUpperCase() || '?'}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <p className="font-medium">{employee.name}</p>
-            <div className="flex items-center gap-2">
-              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{employee.employee_id}</code>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium truncate">{employee.name || 'Unknown'}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{employee.employee_id || 'N/A'}</code>
               <Badge className={ROLE_COLORS[employee.role]} variant="outline">
-                {ROLE_LABELS[employee.role]}
+                {ROLE_LABELS[employee.role] || employee.role}
               </Badge>
             </div>
           </div>
@@ -206,17 +230,15 @@ export function BlockUnblockDialog({
         <div className="space-y-4">
           {/* Reason Selection */}
           <div className="space-y-2">
-            <Label>Reason for {isBlocking ? 'Blocking' : 'Unblocking'}</Label>
-            <Select value={selectedReason} onValueChange={setSelectedReason}>
-              <SelectTrigger>
+            <Label htmlFor="reason-select">Reason for {isBlocking ? 'Blocking' : 'Unblocking'}</Label>
+            <Select value={selectedReason} onValueChange={setSelectedReason} disabled={isProcessing}>
+              <SelectTrigger id="reason-select">
                 <SelectValue placeholder="Select a reason..." />
               </SelectTrigger>
               <SelectContent>
                 {reasons.map((reason) => (
                   <SelectItem key={reason.id} value={reason.id}>
-                    <div>
-                      <p className="font-medium">{reason.label}</p>
-                    </div>
+                    {reason.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -231,12 +253,14 @@ export function BlockUnblockDialog({
           {/* Custom Reason */}
           {selectedReason === 'other' && (
             <div className="space-y-2">
-              <Label>Custom Reason</Label>
+              <Label htmlFor="custom-reason">Custom Reason</Label>
               <Textarea
+                id="custom-reason"
                 placeholder={`Provide detailed reason for ${isBlocking ? 'blocking' : 'unblocking'}...`}
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}
                 rows={3}
+                disabled={isProcessing}
               />
             </div>
           )}
@@ -247,10 +271,11 @@ export function BlockUnblockDialog({
               id="send-email"
               checked={sendEmail}
               onCheckedChange={(checked) => setSendEmail(!!checked)}
+              disabled={isProcessing}
             />
             <label
               htmlFor="send-email"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+              className="text-sm font-medium leading-none cursor-pointer select-none flex items-center gap-2"
             >
               <Mail className={`h-4 w-4 ${isBlocking ? 'text-orange-600' : 'text-green-600'}`} />
               Send notification email to employee
@@ -259,19 +284,23 @@ export function BlockUnblockDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={loading}>
+          <Button 
+            variant="outline" 
+            onClick={() => handleOpenChange(false)} 
+            disabled={isProcessing}
+          >
             Cancel
           </Button>
           <Button 
             variant={isBlocking ? 'destructive' : 'default'}
             onClick={handleSubmit} 
-            disabled={loading || !selectedReason || (selectedReason === 'other' && !customReason.trim())}
+            disabled={isProcessing || !selectedReason || (selectedReason === 'other' && !customReason.trim())}
             className={isBlocking ? 'bg-orange-600 hover:bg-orange-700' : 'bg-green-600 hover:bg-green-700'}
           >
-            {loading ? (
+            {isProcessing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {isBlocking ? 'Blocking...' : 'Unblocking...'}
+                Processing...
               </>
             ) : (
               <>

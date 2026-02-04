@@ -161,7 +161,10 @@ export function EmployeeCard({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     className={employee.portal_enabled ? 'text-orange-600' : 'text-green-600'}
-                    onClick={() => onTogglePortal(employee.id, !employee.portal_enabled)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      requestAnimationFrame(() => onTogglePortal(employee.id, !employee.portal_enabled));
+                    }}
                   >
                     {employee.portal_enabled ? (
                       <><Ban className="h-4 w-4 mr-2" /> Block Employee</>
