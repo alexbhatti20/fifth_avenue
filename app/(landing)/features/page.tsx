@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
-import { motion, useScroll, useTransform, useSpring, useInView, AnimatePresence } from "framer-motion";
+import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { 
@@ -10,11 +10,12 @@ import {
   ArrowRight, Check, Play, Pause
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { usePerformanceMode } from "@/hooks/useReducedMotion";
 
 // ============================================
-// WebGL Background Component
+// WebGL Background Component (Only for high-performance devices)
 // ============================================
-const WebGLBackground = () => {
+const WebGLBackground = ({ enabled }: { enabled: boolean }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef({ x: 0, y: 0 });
   const animationFrameRef = useRef<number>();
@@ -30,6 +31,8 @@ const WebGLBackground = () => {
   }>>([]);
 
   useEffect(() => {
+    if (!enabled) return;
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -44,18 +47,18 @@ const WebGLBackground = () => {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    // Initialize particles
+    // Initialize particles - reduced count for better performance
     const initParticles = () => {
       particlesRef.current = [];
-      const particleCount = Math.min(80, Math.floor(window.innerWidth / 20));
+      const particleCount = Math.min(40, Math.floor(window.innerWidth / 40));
       
       for (let i = 0; i < particleCount; i++) {
         particlesRef.current.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: (Math.random() - 0.5) * 0.5,
-          size: Math.random() * 3 + 1,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          size: Math.random() * 2 + 1,
           color: Math.random() > 0.5 ? "rgba(239, 68, 68, 0.6)" : "rgba(251, 146, 60, 0.4)",
           life: Math.random() * 100,
           maxLife: 100 + Math.random() * 100,
@@ -64,31 +67,36 @@ const WebGLBackground = () => {
     };
     initParticles();
 
-    // Mouse movement
+    // Mouse movement - throttled
+    let lastMouseUpdate = 0;
     const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
+      const now = Date.now();
+      if (now - lastMouseUpdate > 50) { // Throttle to 20fps
+        mouseRef.current = { x: e.clientX, y: e.clientY };
+        lastMouseUpdate = now;
+      }
     };
-    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
 
     // Animation loop
     const animate = () => {
       ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      particlesRef.current.forEach((particle, index) => {
+      particlesRef.current.forEach((particle) => {
         // Update position
         particle.x += particle.vx;
         particle.y += particle.vy;
 
-        // Mouse attraction
+        // Simplified mouse attraction
         const dx = mouseRef.current.x - particle.x;
         const dy = mouseRef.current.y - particle.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
-        if (dist < 200) {
-          const force = (200 - dist) / 200;
-          particle.vx += (dx / dist) * force * 0.02;
-          particle.vy += (dy / dist) * force * 0.02;
+        if (dist < 150 && dist > 0) {
+          const force = (150 - dist) / 150;
+          particle.vx += (dx / dist) * force * 0.01;
+          particle.vy += (dy / dist) * force * 0.01;
         }
 
         // Apply friction
@@ -105,36 +113,13 @@ const WebGLBackground = () => {
         particle.life++;
         if (particle.life > particle.maxLife) {
           particle.life = 0;
-          particle.x = Math.random() * canvas.width;
-          particle.y = Math.random() * canvas.height;
         }
 
-        // Calculate opacity based on life
-        const lifeRatio = particle.life / particle.maxLife;
-        const opacity = lifeRatio < 0.1 ? lifeRatio * 10 : lifeRatio > 0.9 ? (1 - lifeRatio) * 10 : 1;
-
-        // Draw particle
+        // Draw particle (no connections for better performance)
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        ctx.fillStyle = particle.color.replace(/[\d.]+\)$/, `${opacity * 0.6})`);
+        ctx.fillStyle = particle.color;
         ctx.fill();
-
-        // Draw connections
-        particlesRef.current.forEach((other, otherIndex) => {
-          if (index >= otherIndex) return;
-          const dx = other.x - particle.x;
-          const dy = other.y - particle.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
-          if (distance < 120) {
-            ctx.beginPath();
-            ctx.moveTo(particle.x, particle.y);
-            ctx.lineTo(other.x, other.y);
-            ctx.strokeStyle = `rgba(239, 68, 68, ${(1 - distance / 120) * 0.15})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        });
       });
 
       animationFrameRef.current = requestAnimationFrame(animate);
@@ -149,7 +134,9 @@ const WebGLBackground = () => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, []);
+  }, [enabled]);
+
+  if (!enabled) return null;
 
   return (
     <canvas
@@ -161,41 +148,64 @@ const WebGLBackground = () => {
 };
 
 // ============================================
-// 3D Rotating Card Component
+// 3D Rotating Card Component (Simplified for low-end devices)
 // ============================================
 const Feature3DCard = ({ 
   icon: Icon, 
   title, 
   description, 
   gradient,
-  delay = 0 
+  delay = 0,
+  enableEffects = true,
 }: {
   icon: any;
   title: string;
   description: string;
   gradient: string;
   delay?: number;
+  enableEffects?: boolean;
 }) => {
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
+    if (!enableEffects || !cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
     
-    setRotateX((y - centerY) / 10);
-    setRotateY((centerX - x) / 10);
-  }, []);
+    setRotateX((y - centerY) / 15);
+    setRotateY((centerX - x) / 15);
+  }, [enableEffects]);
 
   const handleMouseLeave = useCallback(() => {
     setRotateX(0);
     setRotateY(0);
   }, []);
+
+  // Simplified version for low-end devices
+  if (!enableEffects) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.3, delay: delay * 0.5 }}
+        className="relative"
+      >
+        <div className={`relative p-6 md:p-8 rounded-2xl bg-gradient-to-br ${gradient} border border-white/10 shadow-xl`}>
+          <div className="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center mb-4">
+            <Icon className="w-7 h-7 text-white" />
+          </div>
+          <h3 className="text-xl font-bebas text-white mb-2">{title}</h3>
+          <p className="text-white/70 text-sm leading-relaxed">{description}</p>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -340,48 +350,62 @@ export default function FeaturesPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(true);
+  
+  // Performance detection
+  const { shouldReduce, canUseWebGL, canUseParallax, performanceLevel } = usePerformanceMode();
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"],
   });
 
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
-  const heroScale = useTransform(scrollYProgress, [0, 0.15], [1, 0.95]);
-  const heroY = useTransform(scrollYProgress, [0, 0.15], [0, -50]);
+  // Only use parallax transforms on capable devices
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, canUseParallax ? 0 : 1]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.15], [1, canUseParallax ? 0.95 : 1]);
+  const heroY = useTransform(scrollYProgress, [0, 0.15], [0, canUseParallax ? -50 : 0]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white overflow-hidden relative pt-20" ref={containerRef}>
-        {/* WebGL Background */}
-        <WebGLBackground />
+        {/* WebGL Background - Only on high-performance devices */}
+        <WebGLBackground enabled={canUseWebGL} />
 
         {/* Hero Section */}
         <motion.section 
           ref={heroRef}
           className="relative min-h-screen flex items-center justify-center pt-20 pb-20"
-          style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
+          style={canUseParallax ? { opacity: heroOpacity, scale: heroScale, y: heroY } : {}}
         >
-          {/* Animated gradient orbs */}
-          <div className="absolute inset-0 overflow-hidden">
-            <motion.div
-              className="absolute top-[10%] left-[10%] w-[500px] h-[500px] bg-gradient-to-br from-red-600/30 to-orange-500/20 rounded-full blur-[100px]"
-              animate={{
-                x: [0, 100, 0],
-                y: [0, 50, 0],
-                scale: [1, 1.2, 1],
-              }}
-              transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div
-              className="absolute bottom-[10%] right-[10%] w-[600px] h-[600px] bg-gradient-to-tr from-purple-600/20 to-pink-500/15 rounded-full blur-[120px]"
-              animate={{
-                x: [0, -80, 0],
-                y: [0, -60, 0],
-                scale: [1, 1.1, 1],
-              }}
-              transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-            />
-          </div>
+          {/* Animated gradient orbs - Only on capable devices */}
+          {!shouldReduce && (
+            <div className="absolute inset-0 overflow-hidden">
+              <motion.div
+                className="absolute top-[10%] left-[10%] w-[500px] h-[500px] bg-gradient-to-br from-red-600/30 to-orange-500/20 rounded-full blur-[100px]"
+                animate={{
+                  x: [0, 100, 0],
+                  y: [0, 50, 0],
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.div
+                className="absolute bottom-[10%] right-[10%] w-[600px] h-[600px] bg-gradient-to-tr from-purple-600/20 to-pink-500/15 rounded-full blur-[120px]"
+                animate={{
+                  x: [0, -80, 0],
+                  y: [0, -60, 0],
+                  scale: [1, 1.1, 1],
+                }}
+                transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </div>
+          )}
+          
+          {/* Static gradient background for low-end devices */}
+          {shouldReduce && (
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-[10%] left-[10%] w-[400px] h-[400px] bg-gradient-to-br from-red-600/20 to-orange-500/10 rounded-full blur-[80px]" />
+              <div className="absolute bottom-[10%] right-[10%] w-[500px] h-[500px] bg-gradient-to-tr from-purple-600/15 to-pink-500/10 rounded-full blur-[100px]" />
+            </div>
+          )}
 
           {/* Grid pattern */}
           <div 
@@ -392,169 +416,225 @@ export default function FeaturesPage() {
             }}
           />
 
-          {/* Floating Food Images */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <motion.div
-              className="absolute top-[15%] right-[5%] w-32 md:w-44"
-              animate={{ y: [0, -20, 0], rotate: [0, 8, 0] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <Image
-                src="/assets/chicken-burger.png"
-                alt="Chicken Burger"
-                width={180}
-                height={180}
-                className="drop-shadow-2xl opacity-80"
-              />
-            </motion.div>
-            <motion.div
-              className="absolute bottom-[20%] left-[3%] w-28 md:w-36"
-              animate={{ y: [0, 15, 0], rotate: [0, -6, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            >
-              <Image
-                src="/assets/wings.png"
-                alt="Chicken Wings"
-                width={150}
-                height={150}
-                className="drop-shadow-2xl opacity-70"
-              />
-            </motion.div>
-            <motion.div
-              className="absolute top-[40%] left-[8%] w-20 md:w-28"
-              animate={{ y: [0, -12, 0], rotate: [0, 10, 0] }}
-              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-            >
-              <Image
-                src="/assets/fries.png"
-                alt="Fries"
-                width={120}
-                height={120}
-                className="drop-shadow-2xl opacity-60"
-              />
-            </motion.div>
-            <motion.div
-              className="absolute bottom-[30%] right-[8%] w-24 md:w-32"
-              animate={{ y: [0, 18, 0], rotate: [0, -8, 0] }}
-              transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
-            >
-              <Image
-                src="/assets/drink.png"
-                alt="Drink"
-                width={130}
-                height={130}
-                className="drop-shadow-2xl opacity-70"
-              />
-            </motion.div>
-          </div>
+          {/* Floating Food Images - Only on capable devices */}
+          {!shouldReduce && (
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <motion.div
+                className="absolute top-[15%] right-[5%] w-32 md:w-44"
+                animate={{ y: [0, -20, 0], rotate: [0, 8, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Image
+                  src="/assets/chicken-burger.png"
+                  alt="Chicken Burger"
+                  width={180}
+                  height={180}
+                  className="drop-shadow-2xl opacity-80"
+                />
+              </motion.div>
+              <motion.div
+                className="absolute bottom-[20%] left-[3%] w-28 md:w-36"
+                animate={{ y: [0, 15, 0], rotate: [0, -6, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              >
+                <Image
+                  src="/assets/wings.png"
+                  alt="Chicken Wings"
+                  width={150}
+                  height={150}
+                  className="drop-shadow-2xl opacity-70"
+                />
+              </motion.div>
+              <motion.div
+                className="absolute top-[40%] left-[8%] w-20 md:w-28"
+                animate={{ y: [0, -12, 0], rotate: [0, 10, 0] }}
+                transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+              >
+                <Image
+                  src="/assets/fries.png"
+                  alt="Fries"
+                  width={120}
+                  height={120}
+                  className="drop-shadow-2xl opacity-60"
+                />
+              </motion.div>
+              <motion.div
+                className="absolute bottom-[30%] right-[8%] w-24 md:w-32"
+                animate={{ y: [0, 18, 0], rotate: [0, -8, 0] }}
+                transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+              >
+                <Image
+                  src="/assets/drink.png"
+                  alt="Drink"
+                  width={130}
+                  height={130}
+                  className="drop-shadow-2xl opacity-70"
+                />
+              </motion.div>
+            </div>
+          )}
+          
+          {/* Static food images for low-end devices */}
+          {shouldReduce && (
+            <div className="absolute inset-0 pointer-events-none overflow-hidden hidden md:block">
+              <div className="absolute top-[15%] right-[5%] w-32 md:w-40">
+                <Image
+                  src="/assets/chicken-burger.png"
+                  alt="Chicken Burger"
+                  width={160}
+                  height={160}
+                  className="drop-shadow-xl opacity-60"
+                />
+              </div>
+              <div className="absolute bottom-[20%] left-[3%] w-28 md:w-32">
+                <Image
+                  src="/assets/wings.png"
+                  alt="Chicken Wings"
+                  width={130}
+                  height={130}
+                  className="drop-shadow-xl opacity-50"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-5xl mx-auto text-center">
               {/* Floating Badge */}
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: shouldReduce ? 10 : 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
+                transition={{ duration: shouldReduce ? 0.3 : 0.6 }}
                 className="inline-flex items-center gap-3 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-full px-6 py-3 mb-8"
               >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                >
+                {!shouldReduce ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Crown className="w-5 h-5 text-amber-400" />
+                  </motion.div>
+                ) : (
                   <Crown className="w-5 h-5 text-amber-400" />
-                </motion.div>
+                )}
                 <span className="text-amber-300 font-semibold">Become a ZOIRO Member</span>
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
+                {!shouldReduce ? (
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                  </motion.div>
+                ) : (
                   <Sparkles className="w-5 h-5 text-amber-400" />
-                </motion.div>
+                )}
               </motion.div>
 
               {/* ZOIRO Brand Logo */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
+                initial={{ opacity: 0, scale: shouldReduce ? 0.9 : 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, type: "spring" }}
+                transition={{ duration: shouldReduce ? 0.3 : 0.8, type: shouldReduce ? "tween" : "spring" }}
                 className="relative mb-8"
               >
-                <motion.div
-                  animate={{ 
-                    boxShadow: [
-                      "0 0 40px rgba(239,68,68,0.3)",
-                      "0 0 80px rgba(251,146,60,0.4)",
-                      "0 0 40px rgba(239,68,68,0.3)"
-                    ]
-                  }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                  className="relative inline-block rounded-full p-2"
-                >
+                {!shouldReduce ? (
                   <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute inset-0 rounded-full border-2 border-dashed border-red-500/30"
-                  />
-                  <Image
-                    src="/assets/zoiro-logo.png"
-                    alt="ZOIRO Broast"
-                    width={120}
-                    height={120}
-                    className="relative z-10 drop-shadow-2xl"
-                  />
-                </motion.div>
+                    animate={{ 
+                      boxShadow: [
+                        "0 0 40px rgba(239,68,68,0.3)",
+                        "0 0 80px rgba(251,146,60,0.4)",
+                        "0 0 40px rgba(239,68,68,0.3)"
+                      ]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                    className="relative inline-block rounded-full p-2"
+                  >
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-0 rounded-full border-2 border-dashed border-red-500/30"
+                    />
+                    <Image
+                      src="/assets/zoiro-logo.png"
+                      alt="ZOIRO Broast"
+                      width={120}
+                      height={120}
+                      className="relative z-10 drop-shadow-2xl"
+                    />
+                  </motion.div>
+                ) : (
+                  <div className="relative inline-block rounded-full p-2" style={{ boxShadow: "0 0 40px rgba(239,68,68,0.3)" }}>
+                    <Image
+                      src="/assets/zoiro-logo.png"
+                      alt="ZOIRO Broast"
+                      width={100}
+                      height={100}
+                      className="relative z-10 drop-shadow-xl"
+                    />
+                  </div>
+                )}
               </motion.div>
 
               {/* Animated Brand Name */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: shouldReduce ? 10 : 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.3 }}
+                transition={{ duration: shouldReduce ? 0.3 : 0.8, delay: shouldReduce ? 0.1 : 0.3 }}
                 className="mb-6"
               >
                 <h2 className="text-4xl sm:text-5xl md:text-6xl font-bebas tracking-wider">
-                  <motion.span
-                    className="inline-block text-transparent bg-clip-text"
-                    style={{
-                      backgroundImage: "linear-gradient(90deg, #ef4444, #f97316, #fbbf24, #ef4444)",
-                      backgroundSize: "300% 100%",
-                    }}
-                    animate={{
-                      backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                    }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    ZOIRO
-                  </motion.span>
-                  {" "}
-                  <motion.span
-                    className="inline-block text-transparent bg-clip-text"
-                    style={{
-                      backgroundImage: "linear-gradient(90deg, #fbbf24, #ef4444, #f97316, #fbbf24)",
-                      backgroundSize: "300% 100%",
-                    }}
-                    animate={{
-                      backgroundPosition: ["100% 50%", "0% 50%", "100% 50%"],
-                    }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                  >
-                    BROAST
-                  </motion.span>
+                  {!shouldReduce ? (
+                    <>
+                      <motion.span
+                        className="inline-block text-transparent bg-clip-text"
+                        style={{
+                          backgroundImage: "linear-gradient(90deg, #ef4444, #f97316, #fbbf24, #ef4444)",
+                          backgroundSize: "300% 100%",
+                        }}
+                        animate={{
+                          backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                        }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        ZOIRO
+                      </motion.span>
+                      {" "}
+                      <motion.span
+                        className="inline-block text-transparent bg-clip-text"
+                        style={{
+                          backgroundImage: "linear-gradient(90deg, #fbbf24, #ef4444, #f97316, #fbbf24)",
+                          backgroundSize: "300% 100%",
+                        }}
+                        animate={{
+                          backgroundPosition: ["100% 50%", "0% 50%", "100% 50%"],
+                        }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                      >
+                        BROAST
+                      </motion.span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">
+                        ZOIRO
+                      </span>
+                      {" "}
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-red-500">
+                        BROAST
+                      </span>
+                    </>
+                  )}
                 </h2>
-                <motion.p
-                  className="text-zinc-500 text-sm mt-2 tracking-[0.3em] uppercase"
-                  animate={{ opacity: [0.5, 1, 0.5] }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                >
+                <p className="text-zinc-500 text-sm mt-2 tracking-[0.3em] uppercase">
                   Premium Fried Chicken
-                </motion.p>
+                </p>
               </motion.div>
 
               {/* Main Heading */}
               <motion.h1
-                initial={{ opacity: 0, y: 40 }}
+                initial={{ opacity: 0, y: shouldReduce ? 15 : 40 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
+                transition={{ duration: shouldReduce ? 0.3 : 0.8, delay: shouldReduce ? 0.15 : 0.2 }}
                 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bebas mb-6 leading-none"
               >
                 Unlock{" "}
@@ -562,12 +642,14 @@ export default function FeaturesPage() {
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-400 to-amber-400">
                     Premium
                   </span>
-                  <motion.span
-                    className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-amber-400 rounded-full"
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.8, delay: 0.8 }}
-                  />
+                  {!shouldReduce && (
+                    <motion.span
+                      className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-amber-400 rounded-full"
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ duration: 0.8, delay: 0.8 }}
+                    />
+                  )}
                 </span>
                 <br />
                 Benefits
@@ -575,9 +657,9 @@ export default function FeaturesPage() {
 
               {/* Subheading */}
               <motion.p
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: shouldReduce ? 10 : 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
+                transition={{ duration: shouldReduce ? 0.3 : 0.8, delay: shouldReduce ? 0.2 : 0.4 }}
                 className="text-xl md:text-2xl text-zinc-400 max-w-2xl mx-auto mb-12"
               >
                 Join thousands of food lovers who save more, eat better, 
@@ -586,9 +668,9 @@ export default function FeaturesPage() {
 
               {/* CTA Buttons */}
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: shouldReduce ? 10 : 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.6 }}
+                transition={{ duration: shouldReduce ? 0.3 : 0.8, delay: shouldReduce ? 0.25 : 0.6 }}
                 className="flex flex-col sm:flex-row items-center justify-center gap-4"
               >
                 <Link href="/auth">
@@ -597,13 +679,17 @@ export default function FeaturesPage() {
                     className="h-16 px-10 bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white font-bold text-lg rounded-2xl shadow-lg shadow-red-500/30 transition-all hover:scale-105 group"
                   >
                     Create Free Account
-                    <motion.div
-                      className="ml-2"
-                      animate={{ x: [0, 5, 0] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    >
-                      <ArrowRight className="w-5 h-5" />
-                    </motion.div>
+                    {!shouldReduce ? (
+                      <motion.div
+                        className="ml-2"
+                        animate={{ x: [0, 5, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      >
+                        <ArrowRight className="w-5 h-5" />
+                      </motion.div>
+                    ) : (
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    )}
                   </Button>
                 </Link>
                 <Link href="/menu">
@@ -617,25 +703,27 @@ export default function FeaturesPage() {
                 </Link>
               </motion.div>
 
-              {/* Scroll indicator */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2 }}
-                className="absolute bottom-10 left-1/2 -translate-x-1/2"
-              >
+              {/* Scroll indicator - hide on low-end devices */}
+              {!shouldReduce && (
                 <motion.div
-                  animate={{ y: [0, 10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="w-8 h-14 rounded-full border-2 border-zinc-600 flex items-start justify-center p-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.2 }}
+                  className="absolute bottom-10 left-1/2 -translate-x-1/2"
                 >
                   <motion.div
-                    animate={{ y: [0, 16, 0] }}
+                    animate={{ y: [0, 10, 0] }}
                     transition={{ duration: 2, repeat: Infinity }}
-                    className="w-2 h-2 bg-red-500 rounded-full"
-                  />
+                    className="w-8 h-14 rounded-full border-2 border-zinc-600 flex items-start justify-center p-2"
+                  >
+                    <motion.div
+                      animate={{ y: [0, 16, 0] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="w-2 h-2 bg-red-500 rounded-full"
+                    />
+                  </motion.div>
                 </motion.div>
-              </motion.div>
+              )}
             </div>
           </div>
         </motion.section>
@@ -647,10 +735,10 @@ export default function FeaturesPage() {
               {STATS.map((stat, index) => (
                 <motion.div
                   key={stat.label}
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: shouldReduce ? 15 : 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
+                  transition={{ delay: shouldReduce ? index * 0.05 : index * 0.1, duration: shouldReduce ? 0.3 : 0.5 }}
                   className="text-center"
                 >
                   <div className="text-4xl md:text-5xl font-bebas text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-amber-400 mb-2">
@@ -667,9 +755,10 @@ export default function FeaturesPage() {
         <section className="relative py-24">
           <div className="container mx-auto px-4">
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: shouldReduce ? 15 : 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
+              transition={{ duration: shouldReduce ? 0.3 : 0.5 }}
               className="text-center mb-16"
             >
               <span className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-full px-5 py-2 mb-6">
@@ -693,6 +782,7 @@ export default function FeaturesPage() {
                   description={benefit.description}
                   gradient={benefit.gradient}
                   delay={index * 0.1}
+                  enableEffects={!shouldReduce}
                 />
               ))}
             </div>
@@ -774,17 +864,22 @@ export default function FeaturesPage() {
         <section className="relative py-24">
           <div className="container mx-auto px-4">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: shouldReduce ? 0.98 : 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
+              transition={{ duration: shouldReduce ? 0.3 : 0.5 }}
               className="relative max-w-4xl mx-auto bg-gradient-to-br from-red-500/10 via-zinc-900 to-orange-500/10 rounded-[3rem] p-12 border border-zinc-800 overflow-hidden"
             >
-              {/* Decorative elements */}
-              <motion.div
-                className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-red-500/20 to-transparent rounded-full blur-3xl"
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 5, repeat: Infinity }}
-              />
+              {/* Decorative elements - static on low-end devices */}
+              {!shouldReduce ? (
+                <motion.div
+                  className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-red-500/20 to-transparent rounded-full blur-3xl"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 5, repeat: Infinity }}
+                />
+              ) : (
+                <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-red-500/15 to-transparent rounded-full blur-2xl" />
+              )}
               
               <div className="relative z-10 text-center">
                 <div className="flex justify-center mb-6">
@@ -794,7 +889,7 @@ export default function FeaturesPage() {
                       initial={{ opacity: 0, scale: 0 }}
                       whileInView={{ opacity: 1, scale: 1 }}
                       viewport={{ once: true }}
-                      transition={{ delay: i * 0.1 }}
+                      transition={{ delay: shouldReduce ? i * 0.05 : i * 0.1 }}
                     >
                       <Star className="w-8 h-8 text-amber-400 fill-amber-400" />
                     </motion.div>
@@ -827,18 +922,25 @@ export default function FeaturesPage() {
         <section className="relative py-24 bg-gradient-to-b from-zinc-900 to-zinc-950">
           <div className="container mx-auto px-4">
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: shouldReduce ? 15 : 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
+              transition={{ duration: shouldReduce ? 0.3 : 0.5 }}
               className="text-center max-w-3xl mx-auto"
             >
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="inline-block mb-6"
-              >
-                <Crown className="w-16 h-16 text-amber-400" />
-              </motion.div>
+              {!shouldReduce ? (
+                <motion.div
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="inline-block mb-6"
+                >
+                  <Crown className="w-16 h-16 text-amber-400" />
+                </motion.div>
+              ) : (
+                <div className="inline-block mb-6">
+                  <Crown className="w-14 h-14 text-amber-400" />
+                </div>
+              )}
               
               <h2 className="text-4xl md:text-6xl font-bebas mb-6">
                 Ready to Join the{" "}
