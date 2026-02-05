@@ -266,8 +266,6 @@ function PersonalSettings({
   };
 
   const handleSave = async () => {
-    console.log('[Settings] handleSave called', { employeeId, photoFile: !!photoFile });
-    
     if (!employeeId) {
       toast.error('Employee ID not found. Please refresh the page.');
       return;
@@ -288,11 +286,9 @@ function PersonalSettings({
       
       // Upload new avatar if selected
       if (photoFile) {
-        console.log('[Settings] Uploading photo...', { fileName: photoFile.name, size: photoFile.size });
         toast.loading('Uploading profile photo...', { id: 'save-profile' });
         try {
           const uploadResult = await uploadEmployeeAvatar(photoFile, employeeId);
-          console.log('[Settings] Upload result:', uploadResult);
           
           if (!uploadResult.success || !uploadResult.url) {
             const errorMsg = uploadResult.error || 'Failed to upload profile photo';
@@ -301,12 +297,10 @@ function PersonalSettings({
           
           avatarUrl = uploadResult.url;
         } catch (uploadError: any) {
-          console.error('[Settings] Upload error:', uploadError);
           throw new Error(uploadError.message || 'Failed to upload profile photo');
         }
       }
       
-      console.log('[Settings] Updating employee...', { avatarUrl });
       toast.loading('Updating profile...', { id: 'save-profile' });
       
       // Update employee data using SSR server action (hidden from browser network tab)
@@ -317,8 +311,6 @@ function PersonalSettings({
         emergency_contact: formData.emergency_contact,
         avatar_url: avatarUrl,
       });
-      
-      console.log('[Settings] Update result:', result);
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to update profile');

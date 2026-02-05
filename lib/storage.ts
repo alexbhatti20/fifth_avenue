@@ -234,16 +234,11 @@ export async function uploadAvatar(
   userId?: string
 ): Promise<UploadResult> {
   try {
-    console.log('[uploadAvatar] Starting upload', { folder, userId, fileName: file.name, fileSize: file.size });
-    
     const token = getAuthToken();
     
     if (!token) {
-      console.error('[uploadAvatar] No auth token found');
       return { success: false, error: 'No authentication token. Please log in again.' };
     }
-    
-    console.log('[uploadAvatar] Token found, preparing upload...');
     
     // Use folder path with userId if provided
     const uploadFolder = userId ? `${folder}/${userId}` : folder;
@@ -253,8 +248,6 @@ export async function uploadAvatar(
     formData.append('file', file);
     formData.append('bucket', 'avatars');
     formData.append('folder', uploadFolder);
-    
-    console.log('[uploadAvatar] Sending to /api/upload/image');
     
     // Upload via API route (server-side, bypasses client RLS issues)
     const uploadPromise = fetch('/api/upload/image', {
@@ -273,15 +266,12 @@ export async function uploadAvatar(
 
     const result = await response.json();
     
-    console.log('[uploadAvatar] Response:', { ok: response.ok, result });
-    
     if (!response.ok || !result.success) {
       return { success: false, error: result.error || 'Failed to upload image' };
     }
 
     return { success: true, url: result.url, path: result.path };
   } catch (error: any) {
-    console.error('[uploadAvatar] Error:', error);
     return { success: false, error: error.message || 'Upload failed' };
   }
 }
