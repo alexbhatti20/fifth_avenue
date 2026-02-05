@@ -19,16 +19,11 @@ interface ProcessGoogleAuthRequest {
 
 // POST /api/auth/google/process - Process Google OAuth after client-side token extraction
 export async function POST(request: NextRequest) {
-  console.log('Google OAuth process: Starting...');
-  
   try {
     const body: ProcessGoogleAuthRequest = await request.json();
     const { authUserId, email, name, accessToken, refreshToken } = body;
 
-    console.log('Google OAuth process: Received request for email:', email);
-
     if (!authUserId || !email || !accessToken) {
-      console.log('Google OAuth process: Missing required fields');
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -44,7 +39,6 @@ export async function POST(request: NextRequest) {
     });
 
     const normalizedEmail = email.toLowerCase();
-    console.log('Google OAuth process: Checking user existence for:', normalizedEmail);
 
     // Check if user exists in our system using RPC
     const { data: userResult, error: userError } = await supabase.rpc('get_user_by_email', {
@@ -59,20 +53,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Google OAuth process: User check result:', userResult ? userResult.length + ' users found' : 'no users');
-
     const existingUser = userResult && userResult.length > 0 ? userResult[0] : null;
 
     // Check if user is blocked/banned
     if (existingUser) {
-      console.log('Google OAuth process: Existing user found:', existingUser.user_type, existingUser.status);
-      
       const isBlocked = existingUser.is_banned === true || 
                         existingUser.status === 'blocked' ||
                         (existingUser.user_type !== 'customer' && existingUser.portal_enabled === false);
       
       if (isBlocked) {
-        console.log('Google OAuth process: User is blocked');
         return NextResponse.json(
           { error: existingUser.block_reason || 'Your account has been suspended' },
           { status: 403 }
@@ -82,12 +71,12 @@ export async function POST(request: NextRequest) {
 
     let userType = existingUser?.user_type || 'customer';
     let isNewUser = false;
+    let employeeData: { id: string; employee_id: string; name: string; role: string } | null = null;
 
     // Handle based on user existence
     if (existingUser) {
       // User exists
       if (existingUser.user_type === 'admin' || existingUser.user_type === 'employee') {
-        console.log('Google OAuth process: Employee/admin login');
         // Employee/Admin - check if active
         if (existingUser.status !== 'active') {
           return NextResponse.json(
@@ -96,9 +85,16 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // Store employee data to return
+        employeeData = {
+          id: existingUser.id,
+          employee_id: existingUser.employee_id || `EMP-${existingUser.id.slice(0, 8)}`,
+          name: existingUser.name || name || normalizedEmail.split('@')[0],
+          role: existingUser.role || existingUser.user_type,
+        };
+
         // Link Google auth to employee if not already linked
         if (!existingUser.auth_user_id || existingUser.auth_user_id !== authUserId) {
-          console.log('Google OAuth process: Linking Google to employee');
           try {
             await supabase.rpc('link_google_auth_to_employee', {
               p_employee_id: existingUser.id,
@@ -110,10 +106,8 @@ export async function POST(request: NextRequest) {
           }
         }
       } else {
-        console.log('Google OAuth process: Customer login');
         // Customer - link Google auth if not already linked
         if (!existingUser.auth_user_id || existingUser.auth_user_id !== authUserId) {
-          console.log('Google OAuth process: Linking Google to customer');
           try {
             await supabase.rpc('link_google_auth_to_customer', {
               p_customer_id: existingUser.id,
@@ -126,7 +120,6 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // New user - create customer account
-      console.log('Google OAuth process: Creating new customer');
       isNewUser = true;
       userType = 'customer';
 
@@ -153,8 +146,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('Google OAuth process: Setting cookies');
-    
     // Set cookies
     const cookieStore = await cookies();
     
@@ -191,13 +182,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log('Google OAuth process: Success! userType:', userType, 'isNewUser:', isNewUser);
-
     return NextResponse.json({
       success: true,
       userType,
       isNewUser,
       email: normalizedEmail,
+      employeeData, // Include employee data for proper localStorage storage
     });
   } catch (error) {
     console.error('Google OAuth process: Fatal error:', error);

@@ -31,7 +31,7 @@ function getAuthTokenFromStorage(): string | null {
   }
 }
 
-// Create Supabase client with custom storage to read tokens from cookies
+// Create Supabase client - let Supabase handle its own session storage
 export const supabase: SupabaseClient = createSupabaseClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseKey || 'placeholder-key',
@@ -40,16 +40,11 @@ export const supabase: SupabaseClient = createSupabaseClient(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: false,
-      // Custom storage to use cookies
+      // Use default localStorage storage - don't interfere with Supabase's session JSON
+      // Our custom cookie storage was returning raw access token instead of JSON session object
       storage: {
         getItem: (key: string) => {
           if (typeof window === 'undefined') return null;
-          // For access token, try cookie first
-          if (key.includes('access_token') || key.includes('auth-token')) {
-            const cookieToken = getAuthTokenFromCookie();
-            if (cookieToken) return cookieToken;
-          }
-          // Fallback to localStorage
           try {
             return localStorage.getItem(key);
           } catch {
@@ -60,12 +55,14 @@ export const supabase: SupabaseClient = createSupabaseClient(
           if (typeof window === 'undefined') return;
           try {
             localStorage.setItem(key, value);
-            // Also store access token for easy access
+            // Extract and store access token separately for our use
             if (key.includes('auth-token') && value) {
-              const parsed = JSON.parse(value);
-              if (parsed?.access_token) {
-                localStorage.setItem('sb_access_token', parsed.access_token);
-              }
+              try {
+                const parsed = JSON.parse(value);
+                if (parsed?.access_token) {
+                  localStorage.setItem('sb_access_token', parsed.access_token);
+                }
+              } catch { /* ignore parse errors */ }
             }
           } catch {}
         },
@@ -118,19 +115,14 @@ export const safeSupabase = supabase;
 // Helper to set session from tokens (call this after login)
 export async function setSupabaseSession(accessToken: string, refreshToken?: string): Promise<boolean> {
   if (!accessToken || accessToken.length < 10) {
-    // Token is missing or too short - this is expected in some cases (e.g., 2FA without persistent session)
     return false;
   }
   try {
-    const { error } = await supabase.auth.setSession({
+    const { data, error } = await supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken || '',
     });
     if (error) {
-      // Only log unexpected errors (not "Auth session missing" which happens when token format is wrong)
-      if (!error.message?.includes('session missing')) {
-        console.error('Failed to set Supabase session:', error.message);
-      }
       return false;
     }
     // Store in localStorage for persistence
@@ -142,7 +134,6 @@ export async function setSupabaseSession(accessToken: string, refreshToken?: str
     }
     return true;
   } catch (err) {
-    console.error('Error setting session:', err);
     return false;
   }
 }
@@ -165,7 +156,7 @@ export async function restoreSupabaseSession(): Promise<boolean> {
     }
     
     return false;
-  } catch {
+  } catch (err) {
     return false;
   }
 }

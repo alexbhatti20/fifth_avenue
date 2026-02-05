@@ -32,8 +32,6 @@ export function GlobalGoogleAuthHandler() {
       processedRef.current = true;
       setProcessing(true);
 
-      console.log('GlobalGoogleAuthHandler: Detected OAuth tokens in URL hash');
-
       // Set a timeout to prevent infinite loading
       const timeoutId = setTimeout(() => {
         console.error('Google auth processing timed out');
@@ -59,7 +57,6 @@ export function GlobalGoogleAuthHandler() {
         }
 
         setStatusMessage('Setting up your session...');
-        console.log('Processing Google OAuth from URL hash...');
 
         // Set the session in Supabase
         const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
@@ -136,11 +133,46 @@ export function GlobalGoogleAuthHandler() {
 
         setStatusMessage('Redirecting...');
 
+        // IMPORTANT: Clear ALL old auth data first to prevent stale data issues
+        localStorage.removeItem('user_type');
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('sb_access_token');
+        localStorage.removeItem('sb_refresh_token');
+        localStorage.removeItem('auth_token');
+
         // Store tokens in localStorage as backup
         localStorage.setItem('sb_access_token', accessToken);
         if (refreshToken) {
           localStorage.setItem('sb_refresh_token', refreshToken);
         }
+
+        // Store user type for portal
+        localStorage.setItem('user_type', result.userType);
+        
+        // Store user_data - use employee data from server if available
+        let userData;
+        if (result.employeeData && (result.userType === 'admin' || result.userType === 'employee')) {
+          // Use actual employee data from database
+          userData = {
+            id: result.employeeData.id,
+            auth_user_id: user.id,
+            email: email,
+            name: result.employeeData.name,
+            role: result.employeeData.role,
+            employee_id: result.employeeData.employee_id,
+            is_2fa_enabled: false,
+          };
+        } else {
+          // Customer data
+          userData = {
+            id: user.id,
+            email: email,
+            name: name || email,
+            role: result.userType,
+            is_2fa_enabled: false,
+          };
+        }
+        localStorage.setItem('user_data', JSON.stringify(userData));
 
         // Redirect based on user type
         if (result.userType === 'employee' || result.userType === 'admin') {

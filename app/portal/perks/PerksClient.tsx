@@ -664,16 +664,16 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Gift className="h-8 w-8 text-primary" />
-            Perks & Loyalty Management
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+            <Gift className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            Perks & Loyalty
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Configure loyalty points, promo thresholds, and manage customer rewards
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Configure loyalty points, promo thresholds, and rewards
           </p>
         </div>
         <Button onClick={async () => {
@@ -681,79 +681,80 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
           await Promise.all([fetchSettings(true), fetchCustomers(), fetchPromos()]);
           setLoading(false);
           toast({ title: "Refreshed", description: "All data updated successfully" });
-        }} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
+        }} variant="outline" size="sm" className="h-8 sm:h-9 w-full sm:w-auto">
+          <RefreshCw className="h-4 w-4 sm:mr-2" />
+          <span className="sm:hidden">Refresh Data</span>
+          <span className="hidden sm:inline">Refresh</span>
         </Button>
       </div>
 
       {/* Stats Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                <Users className="h-5 w-5 text-blue-600" />
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Loyalty Members</p>
-                <p className="text-2xl font-bold">{stats.totalCustomers}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-sm text-muted-foreground truncate">Members</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.totalCustomers}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
-                <TrendingUp className="h-5 w-5 text-green-600" />
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Points Issued</p>
-                <p className="text-2xl font-bold">{stats.totalPointsIssued.toLocaleString()}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-full">
-                <Zap className="h-5 w-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Points Redeemed</p>
-                <p className="text-2xl font-bold">{stats.totalPointsRedeemed.toLocaleString()}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-sm text-muted-foreground truncate">Pts Issued</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.totalPointsIssued.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
-                <Ticket className="h-5 w-5 text-purple-600" />
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 bg-orange-100 dark:bg-orange-900/30 rounded-full">
+                <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Active Promos</p>
-                <p className="text-2xl font-bold">{stats.activePromos}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-sm text-muted-foreground truncate">Redeemed</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.totalPointsRedeemed.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-pink-100 dark:bg-pink-900/30 rounded-full">
-                <Award className="h-5 w-5 text-pink-600" />
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                <Ticket className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Promos Used</p>
-                <p className="text-2xl font-bold">{stats.usedPromos}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-sm text-muted-foreground truncate">Active</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.activePromos}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-2 sm:col-span-1">
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 bg-pink-100 dark:bg-pink-900/30 rounded-full">
+                <Award className="h-4 w-4 sm:h-5 sm:w-5 text-pink-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-sm text-muted-foreground truncate">Used</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.usedPromos}</p>
               </div>
             </div>
           </CardContent>
@@ -761,29 +762,31 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
       </div>
 
       {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="points" className="flex items-center gap-2">
-            <Star className="h-4 w-4" />
-            Points
-          </TabsTrigger>
-          <TabsTrigger value="thresholds" className="flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            Thresholds
-          </TabsTrigger>
-          <TabsTrigger value="customers" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Customers
-          </TabsTrigger>
-          <TabsTrigger value="promos" className="flex items-center gap-2">
-            <Ticket className="h-4 w-4" />
-            Promos
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide">
+          <TabsList className="inline-flex w-max sm:grid sm:grid-cols-5 sm:w-full sm:max-w-3xl gap-1">
+            <TabsTrigger value="overview" className="flex items-center gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
+              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="whitespace-nowrap">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="points" className="flex items-center gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
+              <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="whitespace-nowrap">Points</span>
+            </TabsTrigger>
+            <TabsTrigger value="thresholds" className="flex items-center gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
+              <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="whitespace-nowrap">Thresholds</span>
+            </TabsTrigger>
+            <TabsTrigger value="customers" className="flex items-center gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
+              <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="whitespace-nowrap">Customers</span>
+            </TabsTrigger>
+            <TabsTrigger value="promos" className="flex items-center gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
+              <Ticket className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="whitespace-nowrap">Promos</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">

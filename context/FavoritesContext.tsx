@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { usePathname } from "next/navigation";
 
 // Types
 interface FavoriteItem {
@@ -41,7 +41,12 @@ const FavoritesContext = createContext<FavoritesContextType | undefined>(undefin
 const GUEST_FAVORITES_KEY = "zoiro_guest_favorites";
 
 export function FavoritesProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const pathname = usePathname();
+  const isPortal = pathname?.startsWith('/portal');
+  
+  // Get user from localStorage directly to avoid triggering useAuth API calls
+  // This is fine for favorites - we just need the user ID for fetching
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [favoritesDetails, setFavoritesDetails] = useState<FavoriteDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,13 +54,50 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   const hasFetchedRef = React.useRef(false);
   const lastUserIdRef = React.useRef<string | null>(null);
 
-  // Load favorites on mount or user change
+  // Check user type and ID from localStorage (skip useAuth to avoid API calls)
   useEffect(() => {
-    // Prevent duplicate fetches for same user
-    if (user && lastUserIdRef.current === user.id && hasFetchedRef.current) return;
+    // Skip on portal pages - employees don't need favorites
+    if (isPortal) {
+      setIsLoading(false);
+      setIsInitialized(true);
+      return;
+    }
     
-    if (user) {
-      lastUserIdRef.current = user.id;
+    // Check if user is employee - skip favorites
+    const userType = localStorage.getItem('user_type');
+    if (userType === 'employee' || userType === 'admin') {
+      setIsLoading(false);
+      setIsInitialized(true);
+      return;
+    }
+    
+    // Get customer ID from localStorage
+    try {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        setCustomerId(parsed.id || null);
+      } else {
+        setCustomerId(null);
+      }
+    } catch {
+      setCustomerId(null);
+    }
+  }, [isPortal]);
+
+  // Load favorites on mount or user change - skip for portal/employees
+  useEffect(() => {
+    // Skip favorites loading on portal pages or for employees
+    if (isPortal) return;
+    
+    const userType = localStorage.getItem('user_type');
+    if (userType === 'employee' || userType === 'admin') return;
+    
+    // Prevent duplicate fetches for same user
+    if (customerId && lastUserIdRef.current === customerId && hasFetchedRef.current) return;
+    
+    if (customerId) {
+      lastUserIdRef.current = customerId;
       hasFetchedRef.current = false; // Reset for new user
       loadFavoriteIds();
     } else {
@@ -64,11 +106,11 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       // Load from local storage for guests
       loadGuestFavorites();
     }
-  }, [user]);
+  }, [customerId, isPortal]);
 
   // Load just the IDs (fast initial load) - uses API route to hide from Network tab
   const loadFavoriteIds = useCallback(async () => {
-    if (!user || hasFetchedRef.current) return;
+    if (!customerId || hasFetchedRef.current) return;
     
     hasFetchedRef.current = true;
     setIsLoading(true);
@@ -87,7 +129,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [customerId]);
 
   // Load guest favorites from local storage
   const loadGuestFavorites = useCallback(() => {
@@ -134,7 +176,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       }
 
       // If logged in, sync with server via API route
-      if (user) {
+      if (customerId) {
         try {
           const res = await fetch("/api/favorites", {
             method: "POST",
@@ -171,14 +213,14 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
         return !isCurrentlyFavorite;
       }
     },
-    [user, favorites, isFavorite, saveGuestFavorites]
+    [customerId, favorites, isFavorite, saveGuestFavorites]
   );
 
   const hasLoadedDetailsRef = React.useRef(false);
 
   // Load full favorite details (for favorites page)
   const loadFavoriteDetails = useCallback(async () => {
-    if (!user) {
+    if (!customerId) {
       // For guests, we'd need to fetch from menu_items directly
       // For now, just clear details
       setFavoritesDetails([]);
@@ -205,7 +247,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user, favoritesDetails.length]);
+  }, [customerId, favoritesDetails.length]);
 
   // Clear all favorites
   const clearAllFavorites = useCallback(async () => {
@@ -213,7 +255,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     setFavorites([]);
     setFavoritesDetails([]);
 
-    if (user) {
+    if (customerId) {
       try {
         const res = await fetch("/api/favorites/clear", { method: "POST" });
         const { error } = await res.json();
@@ -225,7 +267,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     } else {
       saveGuestFavorites([]);
     }
-  }, [user, loadFavoriteIds, saveGuestFavorites]);
+  }, [customerId, loadFavoriteIds, saveGuestFavorites]);
 
   const favoritesCount = useMemo(() => favorites.length, [favorites]);
 

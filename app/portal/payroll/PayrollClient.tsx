@@ -597,13 +597,14 @@ export default function PayrollClient({
         description="Generate payslips and manage employee payments"
         action={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchData}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
+            <Button variant="outline" onClick={fetchData} size="sm" className="h-8 sm:h-9">
+              <RefreshCw className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
-            <Button onClick={() => setIsGenerateOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Generate Payslip
+            <Button onClick={() => setIsGenerateOpen(true)} size="sm" className="h-8 sm:h-9">
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Generate Payslip</span>
+              <span className="sm:hidden">New</span>
             </Button>
           </div>
         }
@@ -614,21 +615,21 @@ export default function PayrollClient({
 
       {/* Tabs */}
       <Tabs defaultValue="all" className="space-y-4">
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="all">All Payslips</TabsTrigger>
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="paid">Paid</TabsTrigger>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <TabsList className="w-full sm:w-auto h-auto flex-wrap">
+            <TabsTrigger value="all" className="text-xs sm:text-sm flex-1 sm:flex-none">All</TabsTrigger>
+            <TabsTrigger value="pending" className="text-xs sm:text-sm flex-1 sm:flex-none">Pending</TabsTrigger>
+            <TabsTrigger value="paid" className="text-xs sm:text-sm flex-1 sm:flex-none">Paid</TabsTrigger>
           </TabsList>
 
           {/* Search */}
-          <div className="relative w-64">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search employee..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-9"
             />
           </div>
         </div>
@@ -690,72 +691,74 @@ function PayslipTable({
     <Card>
       <CardContent className="p-0">
         <DataTableWrapper isLoading={isLoading} isEmpty={payslips.length === 0} emptyMessage="No payslips found">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee</TableHead>
-                <TableHead>Period</TableHead>
-                <TableHead className="text-right">Base Salary</TableHead>
-                <TableHead className="text-right">Net Salary</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-10"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payslips.map((payslip) => {
-                const status = STATUS_CONFIG[payslip.status] || STATUS_CONFIG.pending;
-                return (
-                  <TableRow key={payslip.id} className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback>{payslip.employee?.name?.[0] || 'E'}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-sm">{payslip.employee?.name || 'Unknown'}</p>
-                          <p className="text-xs text-muted-foreground capitalize">{payslip.employee?.role}</p>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[150px]">Employee</TableHead>
+                  <TableHead className="min-w-[180px]">Period</TableHead>
+                  <TableHead className="text-right min-w-[100px]">Base Salary</TableHead>
+                  <TableHead className="text-right min-w-[100px]">Net Salary</TableHead>
+                  <TableHead className="min-w-[90px]">Status</TableHead>
+                  <TableHead className="w-10"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payslips.map((payslip) => {
+                  const status = STATUS_CONFIG[payslip.status] || STATUS_CONFIG.pending;
+                  return (
+                    <TableRow key={payslip.id} className="cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
+                            <AvatarFallback className="text-xs">{payslip.employee?.name?.[0] || 'E'}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="font-medium text-xs sm:text-sm truncate">{payslip.employee?.name || 'Unknown'}</p>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">{payslip.employee?.role}</p>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">
-                        {new Date(payslip.period_start).toLocaleDateString()} - {new Date(payslip.period_end).toLocaleDateString()}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">Rs. {payslip.base_salary?.toLocaleString()}</TableCell>
-                    <TableCell className="text-right font-medium text-green-600">
-                      Rs. {payslip.net_salary?.toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={cn('gap-1', status.color)}>
-                        {status.icon}
-                        {status.label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onViewDetails(payslip)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Download className="h-4 w-4 mr-2" />
-                            Download PDF
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs sm:text-sm whitespace-nowrap">
+                          {new Date(payslip.period_start).toLocaleDateString()} - {new Date(payslip.period_end).toLocaleDateString()}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right text-xs sm:text-sm">Rs. {payslip.base_salary?.toLocaleString()}</TableCell>
+                      <TableCell className="text-right font-medium text-green-600 text-xs sm:text-sm">
+                        Rs. {payslip.net_salary?.toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={cn('gap-1 text-[10px] sm:text-xs', status.color)}>
+                          {status.icon}
+                          <span className="hidden sm:inline">{status.label}</span>
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8">
+                              <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onViewDetails(payslip)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Download className="h-4 w-4 mr-2" />
+                              Download PDF
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </DataTableWrapper>
       </CardContent>
     </Card>

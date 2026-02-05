@@ -97,16 +97,17 @@ function getDateRange(preset: DateRangePreset): { startDate: string; endDate: st
   }
 }
 
-// Date Range Picker Component
+// Date Range Picker Component - Uses router for SSR navigation
 function DateRangePicker({ 
-  value, 
-  onChange 
+  currentPreset,
+  currentDateRange
 }: { 
-  value: DateRange; 
-  onChange: (range: DateRange) => void;
+  currentPreset: string;
+  currentDateRange: { startDate: string; endDate: string };
 }) {
-  const [customStart, setCustomStart] = useState(value.startDate);
-  const [customEnd, setCustomEnd] = useState(value.endDate);
+  const router = useRouter();
+  const [customStart, setCustomStart] = useState(currentDateRange.startDate);
+  const [customEnd, setCustomEnd] = useState(currentDateRange.endDate);
   const [isCustomOpen, setIsCustomOpen] = useState(false);
 
   const presets: { value: DateRangePreset; label: string }[] = [
@@ -123,20 +124,21 @@ function DateRangePicker({
       setIsCustomOpen(true);
       return;
     }
-    const range = getDateRange(preset);
-    onChange({ ...range, preset });
+    // Navigate with URL params - triggers SSR refetch
+    const url = preset === 'today' ? '/portal' : `/portal?preset=${preset}`;
+    router.push(url);
   };
 
   const handleCustomApply = () => {
-    onChange({ startDate: customStart, endDate: customEnd, preset: 'custom' });
+    router.push(`/portal?startDate=${customStart}&endDate=${customEnd}&preset=custom`);
     setIsCustomOpen(false);
   };
 
   const getDisplayText = () => {
-    if (value.preset === 'custom') {
-      return `${value.startDate} - ${value.endDate}`;
+    if (currentPreset === 'custom') {
+      return `${currentDateRange.startDate} - ${currentDateRange.endDate}`;
     }
-    return presets.find(p => p.value === value.preset)?.label || 'Today';
+    return presets.find(p => p.value === currentPreset)?.label || 'Today';
   };
 
   return (
@@ -155,7 +157,7 @@ function DateRangePicker({
               {presets.filter(p => p.value !== 'custom').map((preset) => (
                 <Button
                   key={preset.value}
-                  variant={value.preset === preset.value ? 'default' : 'outline'}
+                  variant={currentPreset === preset.value ? 'default' : 'outline'}
                   size="sm"
                   className="w-full"
                   onClick={() => {
@@ -213,22 +215,44 @@ interface DashboardClientProps {
   initialOrders: PortalOrder[];
   initialBillingStats: BillingStatsServer | null;
   initialPendingBillingOrders: { orders: any[]; pendingCount: number; onlineOrdersCount: number };
+  currentPreset: string;
+  currentDateRange: { startDate: string; endDate: string };
 }
 
 // Advanced Sales Chart with beautiful visualization
 function SalesChart({ 
   data, 
   summary, 
-  comparison 
+  comparison,
+  isDaily = false
 }: { 
-  data: HourlySales[]; 
-  summary?: HourlySalesAdvanced['summary'];
-  comparison?: HourlySalesAdvanced['comparison'];
+  data: (HourlySales & { date?: string })[]; 
+  summary?: HourlySalesAdvanced['summary'] & { best_day?: string };
+  comparison?: HourlySalesAdvanced['comparison'] & { previous_period_sales?: number; previous_period_orders?: number };
+  isDaily?: boolean;
 }) {
   const maxSales = Math.max(...data.map(d => d.sales), 1);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'bar' | 'area'>('bar');
   const shouldReduceMotion = useReducedMotion();
+  
+  // Format date for display
+  const formatDateLabel = (dateStr: string, short = false) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (short) {
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
+    }
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  };
+  
+  // Get label for bar/chart
+  const getItemLabel = (item: typeof data[0], index: number) => {
+    if (isDaily && item.date) {
+      return formatDateLabel(item.date, data.length > 14);
+    }
+    return item.hour_label || `${item.hour}:00`;
+  };
   
   // Calculate gradient points for area chart
   const getAreaPath = () => {
@@ -249,6 +273,11 @@ function SalesChart({
     if (hour >= 18 && hour < 22) return { label: 'Dinner', color: 'bg-purple-500/20 text-purple-600' };
     return { label: 'Off-Peak', color: 'bg-zinc-500/20 text-zinc-600' };
   };
+  
+  // Find best performing day
+  const bestDayIndex = isDaily ? data.reduce((best, item, i) => 
+    item.sales > (data[best]?.sales || 0) ? i : best, 0
+  ) : -1;
   
   return (
     <TooltipProvider delayDuration={0}>
@@ -301,7 +330,7 @@ function SalesChart({
                 </p>
               </motion.div>
               
-              {/* Peak Hour Card */}
+              {/* Peak Hour / Best Day Card */}
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -310,16 +339,24 @@ function SalesChart({
               >
                 <div className="absolute top-0 right-0 w-16 h-16 bg-orange-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
                 <Flame className="h-4 w-4 text-orange-500 mb-1" />
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Peak Hour</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">
+                  {isDaily ? 'Best Day' : 'Peak Hour'}
+                </p>
                 <p className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
-                  {summary.peak_hour_label || 'N/A'}
+                  {isDaily 
+                    ? (summary.best_day ? formatDateLabel(summary.best_day, true) : 'N/A')
+                    : (summary.peak_hour_label || 'N/A')
+                  }
                 </p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                  Rs. {summary.peak_sales?.toLocaleString() || 0}
+                  {isDaily 
+                    ? `Best: Rs. ${data[bestDayIndex]?.sales?.toLocaleString() || 0}`
+                    : `Rs. ${summary.peak_sales?.toLocaleString() || 0}`
+                  }
                 </p>
               </motion.div>
               
-              {/* Busiest Period Card */}
+              {/* Busiest Period / Period Stats Card */}
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -328,22 +365,27 @@ function SalesChart({
               >
                 <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
                 <Zap className="h-4 w-4 text-purple-500 mb-1" />
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Busiest Period</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">
+                  {isDaily ? 'Days in Period' : 'Busiest Period'}
+                </p>
                 <p className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {summary.busiest_period || 'N/A'}
+                  {isDaily ? `${data.length} days` : (summary.busiest_period || 'N/A')}
                 </p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                  Now: {summary.current_hour !== undefined ? 
-                    (summary.current_hour === 0 ? '12 AM' : 
-                     summary.current_hour < 12 ? `${summary.current_hour} AM` : 
-                     summary.current_hour === 12 ? '12 PM' : 
-                     `${summary.current_hour - 12} PM`) : 'N/A'}
+                  {isDaily 
+                    ? `Avg/day: Rs. ${Math.round((summary.total_sales || 0) / (data.length || 1)).toLocaleString()}`
+                    : `Now: ${summary.current_hour !== undefined ? 
+                        (summary.current_hour === 0 ? '12 AM' : 
+                         summary.current_hour < 12 ? `${summary.current_hour} AM` : 
+                         summary.current_hour === 12 ? '12 PM' : 
+                         `${summary.current_hour - 12} PM`) : 'N/A'}`
+                  }
                 </p>
               </motion.div>
             </div>
             
             {/* Comparison Row */}
-            {comparison && (comparison.yesterday_same_hour > 0 || comparison.last_week_same_day > 0) && (
+            {comparison && !isDaily && (comparison.yesterday_same_hour > 0 || comparison.last_week_same_day > 0) && (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -556,9 +598,14 @@ function SalesChart({
                         isCurrentHour ? 'bg-primary/10' : isPeak ? 'bg-orange-500/10' : 'bg-zinc-100 dark:bg-zinc-800'
                       )}>
                         <div className="flex items-center justify-between gap-3">
-                          <span className="font-bold text-sm">{item.hour_label || `${item.hour}:00`}</span>
+                          <span className="font-bold text-sm">
+                            {isDaily 
+                              ? formatDateLabel(item.date, false)
+                              : (item.hour_label || `${item.hour}:00`)
+                            }
+                          </span>
                           <div className="flex gap-1">
-                            {isCurrentHour && (
+                            {isCurrentHour && !isDaily && (
                               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
                                 <motion.div
                                   animate={{ opacity: [1, 0.5, 1] }}
@@ -571,14 +618,22 @@ function SalesChart({
                             {isPeak && (
                               <Badge className="bg-orange-500 text-[10px] px-1.5 py-0 h-5">
                                 <Flame className="h-2.5 w-2.5 mr-0.5" />
-                                Peak
+                                {isDaily ? 'Best' : 'Peak'}
+                              </Badge>
+                            )}
+                            {isDaily && index === bestDayIndex && !isPeak && (
+                              <Badge className="bg-orange-500 text-[10px] px-1.5 py-0 h-5">
+                                <Flame className="h-2.5 w-2.5 mr-0.5" />
+                                Best
                               </Badge>
                             )}
                           </div>
                         </div>
-                        <Badge variant="outline" className={cn('text-[10px] mt-1', timePeriod.color)}>
-                          {timePeriod.label}
-                        </Badge>
+                        {!isDaily && (
+                          <Badge variant="outline" className={cn('text-[10px] mt-1', timePeriod.color)}>
+                            {timePeriod.label}
+                          </Badge>
+                        )}
                       </div>
                       
                       {/* Tooltip Content */}
@@ -646,7 +701,9 @@ function SalesChart({
                         {item.percentage_of_day !== undefined && item.percentage_of_day > 0 && (
                           <div className="pt-1 border-t">
                             <div className="flex justify-between text-[10px] mb-1">
-                              <span className="text-muted-foreground">Share of daily sales</span>
+                              <span className="text-muted-foreground">
+                                {isDaily ? 'Share of period' : 'Share of daily sales'}
+                              </span>
                               <span className="font-semibold">{item.percentage_of_day.toFixed(1)}%</span>
                             </div>
                             <div className="h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
@@ -671,9 +728,28 @@ function SalesChart({
           
           {/* Hour labels - shown below chart */}
           <div className="absolute -bottom-5 left-0 right-0 flex justify-between px-1">
-            {['12A', '6A', '12P', '6P', '11P'].map((label, i) => (
-              <span key={i} className="text-[9px] sm:text-[10px] text-muted-foreground">{label}</span>
-            ))}
+            {isDaily ? (
+              // Show date labels for daily data
+              data.length > 0 ? (
+                <>
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground">
+                    {formatDateLabel(data[0]?.date, true)}
+                  </span>
+                  {data.length > 4 && (
+                    <span className="text-[9px] sm:text-[10px] text-muted-foreground">
+                      {formatDateLabel(data[Math.floor(data.length / 2)]?.date, true)}
+                    </span>
+                  )}
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground">
+                    {formatDateLabel(data[data.length - 1]?.date, true)}
+                  </span>
+                </>
+              ) : null
+            ) : (
+              ['12A', '6A', '12P', '6P', '11P'].map((label, i) => (
+                <span key={i} className="text-[9px] sm:text-[10px] text-muted-foreground">{label}</span>
+              ))
+            )}
           </div>
         </div>
         
@@ -786,23 +862,20 @@ function AdminDashboard({
   initialStats, 
   initialHourlySales, 
   initialTables, 
-  initialOrders 
+  initialOrders,
+  currentPreset,
+  currentDateRange
 }: {
   initialStats: DashboardStats | null;
   initialHourlySales: HourlySalesAdvanced | null;
   initialTables: RestaurantTable[];
   initialOrders: PortalOrder[];
+  currentPreset: string;
+  currentDateRange: { startDate: string; endDate: string };
 }) {
-  // Date range state
-  const [dateRange, setDateRange] = useState<DateRange>({
-    ...getDateRange('today'),
-    preset: 'today'
-  });
-  
-  // Stats with date filtering
-  const [stats, setStats] = useState(initialStats);
-  const [hourlySalesData, setHourlySalesData] = useState(initialHourlySales);
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  // Use SSR data directly - no client-side fetching
+  const stats = initialStats;
+  const hourlySalesData = initialHourlySales;
   
   // Pass SSR data to hooks to prevent duplicate fetch
   const { orders: realtimeOrders, isLoading: ordersLoading } = useRealtimeOrders({ 
@@ -814,95 +887,35 @@ function AdminDashboard({
   // Use real-time data if available, otherwise fall back to initial
   const orders = realtimeOrders.length > 0 ? realtimeOrders : initialOrders;
   const tables = realtimeTables.length > 0 ? realtimeTables : initialTables;
-  
-  // Fetch stats when date range changes
-  const fetchStats = useCallback(async () => {
-    if (dateRange.preset === 'today') {
-      // Use SSR data for today
-      setStats(initialStats);
-      setHourlySalesData(initialHourlySales);
-      return;
-    }
-    
-    setIsLoadingStats(true);
-    try {
-      // Fetch dashboard stats for selected date range
-      const [statsResult, salesResult] = await Promise.all([
-        getAuthenticatedClient().rpc('get_admin_dashboard_stats', {
-          p_start_date: dateRange.startDate,
-          p_end_date: dateRange.endDate
-        }),
-        getAuthenticatedClient().rpc('get_hourly_sales', {
-          p_start_date: dateRange.startDate,
-          p_end_date: dateRange.endDate
-        })
-      ]);
-      
-      if (statsResult.data) {
-        setStats(statsResult.data);
-      }
-      if (salesResult.data) {
-        // Transform sales data based on type (hourly vs daily)
-        const salesData = salesResult.data;
-        if (salesData.type === 'hourly') {
-          setHourlySalesData({
-            hourly_data: salesData.data || [],
-            summary: salesData.summary,
-            comparison: salesData.comparison
-          } as any);
-        } else {
-          // Daily data - transform to chart format
-          setHourlySalesData({
-            hourly_data: (salesData.data || []).map((d: any, i: number) => ({
-              hour: i,
-              sales: d.sales,
-              orders: d.orders,
-              date: d.date
-            })),
-            summary: salesData.summary,
-            comparison: salesData.comparison,
-            type: 'daily'
-          } as any);
-        }
-      }
-    } catch (err) {
-      // Silent fail, keep current data
-    } finally {
-      setIsLoadingStats(false);
-    }
-  }, [dateRange, initialStats, initialHourlySales]);
-  
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
 
-  const hourlySales = hourlySalesData?.hourly_data || [];
+  // Extract data - SQL returns { type, data, summary, comparison }
+  const isDaily = (hourlySalesData as any)?.type === 'daily';
+  const hourlySales = (hourlySalesData as any)?.data || hourlySalesData?.hourly_data || [];
   const salesSummary = hourlySalesData?.summary;
   const comparison = hourlySalesData?.comparison;
-  const isDaily = (hourlySalesData as any)?.type === 'daily';
 
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Date Filter */}
       <div className="flex justify-between items-center">
         <div className="text-sm text-muted-foreground">
-          {dateRange.preset === 'today' ? 'Live data' : `${dateRange.startDate} to ${dateRange.endDate}`}
+          {currentPreset === 'today' ? 'Live data' : `${currentDateRange.startDate} to ${currentDateRange.endDate}`}
         </div>
-        <DateRangePicker value={dateRange} onChange={setDateRange} />
+        <DateRangePicker currentPreset={currentPreset} currentDateRange={currentDateRange} />
       </div>
       
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
         <StatsCard
-          title={dateRange.preset === 'today' ? "Today's Sales" : "Total Sales"}
-          value={isLoadingStats ? '...' : `Rs. ${(stats?.total_sales_today || 0).toLocaleString()}`}
-          change={dateRange.preset === 'today' ? "+12% from yesterday" : `${dateRange.preset === 'month' ? 'This month' : dateRange.preset === 'year' ? 'This year' : 'Selected period'}`}
+          title={currentPreset === 'today' ? "Today's Sales" : "Total Sales"}
+          value={`Rs. ${(currentPreset === 'today' ? stats?.total_sales_today : stats?.total_sales || stats?.total_sales_today || 0).toLocaleString()}`}
+          change={currentPreset === 'today' ? "+12% from yesterday" : `${currentPreset === 'month' ? 'This month' : currentPreset === 'year' ? 'This year' : 'Selected period'}`}
           changeType="positive"
           icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
         />
         <StatsCard
-          title={dateRange.preset === 'today' ? "Today's Orders" : "Total Orders"}
-          value={isLoadingStats ? '...' : (stats?.total_orders_today || 0)}
+          title={currentPreset === 'today' ? "Today's Orders" : "Total Orders"}
+          value={(currentPreset === 'today' ? stats?.total_orders_today : stats?.total_orders || stats?.total_orders_today || 0)}
           change={`${stats?.pending_orders || 0} pending now`}
           changeType="neutral"
           icon={<ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5" />}
@@ -937,12 +950,8 @@ function AdminDashboard({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoadingStats ? (
-              <div className="h-48 flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : hourlySales.length > 0 ? (
-              <SalesChart data={hourlySales} summary={salesSummary} comparison={comparison} />
+            {hourlySales.length > 0 ? (
+              <SalesChart data={hourlySales} summary={salesSummary} comparison={comparison} isDaily={isDaily} />
             ) : (
               <div className="h-48 flex items-center justify-center text-muted-foreground">
                 No sales data yet
@@ -1873,6 +1882,8 @@ export default function DashboardClient({
   initialOrders,
   initialBillingStats,
   initialPendingBillingOrders,
+  currentPreset,
+  currentDateRange,
 }: DashboardClientProps) {
   const { role, employee, isLoading } = usePortalAuth();
 
@@ -1906,6 +1917,8 @@ export default function DashboardClient({
             initialHourlySales={initialHourlySales}
             initialTables={initialTables}
             initialOrders={initialOrders}
+            currentPreset={currentPreset}
+            currentDateRange={currentDateRange}
           />
         </>
       );

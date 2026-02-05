@@ -168,33 +168,34 @@ export default function EmployeeDetailsClient({
   // Show loading state while fetching client-side
   if (loading) {
     return (
-      <div className="container mx-auto py-6 space-y-6">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 max-w-5xl">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => router.push('/portal/employees')}
-          className="gap-2"
+          className="gap-1.5 sm:gap-2 -ml-2 text-xs sm:text-sm"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Employees
+          <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">Back to Employees</span>
+          <span className="sm:hidden">Back</span>
         </Button>
         
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-6">
-              <Skeleton className="h-24 w-24 rounded-full" />
-              <div className="flex-1 space-y-3">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-6 w-24" />
+          <CardContent className="pt-4 sm:pt-6">
+            <div className="flex items-start gap-3 sm:gap-6">
+              <Skeleton className="h-16 w-16 sm:h-24 sm:w-24 rounded-full shrink-0" />
+              <div className="flex-1 space-y-2 sm:space-y-3">
+                <Skeleton className="h-6 sm:h-8 w-32 sm:w-48" />
+                <Skeleton className="h-4 w-24 sm:w-32" />
+                <Skeleton className="h-5 sm:h-6 w-20 sm:w-24" />
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-muted-foreground">Loading employee data...</span>
+        <div className="flex items-center justify-center py-8 sm:py-12">
+          <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-xs sm:text-sm text-muted-foreground">Loading employee data...</span>
         </div>
       </div>
     );
@@ -202,13 +203,15 @@ export default function EmployeeDetailsClient({
 
   if (!employee) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="flex flex-col items-center justify-center h-64 gap-4">
-          <User className="h-16 w-16 text-muted-foreground" />
-          <p className="text-muted-foreground">Employee not found</p>
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-5xl">
+        <div className="flex flex-col items-center justify-center h-48 sm:h-64 gap-3 sm:gap-4">
+          <User className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground" />
+          <p className="text-sm sm:text-base text-muted-foreground">Employee not found</p>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => router.push('/portal/employees')}
+            className="text-xs sm:text-sm"
           >
             Back to Employees
           </Button>
@@ -223,203 +226,206 @@ export default function EmployeeDetailsClient({
   const isBlocked = !employee.portal_enabled;
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 max-w-5xl">
       {/* Header with Back Button */}
       <div className="flex items-center justify-between">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => router.push('/portal/employees')}
-          className="gap-2"
+          className="gap-1.5 sm:gap-2 -ml-2 text-xs sm:text-sm"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Employees
+          <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">Back to Employees</span>
+          <span className="sm:hidden">Back</span>
         </Button>
       </div>
 
       {/* Employee Header Card */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* Avatar */}
-            <div className="flex justify-center md:justify-start">
-              <Avatar className="h-24 w-24">
+        <CardContent className="pt-4 sm:pt-6">
+          <div className="flex flex-col gap-4 sm:gap-6">
+            {/* Mobile: Avatar + Name + Badges row */}
+            <div className="flex items-start gap-3 sm:gap-6">
+              {/* Avatar */}
+              <Avatar className="h-16 w-16 sm:h-24 sm:w-24 shrink-0">
                 <AvatarImage src={employee.avatar_url} />
-                <AvatarFallback className="text-2xl">
+                <AvatarFallback className="text-lg sm:text-2xl">
                   {getInitials(employee.name)}
                 </AvatarFallback>
               </Avatar>
-            </div>
 
-            {/* Info */}
-            <div className="flex-1 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              {/* Info */}
+              <div className="flex-1 min-w-0 space-y-2 sm:space-y-3">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-3xl font-bold">{employee.name}</h1>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-xl sm:text-3xl font-bold truncate">{employee.name}</h1>
                     {employee.is_2fa_enabled && (
-                      <ShieldCheck className="h-5 w-5 text-green-600" />
+                      <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 shrink-0" />
                     )}
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={ROLE_COLORS[employee.role as keyof typeof ROLE_COLORS] as any}>
+                  <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
+                    <Badge variant={ROLE_COLORS[employee.role as keyof typeof ROLE_COLORS] as any} className="text-[10px] sm:text-xs">
                       {ROLE_LABELS[employee.role as keyof typeof ROLE_LABELS]}
                     </Badge>
-                    <Badge variant={STATUS_COLORS[employee.status as keyof typeof STATUS_COLORS] as any}>
+                    <Badge variant={STATUS_COLORS[employee.status as keyof typeof STATUS_COLORS] as any} className="text-[10px] sm:text-xs">
                       {employee.status}
                     </Badge>
                     {isBlocked && (
-                      <Badge variant="destructive" className="gap-1">
-                        <Ban className="h-3 w-3" />
+                      <Badge variant="destructive" className="gap-1 text-[10px] sm:text-xs">
+                        <Ban className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                         Blocked
                       </Badge>
                     )}
                   </div>
                 </div>
-
-                {/* Action Buttons */}
-                {isAdmin && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => router.push(`/portal/employees/${employee.id}/edit`)}
-                      className="gap-2"
-                    >
-                      <Edit className="h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant={isBlocked ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={handleBlockUnblock}
-                      className="gap-2"
-                    >
-                      {isBlocked ? (
-                        <>
-                          <Unlock className="h-4 w-4" />
-                          Unblock
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="h-4 w-4" />
-                          Block
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setDeleteDialogOpen(true)}
-                      className="gap-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </Button>
-                  </div>
-                )}
               </div>
-
-              {/* Quick Info Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">ID:</span>
-                  <span className="font-medium">{employee.employee_id}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => copyToClipboard(employee.employee_id, 'Employee ID')}
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Email:</span>
-                  <span className="font-medium">{employee.email}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Phone:</span>
-                  <span className="font-medium">{employee.phone}</span>
-                </div>
-              </div>
-
-              {/* Block Reason */}
-              {isBlocked && employee.block_reason && (
-                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-destructive">Block Reason</p>
-                      <p className="text-sm text-muted-foreground mt-1">{employee.block_reason}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
+
+            {/* Action Buttons - Full width on mobile */}
+            {isAdmin && (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/portal/employees/${employee.id}/edit`)}
+                  className="gap-1.5 sm:gap-2 flex-1 sm:flex-none text-xs sm:text-sm"
+                >
+                  <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span>Edit</span>
+                </Button>
+                <Button
+                  variant={isBlocked ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={handleBlockUnblock}
+                  className="gap-1.5 sm:gap-2 flex-1 sm:flex-none text-xs sm:text-sm"
+                >
+                  {isBlocked ? (
+                    <>
+                      <Unlock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span>Unblock</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      <span>Block</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="gap-1.5 sm:gap-2 flex-1 sm:flex-none text-xs sm:text-sm"
+                >
+                  <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span>Delete</span>
+                </Button>
+              </div>
+            )}
+
+            {/* Quick Info Grid */}
+            <div className="grid grid-cols-1 gap-2 sm:gap-3">
+              <div className="flex items-center gap-2 text-xs sm:text-sm bg-muted/50 rounded-lg p-2 sm:p-3">
+                <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground shrink-0">ID:</span>
+                <span className="font-medium truncate">{employee.employee_id}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 ml-auto shrink-0"
+                  onClick={() => copyToClipboard(employee.employee_id, 'Employee ID')}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-2 text-xs sm:text-sm bg-muted/50 rounded-lg p-2 sm:p-3">
+                <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground shrink-0">Email:</span>
+                <span className="font-medium truncate">{employee.email}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs sm:text-sm bg-muted/50 rounded-lg p-2 sm:p-3">
+                <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground shrink-0">Phone:</span>
+                <span className="font-medium">{employee.phone}</span>
+              </div>
+            </div>
+
+            {/* Block Reason */}
+            {isBlocked && employee.block_reason && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 sm:p-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm sm:text-base font-semibold text-destructive">Block Reason</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">{employee.block_reason}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Tabs for Detailed Information */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="personal">Personal</TabsTrigger>
-          <TabsTrigger value="employment">Employment</TabsTrigger>
-          <TabsTrigger value="payroll">Payroll</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="inline-flex w-auto min-w-full sm:grid sm:w-full sm:grid-cols-5 gap-1">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">Overview</TabsTrigger>
+            <TabsTrigger value="personal" className="text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">Personal</TabsTrigger>
+            <TabsTrigger value="employment" className="text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">Employment</TabsTrigger>
+            <TabsTrigger value="payroll" className="text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">Payroll</TabsTrigger>
+            <TabsTrigger value="documents" className="text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">Documents</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Hire Date
+        <TabsContent value="overview" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
+          <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
+            <Card className="col-span-1">
+              <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2">
+                  <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="truncate">Hire Date</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{formatDate(employee.hired_date)}</p>
+              <CardContent className="p-3 sm:p-4 pt-0">
+                <p className="text-lg sm:text-2xl font-bold truncate">{formatDate(employee.hired_date)}</p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Base Salary
+            <Card className="col-span-1">
+              <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2">
+                  <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="truncate">Base Salary</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">
+              <CardContent className="p-3 sm:p-4 pt-0">
+                <p className="text-lg sm:text-2xl font-bold">
                   ${employee.salary ? Number(employee.salary).toFixed(2) : '0.00'}
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  Portal Access
+            <Card className="col-span-2 lg:col-span-1">
+              <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2">
+                  <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="truncate">Portal Access</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold flex items-center gap-2">
+              <CardContent className="p-3 sm:p-4 pt-0">
+                <p className="text-lg sm:text-2xl font-bold flex items-center gap-2">
                   {employee.portal_enabled ? (
                     <>
-                      <CheckCircle className="h-6 w-6 text-green-600" />
-                      Enabled
+                      <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+                      <span>Enabled</span>
                     </>
                   ) : (
                     <>
-                      <XCircle className="h-6 w-6 text-red-600" />
-                      Disabled
+                      <XCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
+                      <span>Disabled</span>
                     </>
                   )}
                 </p>
@@ -430,21 +436,21 @@ export default function EmployeeDetailsClient({
           {/* Performance Stats */}
           {(employee.total_orders_taken > 0 || employee.total_tips > 0) && (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
+              <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-3">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
                   Performance Stats
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Orders</p>
-                    <p className="text-2xl font-bold">{employee.total_orders_taken}</p>
+              <CardContent className="p-3 sm:p-6 pt-0">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <p className="text-xs sm:text-sm text-muted-foreground">Total Orders</p>
+                    <p className="text-xl sm:text-2xl font-bold">{employee.total_orders_taken}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Tips</p>
-                    <p className="text-2xl font-bold">
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <p className="text-xs sm:text-sm text-muted-foreground">Total Tips</p>
+                    <p className="text-xl sm:text-2xl font-bold">
                       ${employee.total_tips ? Number(employee.total_tips).toFixed(2) : '0.00'}
                     </p>
                   </div>
@@ -456,14 +462,14 @@ export default function EmployeeDetailsClient({
           {/* Notes */}
           {employee.notes && (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
+              <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-3">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                   Notes
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+              <CardContent className="p-3 sm:p-6 pt-0">
+                <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap">
                   {employee.notes}
                 </p>
               </CardContent>
@@ -472,56 +478,56 @@ export default function EmployeeDetailsClient({
         </TabsContent>
 
         {/* Personal Tab */}
-        <TabsContent value="personal" className="space-y-4">
+        <TabsContent value="personal" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
+            <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg">Personal Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Full Name</label>
-                  <p className="text-base font-medium mt-1">{employee.name}</p>
+            <CardContent className="p-3 sm:p-6 pt-0 space-y-3 sm:space-y-4">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                  <label className="text-xs sm:text-sm font-medium text-muted-foreground">Full Name</label>
+                  <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1 truncate">{employee.name}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Email</label>
-                  <p className="text-base font-medium mt-1">{employee.email}</p>
+                <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                  <label className="text-xs sm:text-sm font-medium text-muted-foreground">Email</label>
+                  <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1 truncate">{employee.email}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Phone</label>
-                  <p className="text-base font-medium mt-1">{employee.phone}</p>
+                <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                  <label className="text-xs sm:text-sm font-medium text-muted-foreground">Phone</label>
+                  <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1">{employee.phone}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Date of Birth</label>
-                  <p className="text-base font-medium mt-1">{formatDate(employee.date_of_birth)}</p>
+                <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                  <label className="text-xs sm:text-sm font-medium text-muted-foreground">Date of Birth</label>
+                  <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1">{formatDate(employee.date_of_birth)}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Droplet className="h-4 w-4" />
+                <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                  <label className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                    <Droplet className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     Blood Group
                   </label>
-                  <p className="text-base font-medium mt-1">{employee.blood_group || 'N/A'}</p>
+                  <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1">{employee.blood_group || 'N/A'}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Address</label>
-                  <p className="text-base font-medium mt-1">{employee.address || 'N/A'}</p>
+                <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                  <label className="text-xs sm:text-sm font-medium text-muted-foreground">Address</label>
+                  <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1">{employee.address || 'N/A'}</p>
                 </div>
               </div>
 
               <Separator />
 
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Emergency Contact</h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Name</label>
-                    <p className="text-base font-medium mt-1">
+                <h3 className="text-base sm:text-lg font-semibold">Emergency Contact</h3>
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                  <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                    <label className="text-xs sm:text-sm font-medium text-muted-foreground">Name</label>
+                    <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1">
                       {employee.emergency_contact_name || 'N/A'}
                     </p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Phone</label>
-                    <p className="text-base font-medium mt-1">
+                  <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                    <label className="text-xs sm:text-sm font-medium text-muted-foreground">Phone</label>
+                    <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1">
                       {employee.emergency_contact || 'N/A'}
                     </p>
                   </div>
@@ -532,53 +538,53 @@ export default function EmployeeDetailsClient({
         </TabsContent>
 
         {/* Employment Tab */}
-        <TabsContent value="employment" className="space-y-4">
+        <TabsContent value="employment" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Employment Details</CardTitle>
+            <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg">Employment Details</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Employee ID</label>
-                  <p className="text-base font-medium mt-1">{employee.employee_id}</p>
+            <CardContent className="p-3 sm:p-6 pt-0 space-y-3 sm:space-y-4">
+              <div className="grid gap-3 sm:gap-4 grid-cols-2">
+                <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                  <label className="text-xs sm:text-sm font-medium text-muted-foreground">Employee ID</label>
+                  <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1 truncate">{employee.employee_id}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Role</label>
-                  <div className="mt-1">
-                    <Badge variant={ROLE_COLORS[employee.role as keyof typeof ROLE_COLORS] as any}>
+                <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                  <label className="text-xs sm:text-sm font-medium text-muted-foreground">Role</label>
+                  <div className="mt-0.5 sm:mt-1">
+                    <Badge variant={ROLE_COLORS[employee.role as keyof typeof ROLE_COLORS] as any} className="text-[10px] sm:text-xs">
                       {ROLE_LABELS[employee.role as keyof typeof ROLE_LABELS]}
                     </Badge>
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Status</label>
-                  <div className="mt-1">
-                    <Badge variant={STATUS_COLORS[employee.status as keyof typeof STATUS_COLORS] as any}>
+                <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                  <label className="text-xs sm:text-sm font-medium text-muted-foreground">Status</label>
+                  <div className="mt-0.5 sm:mt-1">
+                    <Badge variant={STATUS_COLORS[employee.status as keyof typeof STATUS_COLORS] as any} className="text-[10px] sm:text-xs">
                       {employee.status}
                     </Badge>
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Hire Date</label>
-                  <p className="text-base font-medium mt-1">{formatDate(employee.hired_date)}</p>
+                <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                  <label className="text-xs sm:text-sm font-medium text-muted-foreground">Hire Date</label>
+                  <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1">{formatDate(employee.hired_date)}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">License ID</label>
-                  <p className="text-base font-medium mt-1">{employee.license_id || 'N/A'}</p>
+                <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                  <label className="text-xs sm:text-sm font-medium text-muted-foreground">License ID</label>
+                  <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1 truncate">{employee.license_id || 'N/A'}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Last Login</label>
-                  <p className="text-base font-medium mt-1">{formatDate(employee.last_login)}</p>
+                <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                  <label className="text-xs sm:text-sm font-medium text-muted-foreground">Last Login</label>
+                  <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1">{formatDate(employee.last_login)}</p>
                 </div>
               </div>
 
               <Separator />
 
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Permissions</h3>
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <pre className="text-xs overflow-auto">
+                <h3 className="text-base sm:text-lg font-semibold">Permissions</h3>
+                <div className="bg-muted/50 rounded-lg p-3 sm:p-4">
+                  <pre className="text-[10px] sm:text-xs overflow-auto max-h-40">
                     {JSON.stringify(employee.permissions || {}, null, 2)}
                   </pre>
                 </div>
@@ -588,38 +594,38 @@ export default function EmployeeDetailsClient({
         </TabsContent>
 
         {/* Payroll Tab */}
-        <TabsContent value="payroll" className="space-y-4">
+        <TabsContent value="payroll" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Payroll Information</CardTitle>
+            <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg">Payroll Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-3 sm:p-6 pt-0 space-y-3 sm:space-y-4">
               {payroll ? (
                 <>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Base Salary</label>
-                      <p className="text-2xl font-bold mt-1">
+                  <div className="grid gap-3 sm:gap-4 grid-cols-2">
+                    <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                      <label className="text-xs sm:text-sm font-medium text-muted-foreground">Base Salary</label>
+                      <p className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1">
                         ${payroll.payroll_settings?.base_salary || employee.salary ? 
                           Number(payroll.payroll_settings?.base_salary || employee.salary).toFixed(2) : 
                           '0.00'}
                       </p>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Payment Frequency</label>
-                      <p className="text-base font-medium mt-1 capitalize">
+                    <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                      <label className="text-xs sm:text-sm font-medium text-muted-foreground">Frequency</label>
+                      <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1 capitalize">
                         {payroll.payroll_settings?.payment_frequency || 'Monthly'}
                       </p>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Total Paid</label>
-                      <p className="text-2xl font-bold mt-1 text-green-600">
+                    <div className="bg-green-500/10 rounded-lg p-2.5 sm:p-3">
+                      <label className="text-xs sm:text-sm font-medium text-muted-foreground">Total Paid</label>
+                      <p className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1 text-green-600">
                         ${Number(payroll.total_paid || 0).toFixed(2)}
                       </p>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Pending Amount</label>
-                      <p className="text-2xl font-bold mt-1 text-orange-600">
+                    <div className="bg-orange-500/10 rounded-lg p-2.5 sm:p-3">
+                      <label className="text-xs sm:text-sm font-medium text-muted-foreground">Pending</label>
+                      <p className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1 text-orange-600">
                         ${Number(payroll.pending_amount || 0).toFixed(2)}
                       </p>
                     </div>
@@ -630,39 +636,39 @@ export default function EmployeeDetailsClient({
                     <>
                       <Separator />
                       <div className="space-y-2">
-                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                          <CreditCard className="h-5 w-5" />
+                        <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
                           Bank Details
                         </h3>
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                           {payroll.payroll_settings.bank_details.account_number && (
-                            <div>
-                              <label className="text-sm font-medium text-muted-foreground">Account Number</label>
-                              <p className="text-base font-medium mt-1">
+                            <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                              <label className="text-xs sm:text-sm font-medium text-muted-foreground">Account Number</label>
+                              <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1">
                                 {payroll.payroll_settings.bank_details.account_number}
                               </p>
                             </div>
                           )}
                           {payroll.payroll_settings.bank_details.bank_name && (
-                            <div>
-                              <label className="text-sm font-medium text-muted-foreground">Bank Name</label>
-                              <p className="text-base font-medium mt-1">
+                            <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                              <label className="text-xs sm:text-sm font-medium text-muted-foreground">Bank Name</label>
+                              <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1">
                                 {payroll.payroll_settings.bank_details.bank_name}
                               </p>
                             </div>
                           )}
                           {payroll.payroll_settings.bank_details.account_holder_name && (
-                            <div>
-                              <label className="text-sm font-medium text-muted-foreground">Account Holder</label>
-                              <p className="text-base font-medium mt-1">
+                            <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                              <label className="text-xs sm:text-sm font-medium text-muted-foreground">Account Holder</label>
+                              <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1">
                                 {payroll.payroll_settings.bank_details.account_holder_name}
                               </p>
                             </div>
                           )}
                           {payroll.payroll_settings.bank_details.branch && (
-                            <div>
-                              <label className="text-sm font-medium text-muted-foreground">Branch</label>
-                              <p className="text-base font-medium mt-1">
+                            <div className="bg-muted/30 rounded-lg p-2.5 sm:p-3">
+                              <label className="text-xs sm:text-sm font-medium text-muted-foreground">Branch</label>
+                              <p className="text-sm sm:text-base font-medium mt-0.5 sm:mt-1">
                                 {payroll.payroll_settings.bank_details.branch}
                               </p>
                             </div>
@@ -676,32 +682,34 @@ export default function EmployeeDetailsClient({
                     <>
                       <Separator />
                       <div className="space-y-2">
-                        <h3 className="text-lg font-semibold">Recent Payslips</h3>
+                        <h3 className="text-base sm:text-lg font-semibold">Recent Payslips</h3>
                         <div className="space-y-2">
                           {payroll.recent_payslips.map((payslip: any) => (
                             <div
                               key={payslip.id}
-                              className="border rounded-lg p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                              className="border rounded-lg p-3 sm:p-4 hover:bg-muted/50 transition-colors"
                             >
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                                  <p className="font-medium">
-                                    {formatDate(payslip.period_start)} - {formatDate(payslip.period_end)}
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                    <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+                                    <p className="text-xs sm:text-sm font-medium truncate">
+                                      {formatDate(payslip.period_start)} - {formatDate(payslip.period_end)}
+                                    </p>
+                                    <Badge variant={payslip.status === 'paid' ? 'default' : 'secondary'} className="text-[10px] sm:text-xs">
+                                      {payslip.status}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                                    Net Salary: <span className="font-semibold">${Number(payslip.net_salary).toFixed(2)}</span>
                                   </p>
-                                  <Badge variant={payslip.status === 'paid' ? 'default' : 'secondary'}>
-                                    {payslip.status}
-                                  </Badge>
                                 </div>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  Net Salary: ${Number(payslip.net_salary).toFixed(2)}
-                                </p>
+                                {payslip.status === 'paid' && (
+                                  <div className="text-[10px] sm:text-xs text-muted-foreground">
+                                    Paid: {formatDate(payslip.paid_at)}
+                                  </div>
+                                )}
                               </div>
-                              {payslip.status === 'paid' && (
-                                <div className="text-sm text-muted-foreground">
-                                  Paid: {formatDate(payslip.paid_at)}
-                                </div>
-                              )}
                             </div>
                           ))}
                         </div>
@@ -710,8 +718,8 @@ export default function EmployeeDetailsClient({
                   )}
                 </>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No payroll data available</p>
+                <div className="text-center py-6 sm:py-8">
+                  <p className="text-xs sm:text-sm text-muted-foreground">No payroll data available</p>
                 </div>
               )}
             </CardContent>
@@ -719,51 +727,55 @@ export default function EmployeeDetailsClient({
         </TabsContent>
 
         {/* Documents Tab */}
-        <TabsContent value="documents" className="space-y-4">
+        <TabsContent value="documents" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
+            <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg">Documents</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6 pt-0">
               {employee.documents && employee.documents.length > 0 ? (
                 <div className="space-y-2">
                   {employee.documents.map((doc: any, index: number) => (
                     <div
                       key={index}
-                      className="border rounded-lg p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      className="border rounded-lg p-3 sm:p-4 hover:bg-muted/50 transition-colors"
                     >
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{doc.name || `Document ${index + 1}`}</p>
-                          <p className="text-sm text-muted-foreground">{doc.type || 'Unknown type'}</p>
+                      <div className="flex items-start sm:items-center gap-2 sm:gap-3">
+                        <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0 mt-0.5 sm:mt-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm sm:text-base font-medium truncate">{doc.name || `Document ${index + 1}`}</p>
+                              <p className="text-xs sm:text-sm text-muted-foreground">{doc.type || 'Unknown type'}</p>
+                            </div>
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              {doc.verified && (
+                                <Badge variant="default" className="gap-1 text-[10px] sm:text-xs">
+                                  <Verified className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                  Verified
+                                </Badge>
+                              )}
+                              <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0" asChild>
+                                <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                  <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                </a>
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0" asChild>
+                                <a href={doc.url} download>
+                                  <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                </a>
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {doc.verified && (
-                          <Badge variant="default" className="gap-1">
-                            <Verified className="h-3 w-3" />
-                            Verified
-                          </Badge>
-                        )}
-                        <Button variant="ghost" size="sm" asChild>
-                          <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                            <Eye className="h-4 w-4" />
-                          </a>
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <a href={doc.url} download>
-                            <Download className="h-4 w-4" />
-                          </a>
-                        </Button>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No documents uploaded</p>
+                <div className="text-center py-6 sm:py-8">
+                  <FileText className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                  <p className="text-xs sm:text-sm text-muted-foreground">No documents uploaded</p>
                 </div>
               )}
             </CardContent>

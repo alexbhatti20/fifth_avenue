@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
     response.cookies.set('auth_token', '', cookieOptions);
     response.cookies.set('auth-token', '', cookieOptions);
     response.cookies.set('sb-access-token', '', cookieOptions);
+    response.cookies.set('sb-refresh-token', '', cookieOptions);
 
     return response;
 
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
     response.cookies.set('auth_token', '', cookieOptions);
     response.cookies.set('auth-token', '', cookieOptions);
     response.cookies.set('sb-access-token', '', cookieOptions);
+    response.cookies.set('sb-refresh-token', '', cookieOptions);
 
     return response;
   }

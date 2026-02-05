@@ -867,20 +867,21 @@ export default function CustomersClient({ initialCustomers, initialStats }: Cust
                 </p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Orders</TableHead>
-                    <TableHead>Points</TableHead>
-                    <TableHead>Last Order</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[180px]">Customer</TableHead>
+                      <TableHead className="min-w-[110px]">Phone</TableHead>
+                      <TableHead className="min-w-[80px]">Status</TableHead>
+                      <TableHead className="min-w-[70px]">Orders</TableHead>
+                      <TableHead className="min-w-[70px]">Points</TableHead>
+                      <TableHead className="min-w-[100px]">Last Order</TableHead>
+                      <TableHead className="min-w-[90px]">Joined</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {customers.map((customer) => (
                       <Fragment key={customer.customer_id}>
                         <TableRow className="group">
@@ -904,6 +905,7 @@ export default function CustomersClient({ initialCustomers, initialStats }: Cust
                     ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>

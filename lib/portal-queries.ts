@@ -30,6 +30,7 @@
 
 import { supabase, isSupabaseConfigured, createAuthenticatedClient } from './supabase';
 import { redis, CACHE_KEYS, getFromCache, setInCache } from './redis';
+import { deduplicateRequest, CACHE_KEYS as DEDUP_KEYS, clearRequestCache } from './request-dedup';
 import type {
   Employee,
   DashboardStats,
@@ -76,6 +77,9 @@ export function getAuthenticatedClient() {
   return supabase;
 }
 
+// Re-export clearRequestCache for logout cleanup
+export { clearRequestCache };
+
 // =============================================
 // TYPES (keep for backward compatibility)
 // =============================================
@@ -87,10 +91,37 @@ export interface HourlySales {
 }
 
 export interface HourlySalesAdvanced {
-  hourly_data: HourlySales[];
-  peak_hour: number;
-  total_orders: number;
-  total_revenue: number;
+  type?: 'hourly' | 'daily';
+  data?: Array<{
+    hour?: number;
+    date?: string;
+    sales: number;
+    orders: number;
+  }>;
+  hourly_data?: HourlySales[];  // Legacy field for backwards compatibility
+  summary?: {
+    total_sales: number;
+    total_orders: number;
+    avg_order_value: number;
+    peak_hour?: number | null;
+    peak_hour_label?: string;
+    peak_sales?: number;
+    current_hour?: number;
+    busiest_period?: string;
+    best_day?: string;
+  };
+  comparison?: {
+    yesterday_same_hour?: number;
+    last_week_same_day?: number;
+    growth_vs_yesterday?: number;
+    previous_sales?: number;
+    previous_orders?: number;
+    previous_period_sales?: number;
+    previous_period_orders?: number;
+  };
+  peak_hour?: number;
+  total_orders?: number;
+  total_revenue?: number;
 }
 
 export interface DeliveryRider {
@@ -373,27 +404,37 @@ export const PORTAL_CACHE_KEYS = {
 export async function getCurrentEmployee(): Promise<Employee | null> {
   if (!isSupabaseConfigured) return null;
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  
-  if (process.env.NODE_ENV === 'development' && authError && authError.message !== 'Auth session missing!') {
-  }
-  
-  if (!user) {
-    return null;
-  }
-
-  const { data, error } = await getAuthenticatedClient().rpc('get_employee_by_auth_user', {
-    p_auth_user_id: user.id,
-  });
-
-  if (error || !data) {
-    if (error) {
-      console.error('getCurrentEmployee: Error fetching employee:', error);
+  // Use deduplication to prevent multiple calls
+  return deduplicateRequest(DEDUP_KEYS.CURRENT_EMPLOYEE, async () => {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (process.env.NODE_ENV === 'development' && authError && authError.message !== 'Auth session missing!') {
     }
-    return null;
-  }
+    
+    if (!user) {
+      return null;
+    }
 
-  return data as Employee;
+    const { data, error } = await getAuthenticatedClient().rpc('get_employee_by_auth_user', {
+      p_auth_user_id: user.id,
+    });
+
+    if (error || !data) {
+      return null;
+    }
+
+    // RPC returns {success: boolean, data: Employee} - extract the actual employee data
+    const result = data as { success?: boolean; data?: Employee; error?: string };
+    
+    if (result.success === false || result.error) {
+      return null;
+    }
+    
+    // If data has a 'data' property, extract it; otherwise use data directly
+    const employeeData = result.data || (result as unknown as Employee);
+    
+    return employeeData as Employee;
+  }, { ttl: 5000 }); // 5 second cache
 }
 
 export async function employeeLogin(
@@ -620,16 +661,21 @@ export async function getMyNotifications(
 ): Promise<Notification[]> {
   if (!isSupabaseConfigured) return [];
 
-  const { data, error } = await getAuthenticatedClient().rpc('get_my_notifications', {
-    p_limit: limit,
-    p_unread_only: unreadOnly,
-  });
+  // Use deduplication to prevent multiple calls with same params
+  const cacheKey = `${DEDUP_KEYS.NOTIFICATIONS}:${limit}:${unreadOnly}`;
+  
+  return deduplicateRequest(cacheKey, async () => {
+    const { data, error } = await getAuthenticatedClient().rpc('get_my_notifications', {
+      p_limit: limit,
+      p_unread_only: unreadOnly,
+    });
 
-  if (error) {
-    return [];
-  }
+    if (error) {
+      return [];
+    }
 
-  return (data || []) as Notification[];
+    return (data || []) as Notification[];
+  }, { ttl: 3000 }); // 3 second cache for notifications
 }
 
 export async function markNotificationsRead(

@@ -362,45 +362,47 @@ export default function InventoryClient({
   // ============================================================================
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Package className="w-8 h-8 text-orange-500" />
-            Inventory Management
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Package className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
+            <span className="truncate">Inventory</span>
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">
             Track stock levels, manage supplies, and optimize inventory
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
             onClick={() => fetchInventory(true)}
             disabled={refreshing}
+            className="text-xs sm:text-sm h-8 sm:h-9"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={exportToCSV}
+            className="text-xs sm:text-sm h-8 sm:h-9"
           >
-            <Download className="w-4 h-4 mr-2" />
-            Export
+            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+            <span className="hidden sm:inline">Export</span>
           </Button>
           <Button
             onClick={() => {
               setEditingItem(null)
               setShowItemDialog(true)
             }}
-            className="bg-orange-500 hover:bg-orange-600"
+            className="bg-orange-500 hover:bg-orange-600 text-xs sm:text-sm h-8 sm:h-9 flex-1 sm:flex-none"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
             Add Item
           </Button>
         </div>
@@ -410,90 +412,95 @@ export default function InventoryClient({
       <InventoryStatsCards summary={summary} />
 
       {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="inventory" className="flex items-center gap-2">
-            <Package className="w-4 h-4" />
-            Inventory
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />
-            Analytics
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 sm:space-y-4">
+        <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+          <TabsList className="w-auto inline-flex">
+            <TabsTrigger value="inventory" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-3 sm:px-4">
+              <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>Inventory</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-3 sm:px-4">
+              <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>Analytics</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="inventory" className="space-y-4">
+        <TabsContent value="inventory" className="space-y-3 sm:space-y-4">
           {/* Filters Bar */}
           <Card>
-            <CardContent className="p-4">
-              <div className="flex flex-col lg:flex-row gap-4">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex flex-col gap-3 sm:gap-4">
                 {/* Search */}
-                <div className="relative flex-1">
+                <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
-                    placeholder="Search by name, SKU, category, or location..."
+                    placeholder="Search items..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 h-9 sm:h-10 text-sm"
                   />
                 </div>
 
-                {/* Category Filter */}
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-full lg:w-48">
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {CATEGORIES.map(cat => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.icon} {cat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* Filters Row */}
+                <div className="flex flex-wrap gap-2">
+                  {/* Category Filter */}
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-full sm:w-40 h-8 sm:h-9 text-xs sm:text-sm">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {CATEGORIES.map(cat => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.icon} {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                {/* Status Filter */}
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full lg:w-40">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="in_stock">🟢 In Stock</SelectItem>
-                    <SelectItem value="low_stock">🟠 Low Stock</SelectItem>
-                    <SelectItem value="out_of_stock">🔴 Out of Stock</SelectItem>
-                  </SelectContent>
-                </Select>
+                  {/* Status Filter */}
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-36 h-8 sm:h-9 text-xs sm:text-sm">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="in_stock">🟢 In Stock</SelectItem>
+                      <SelectItem value="low_stock">🟠 Low Stock</SelectItem>
+                      <SelectItem value="out_of_stock">🔴 Out of Stock</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                {/* View Mode Toggle */}
-                <div className="flex items-center border rounded-md">
-                  <Button
-                    variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('table')}
-                    className="rounded-r-none"
-                  >
-                    <List className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('grid')}
-                    className="rounded-l-none"
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                  </Button>
+                  {/* View Mode Toggle */}
+                  <div className="flex items-center border rounded-md ml-auto">
+                    <Button
+                      variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('table')}
+                      className="rounded-r-none h-8 sm:h-9 px-2 sm:px-3"
+                    >
+                      <List className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('grid')}
+                      className="rounded-l-none h-8 sm:h-9 px-2 sm:px-3"
+                    >
+                      <Grid3X3 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
               {/* Active Filters */}
               {(searchTerm || categoryFilter !== 'all' || statusFilter !== 'all') && (
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t">
-                  <span className="text-sm text-gray-500">Active filters:</span>
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t flex-wrap">
+                  <span className="text-xs text-gray-500">Filters:</span>
                   {searchTerm && (
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      Search: {searchTerm}
+                    <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                      {searchTerm.slice(0, 10)}{searchTerm.length > 10 && '...'}
                       <X
                         className="w-3 h-3 cursor-pointer"
                         onClick={() => setSearchTerm('')}
@@ -501,8 +508,8 @@ export default function InventoryClient({
                     </Badge>
                   )}
                   {categoryFilter !== 'all' && (
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      Category: {categoryFilter}
+                    <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                      {categoryFilter}
                       <X
                         className="w-3 h-3 cursor-pointer"
                         onClick={() => setCategoryFilter('all')}
@@ -510,8 +517,8 @@ export default function InventoryClient({
                     </Badge>
                   )}
                   {statusFilter !== 'all' && (
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      Status: {statusFilter}
+                    <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                      {statusFilter.replace('_', ' ')}
                       <X
                         className="w-3 h-3 cursor-pointer"
                         onClick={() => setStatusFilter('all')}
@@ -521,13 +528,14 @@ export default function InventoryClient({
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="h-6 text-xs px-2"
                     onClick={() => {
                       setSearchTerm('')
                       setCategoryFilter('all')
                       setStatusFilter('all')
                     }}
                   >
-                    Clear all
+                    Clear
                   </Button>
                 </div>
               )}
@@ -535,26 +543,28 @@ export default function InventoryClient({
           </Card>
 
           {/* Results Info & Bulk Actions */}
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {filteredItems.length} of {items.length} items
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              {filteredItems.length} of {items.length} items
             </p>
             {selectedIds.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">{selectedIds.length} selected</Badge>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary" className="text-xs">{selectedIds.length} selected</Badge>
                 <Button
                   variant="destructive"
                   size="sm"
+                  className="h-7 text-xs"
                   onClick={handleBulkDelete}
                 >
-                  Delete Selected
+                  Delete
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="h-7 text-xs"
                   onClick={() => setSelectedIds([])}
                 >
-                  Clear Selection
+                  Clear
                 </Button>
               </div>
             )}
@@ -588,12 +598,12 @@ export default function InventoryClient({
           />
         </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-6">
+        <TabsContent value="analytics" className="space-y-4 sm:space-y-6">
           {/* Extended Stats */}
           <InventoryExtendedStats summary={summary} />
 
           {/* Alerts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <LowStockAlertsCard 
               items={items}
               onItemClick={(item) => {

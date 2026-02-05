@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Settings,
@@ -71,7 +71,7 @@ import { SectionHeader, usePortalAuthContext } from '@/components/portal/PortalP
 import { getAuthenticatedClient } from '@/lib/portal-queries';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { updateEmployee } from '@/lib/portal-queries';
+import { updateEmployeeProfileServer } from '@/lib/actions';
 import { uploadEmployeeAvatar } from '@/lib/storage';
 
 // Types
@@ -85,6 +85,7 @@ export interface Employee {
   avatar_url?: string;
   role: string;
   hired_date?: string;
+  employee_id?: string; // Employee ID number (e.g., EMP-001)
   is_2fa_enabled?: boolean;
 }
 
@@ -132,24 +133,44 @@ export interface SettingsData {
   websiteSettings: WebsiteSettings | null;
 }
 
-// Personal Settings - Fetches fresh data from DB via RPC
-function PersonalSettings({ employeeId }: { employeeId: string | null }) {
+// Helper to add cache busting only to regular URLs (not blob URLs)
+const getCacheBustedUrl = (url: string | null | undefined): string | null => {
+  if (!url || url.trim() === '') return null;
+  // Don't add cache busting to blob URLs - they don't support query params
+  if (url.startsWith('blob:')) return url;
+  // Add cache busting to regular URLs
+  return `${url.split('?')[0]}?t=${Date.now()}`;
+};
+
+// Personal Settings - Uses SSR data or fetches fresh from DB via RPC
+function PersonalSettings({ 
+  employeeId, 
+  initialProfile 
+}: { 
+  employeeId: string | null;
+  initialProfile?: Employee | null;
+}) {
   const { refreshEmployee } = usePortalAuthContext();
+  const hasSSRData = useRef(!!initialProfile);
+  const hasFetched = useRef(false);
+  
   const [formData, setFormData] = useState({
-    full_name: '',
-    email: '',
-    phone: '',
-    address: '',
-    emergency_contact: '',
+    full_name: initialProfile?.name || '',
+    email: initialProfile?.email || '',
+    phone: initialProfile?.phone || '',
+    address: initialProfile?.address || '',
+    emergency_contact: initialProfile?.emergency_contact || '',
   });
-  const [employeeData, setEmployeeData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [employeeData, setEmployeeData] = useState<any>(initialProfile || null);
+  const [isLoading, setIsLoading] = useState(!initialProfile);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(
+    getCacheBustedUrl(initialProfile?.avatar_url)
+  );
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   // Fetch fresh employee data from database via RPC
-  const fetchFreshData = async () => {
+  const fetchFreshData = useCallback(async () => {
     if (!employeeId) {
       setIsLoading(false);
       return;
@@ -157,7 +178,6 @@ function PersonalSettings({ employeeId }: { employeeId: string | null }) {
     
     setIsLoading(true);
     try {
-      // FIX: Removed console.log statements for production
       // Use RPC to get fresh data (bypasses RLS and localStorage)
       const { data, error } = await getAuthenticatedClient().rpc('get_employee_profile_by_id', {
         p_employee_id: employeeId
@@ -180,13 +200,8 @@ function PersonalSettings({ employeeId }: { employeeId: string | null }) {
           emergency_contact: emp.emergency_contact || '',
         });
         
-        // Set avatar with cache busting
-        if (emp.avatar_url && emp.avatar_url.trim() !== '') {
-          const cacheBustedUrl = `${emp.avatar_url.split('?')[0]}?t=${Date.now()}`;
-          setPhotoPreview(cacheBustedUrl);
-        } else {
-          setPhotoPreview(null);
-        }
+        // Set avatar with cache busting (helper handles blob URLs)
+        setPhotoPreview(getCacheBustedUrl(emp.avatar_url));
       } else {
         toast.error('Failed to load profile');
       }
@@ -195,12 +210,31 @@ function PersonalSettings({ employeeId }: { employeeId: string | null }) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Fetch on mount
-  useEffect(() => {
-    fetchFreshData();
   }, [employeeId]);
+
+  // Fetch on mount only if no SSR data was provided
+  useEffect(() => {
+    // Always skip if we have SSR data
+    if (hasSSRData.current) {
+      setIsLoading(false);
+      return;
+    }
+    // Skip if already fetched
+    if (hasFetched.current) {
+      return;
+    }
+    hasFetched.current = true;
+    fetchFreshData();
+  }, [fetchFreshData]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (photoPreview && photoPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(photoPreview);
+      }
+    };
+  }, []);
 
   // Refresh data from server
   const handleRefresh = async () => {
@@ -220,6 +254,11 @@ function PersonalSettings({ employeeId }: { employeeId: string | null }) {
         return;
       }
       
+      // Revoke old blob URL if exists to prevent memory leaks
+      if (photoPreview && photoPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(photoPreview);
+      }
+      
       setPhotoFile(file);
       const previewUrl = URL.createObjectURL(file);
       setPhotoPreview(previewUrl);
@@ -227,57 +266,106 @@ function PersonalSettings({ employeeId }: { employeeId: string | null }) {
   };
 
   const handleSave = async () => {
+    console.log('[Settings] handleSave called', { employeeId, photoFile: !!photoFile });
+    
     if (!employeeId) {
-      toast.error('Employee ID not found');
+      toast.error('Employee ID not found. Please refresh the page.');
       return;
     }
 
     setIsSubmitting(true);
+    toast.loading('Saving...', { id: 'save-profile' });
+    
+    // Add overall timeout to prevent infinite loading
+    const saveTimeout = setTimeout(() => {
+      setIsSubmitting(false);
+      toast.dismiss('save-profile');
+      toast.error('Save operation timed out. Please try again.');
+    }, 45000); // 45 second max timeout
     
     try {
       let avatarUrl = employeeData?.avatar_url || '';
       
       // Upload new avatar if selected
       if (photoFile) {
-        toast.loading('Uploading profile photo...', { id: 'upload' });
-        const uploadResult = await uploadEmployeeAvatar(photoFile, employeeId);
-        toast.dismiss('upload');
-        
-        if (!uploadResult.success || !uploadResult.url) {
-          throw new Error('Failed to upload profile photo');
+        console.log('[Settings] Uploading photo...', { fileName: photoFile.name, size: photoFile.size });
+        toast.loading('Uploading profile photo...', { id: 'save-profile' });
+        try {
+          const uploadResult = await uploadEmployeeAvatar(photoFile, employeeId);
+          console.log('[Settings] Upload result:', uploadResult);
+          
+          if (!uploadResult.success || !uploadResult.url) {
+            const errorMsg = uploadResult.error || 'Failed to upload profile photo';
+            throw new Error(errorMsg);
+          }
+          
+          avatarUrl = uploadResult.url;
+        } catch (uploadError: any) {
+          console.error('[Settings] Upload error:', uploadError);
+          throw new Error(uploadError.message || 'Failed to upload profile photo');
         }
-        
-        avatarUrl = uploadResult.url;
       }
       
-      // Update employee data using RPC
-      const result = await updateEmployee(employeeId, {
+      console.log('[Settings] Updating employee...', { avatarUrl });
+      toast.loading('Updating profile...', { id: 'save-profile' });
+      
+      // Update employee data using SSR server action (hidden from browser network tab)
+      const result = await updateEmployeeProfileServer(employeeId, {
         name: formData.full_name,
         phone: formData.phone,
         address: formData.address,
         emergency_contact: formData.emergency_contact,
         avatar_url: avatarUrl,
       });
+      
+      console.log('[Settings] Update result:', result);
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to update profile');
       }
       
+      // Update local state directly
+      const updatedEmployee = {
+        ...employeeData,
+        name: formData.full_name,
+        phone: formData.phone,
+        address: formData.address,
+        emergency_contact: formData.emergency_contact,
+        avatar_url: avatarUrl,
+      };
+      setEmployeeData(updatedEmployee);
+      
+      // Revoke blob URL if exists (memory cleanup)
+      if (photoPreview && photoPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(photoPreview);
+      }
+      
       // Clear the photo file
       setPhotoFile(null);
       
-      // Fetch fresh data from database via RPC (not from localStorage/context)
-      await fetchFreshData();
+      // Set the new uploaded URL as preview immediately (with cache busting)
+      if (avatarUrl) {
+        setPhotoPreview(getCacheBustedUrl(avatarUrl));
+      }
       
-      // Also refresh context for sidebar/header
-      await refreshEmployee();
-      
-      toast.success('Profile updated successfully');
-    } catch (error: any) {
-      console.error('Error updating profile:', error);
-      toast.error(error.message || 'Failed to update profile');
-    } finally {
+      clearTimeout(saveTimeout);
       setIsSubmitting(false);
+      toast.success('Profile updated successfully');
+      
+      // Refresh context for sidebar/header AFTER success toast (non-blocking)
+      // Use setTimeout to not block the UI
+      setTimeout(async () => {
+        try {
+          await refreshEmployee();
+        } catch (e) {
+          // Silent fail
+        }
+      }, 100);
+      
+    } catch (error: any) {
+      clearTimeout(saveTimeout);
+      setIsSubmitting(false);
+      toast.error(error.message || 'Failed to update profile');
     }
   };
 
@@ -483,15 +571,20 @@ function WebsiteSettingsForm({ initialSettings }: { initialSettings: WebsiteSett
     deliveryFee: '100',
   };
 
+  const hasSSRData = useRef(!!initialSettings);
+  const hasFetched = useRef(false);
+  
   const [settings, setSettings] = useState<WebsiteSettings>(initialSettings || defaultSettings);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(!initialSettings);
 
-  // Fetch settings on mount if not provided from server
+  // Fetch settings on mount only if no SSR data
   useEffect(() => {
-    if (!initialSettings) {
-      fetchSettings();
+    if (hasSSRData.current || hasFetched.current) {
+      return;
     }
+    hasFetched.current = true;
+    fetchSettings();
   }, []);
 
   const fetchSettings = async () => {
@@ -680,15 +773,20 @@ function WebsiteSettingsForm({ initialSettings }: { initialSettings: WebsiteSett
 // Payment Methods Settings (Admin only)
 function PaymentMethodsSettings({ 
   initialMethods, 
-  initialStats 
+  initialStats,
+  hasSSRData = false 
 }: { 
   initialMethods: PaymentMethod[]; 
   initialStats: PaymentMethodsStats | null;
+  hasSSRData?: boolean;
 }) {
+  const hasSSRDataRef = useRef(hasSSRData);
+  const hasFetched = useRef(false);
+  
   const [methods, setMethods] = useState<PaymentMethod[]>(initialMethods);
   const [stats, setStats] = useState<PaymentMethodsStats | null>(initialStats);
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(initialMethods.length === 0);
+  const [initialLoading, setInitialLoading] = useState(!hasSSRData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null);
@@ -702,11 +800,14 @@ function PaymentMethodsSettings({
     display_order: 0,
   });
 
-  // Fetch data on mount if not provided from server
+  // Fetch data on mount only if no SSR data
   useEffect(() => {
-    if (initialMethods.length === 0) {
-      fetchMethods();
+    if (hasSSRDataRef.current || hasFetched.current) {
+      setInitialLoading(false);
+      return;
     }
+    hasFetched.current = true;
+    fetchMethods();
   }, []);
 
   // Refresh payment methods
@@ -1106,21 +1207,34 @@ function PaymentMethodsSettings({
 }
 
 // Security Settings Component
-function SecuritySettings({ employeeId }: { employeeId: string }) {
-  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+function SecuritySettings({ 
+  employeeId,
+  initial2FAEnabled
+}: { 
+  employeeId: string;
+  initial2FAEnabled?: boolean;
+}) {
+  const hasSSRData = useRef(initial2FAEnabled !== undefined);
+  const hasFetched = useRef(false);
+  
+  const [is2FAEnabled, setIs2FAEnabled] = useState(initial2FAEnabled || false);
   const [showSetup, setShowSetup] = useState(false);
   const [qrCode, setQrCode] = useState<string>('');
   const [secret, setSecret] = useState<string>('');
   const [manualKey, setManualKey] = useState<string>('');
   const [verificationCode, setVerificationCode] = useState('');
   const [disableCode, setDisableCode] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(initial2FAEnabled === undefined);
   const [isEnabling, setIsEnabling] = useState(false);
   const [isDisabling, setIsDisabling] = useState(false);
   const [showDisableDialog, setShowDisableDialog] = useState(false);
 
-  // Load 2FA status
+  // Load 2FA status only if no SSR data
   useEffect(() => {
+    if (hasSSRData.current || hasFetched.current) {
+      return;
+    }
+    hasFetched.current = true;
     loadStatus();
   }, []);
 
@@ -1137,7 +1251,7 @@ function SecuritySettings({ employeeId }: { employeeId: string }) {
         setIs2FAEnabled(data.is_enabled);
       }
     } catch (error) {
-      console.error('Failed to load 2FA status:', error);
+      // Silent fail
     } finally {
       setIsLoading(false);
     }
@@ -1524,12 +1638,45 @@ function SecuritySettings({ employeeId }: { employeeId: string }) {
   );
 }
 
+// Props for SSR data
+interface SettingsClientProps {
+  initialEmployeeProfile?: Employee | null;
+  initialWebsiteSettings?: WebsiteSettings | null;
+  initialPaymentMethods?: PaymentMethod[];
+  initialPaymentStats?: PaymentMethodsStats | null;
+  initial2FAStatus?: boolean;
+  hasSSRData?: boolean; // Explicitly set from server to indicate SSR data was fetched
+}
+
 // Main Settings Client Component
-export default function SettingsClient() {
-  const { employee: authEmployee, isLoading } = usePortalAuthContext();
+export default function SettingsClient({
+  initialEmployeeProfile,
+  initialWebsiteSettings,
+  initialPaymentMethods = [],
+  initialPaymentStats = null,
+  initial2FAStatus = false,
+  hasSSRData = false,
+}: SettingsClientProps) {
+  // Get context as fallback when SSR data is not available
+  const { employee: authEmployee, isLoading: contextLoading } = usePortalAuthContext();
   
-  // Convert auth employee to settings employee format
-  const employee: Employee | null = authEmployee ? {
+  // Use SSR employee data as primary, fallback to context if SSR failed
+  const ssrEmployee: Employee | null = initialEmployeeProfile ? {
+    id: initialEmployeeProfile.id,
+    name: initialEmployeeProfile.name,
+    email: initialEmployeeProfile.email,
+    phone: initialEmployeeProfile.phone || undefined,
+    address: initialEmployeeProfile.address || undefined,
+    emergency_contact: initialEmployeeProfile.emergency_contact || undefined,
+    avatar_url: initialEmployeeProfile.avatar_url || undefined,
+    role: initialEmployeeProfile.role,
+    hired_date: initialEmployeeProfile.hired_date || undefined,
+    employee_id: (initialEmployeeProfile as any).employee_id || undefined,
+    is_2fa_enabled: initialEmployeeProfile.is_2fa_enabled || false,
+  } : null;
+  
+  // Use SSR data first, then fallback to context data
+  const employee: Employee | null = ssrEmployee || (authEmployee ? {
     id: authEmployee.id,
     name: authEmployee.name,
     email: authEmployee.email,
@@ -1539,12 +1686,14 @@ export default function SettingsClient() {
     avatar_url: authEmployee.avatar_url || undefined,
     role: authEmployee.role,
     hired_date: authEmployee.hired_date || undefined,
+    employee_id: (authEmployee as any).employee_id || undefined,
     is_2fa_enabled: authEmployee.is_2fa_enabled || false,
-  } : null;
+  } : null);
   
   const isAdmin = employee?.role === 'admin';
 
-  if (isLoading) {
+  // Show loading if no SSR data and context is still loading
+  if (!hasSSRData && !employee && contextLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -1580,23 +1729,32 @@ export default function SettingsClient() {
         </TabsList>
 
         <TabsContent value="personal">
-          <PersonalSettings employeeId={employee?.id || null} />
+          <PersonalSettings 
+            employeeId={employee?.id || null} 
+            initialProfile={employee}
+          />
         </TabsContent>
 
         <TabsContent value="security">
-          {employee && <SecuritySettings employeeId={employee.id} />}
+          {employee && (
+            <SecuritySettings 
+              employeeId={employee.id} 
+              initial2FAEnabled={initial2FAStatus}
+            />
+          )}
         </TabsContent>
 
         {isAdmin && (
           <>
             <TabsContent value="payment-methods">
               <PaymentMethodsSettings 
-                initialMethods={[]} 
-                initialStats={null} 
+                initialMethods={initialPaymentMethods} 
+                initialStats={initialPaymentStats}
+                hasSSRData={hasSSRData} 
               />
             </TabsContent>
             <TabsContent value="website">
-              <WebsiteSettingsForm initialSettings={null} />
+              <WebsiteSettingsForm initialSettings={initialWebsiteSettings || null} />
             </TabsContent>
           </>
         )}

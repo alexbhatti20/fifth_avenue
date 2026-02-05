@@ -24,12 +24,12 @@ interface StatsCardsProps {
 export function InventoryStatsCards({ summary, isLoading }: StatsCardsProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         {[1, 2, 3, 4].map((i) => (
           <Card key={i} className="animate-pulse">
-            <CardContent className="p-6">
-              <div className="h-4 w-20 bg-muted rounded mb-2" />
-              <div className="h-8 w-24 bg-muted rounded" />
+            <CardContent className="p-3 sm:p-6">
+              <div className="h-3 sm:h-4 w-16 sm:w-20 bg-muted rounded mb-2" />
+              <div className="h-6 sm:h-8 w-20 sm:w-24 bg-muted rounded" />
             </CardContent>
           </Card>
         ))}
@@ -71,21 +71,21 @@ export function InventoryStatsCards({ summary, isLoading }: StatsCardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
       {stats.map((stat) => (
         <Card key={stat.title} className={cn('relative overflow-hidden', stat.alert && 'ring-1 ring-offset-1')}>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{stat.title}</p>
-                <p className="text-2xl font-bold mt-1">{stat.value}</p>
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-sm text-muted-foreground truncate">{stat.title}</p>
+                <p className="text-base sm:text-2xl font-bold mt-0.5 sm:mt-1 truncate">{stat.value}</p>
               </div>
-              <div className={cn('p-3 rounded-lg', stat.bgColor)}>
-                <stat.icon className={cn('h-5 w-5', stat.color)} />
+              <div className={cn('p-2 sm:p-3 rounded-lg shrink-0', stat.bgColor)}>
+                <stat.icon className={cn('h-4 w-4 sm:h-5 sm:w-5', stat.color)} />
               </div>
             </div>
             {stat.alert && (
-              <div className="absolute top-2 right-2">
+              <div className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
@@ -108,72 +108,72 @@ export function InventoryExtendedStats({ summary }: { summary: InventorySummary 
   );
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
       <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-green-500/10">
-              <TrendingUp className="h-4 w-4 text-green-500" />
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-green-500/10 shrink-0">
+              <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">In Stock</p>
-              <p className="text-lg font-bold">{summary.in_stock_count}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">In Stock</p>
+              <p className="text-sm sm:text-lg font-bold">{summary.in_stock_count}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-purple-500/10">
-              <Boxes className="h-4 w-4 text-purple-500" />
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-purple-500/10 shrink-0">
+              <Boxes className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Overstock</p>
-              <p className="text-lg font-bold">{summary.overstock_count}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-orange-500/10">
-              <Clock className="h-4 w-4 text-orange-500" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Expiring Soon</p>
-              <p className="text-lg font-bold">{summary.expiring_soon}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Overstock</p>
+              <p className="text-sm sm:text-lg font-bold">{summary.overstock_count}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-500/10">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-orange-500/10 shrink-0">
+              <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Expired</p>
-              <p className="text-lg font-bold">{summary.expired}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Expiring</p>
+              <p className="text-sm sm:text-lg font-bold">{summary.expiring_soon}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/10">
-              <BarChart3 className="h-4 w-4 text-blue-500" />
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-red-500/10 shrink-0">
+              <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Health Score</p>
-              <p className="text-lg font-bold">{healthScore}%</p>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Expired</p>
+              <p className="text-sm sm:text-lg font-bold">{summary.expired}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="col-span-2 sm:col-span-1">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-blue-500/10 shrink-0">
+              <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Health</p>
+              <p className="text-sm sm:text-lg font-bold">{healthScore}%</p>
             </div>
           </div>
         </CardContent>

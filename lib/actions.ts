@@ -1484,6 +1484,56 @@ export async function toggleBlockEmployeeServer(
   }
 }
 
+/**
+ * Update employee profile - Server action (SSR, hidden from browser)
+ * Uses authenticated RPC with SECURITY DEFINER
+ */
+export async function updateEmployeeProfileServer(
+  employeeId: string,
+  updates: {
+    name?: string;
+    phone?: string;
+    address?: string;
+    emergency_contact?: string;
+    avatar_url?: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data, error } = await client.rpc('update_employee_complete', {
+      p_employee_id: employeeId,
+      p_data: updates,
+    });
+
+    if (error) {
+      console.error('updateEmployeeProfileServer RPC error:', error);
+      return { 
+        success: false, 
+        error: error.message || 'Failed to update employee profile' 
+      };
+    }
+
+    if (data && !data.success) {
+      return { 
+        success: false, 
+        error: data.error || 'Failed to update employee profile' 
+      };
+    }
+
+    // Note: Not calling revalidatePath to avoid page reload
+    // Client handles local state update directly
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('updateEmployeeProfileServer error:', error);
+    return { 
+      success: false, 
+      error: error.message || 'Server error while updating employee profile' 
+    };
+  }
+}
+
 // =============================================
 // EMPLOYEE PAYROLL SERVER ACTIONS
 // =============================================

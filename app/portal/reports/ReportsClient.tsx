@@ -1383,9 +1383,9 @@ export default function ReportsClient({
         title="Reports & Analytics"
         description="View detailed reports and business analytics"
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full sm:w-40 h-8 sm:h-9 text-xs sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1397,28 +1397,30 @@ export default function ReportsClient({
                 <SelectItem value="year">This Year</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={() => handleExport('excel')}>
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Excel
-            </Button>
-            <Button variant="outline" onClick={() => handleExport('pdf')}>
-              <FileText className="h-4 w-4 mr-2" />
-              PDF
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => handleExport('excel')} size="sm" className="h-8 sm:h-9">
+                <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Excel</span>
+              </Button>
+              <Button variant="outline" onClick={() => handleExport('pdf')} size="sm" className="h-8 sm:h-9">
+                <FileText className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">PDF</span>
+              </Button>
+            </div>
           </div>
         }
       />
 
-      <Tabs defaultValue="sales" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="sales" className="gap-2">
-            <BarChart3 className="h-4 w-4" /> Sales
+      <Tabs defaultValue="sales" className="space-y-4 sm:space-y-6">
+        <TabsList className="w-full sm:w-auto h-auto flex-wrap">
+          <TabsTrigger value="sales" className="gap-1.5 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
+            <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Sales
           </TabsTrigger>
-          <TabsTrigger value="employees" className="gap-2">
-            <Users className="h-4 w-4" /> Employees
+          <TabsTrigger value="employees" className="gap-1.5 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
+            <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Staff
           </TabsTrigger>
-          <TabsTrigger value="inventory" className="gap-2">
-            <Package className="h-4 w-4" /> Inventory
+          <TabsTrigger value="inventory" className="gap-1.5 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
+            <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Stock
           </TabsTrigger>
         </TabsList>
 

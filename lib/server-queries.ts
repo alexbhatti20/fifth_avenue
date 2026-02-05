@@ -84,6 +84,117 @@ export async function getAuthenticatedClient() {
   return supabase;
 }
 
+// =============================================
+// SSR AUTH FUNCTIONS
+// Get current user info server-side from cookies
+// =============================================
+
+export interface SSRUser {
+  id: string;
+  email: string;
+  role?: string;
+  userType: 'customer' | 'employee' | 'admin' | null;
+}
+
+/**
+ * Get user type from cookies (set during login)
+ * This is the fastest SSR auth check - no DB call needed
+ */
+export async function getSSRUserType(): Promise<'customer' | 'employee' | 'admin' | null> {
+  try {
+    const cookieStore = await cookies();
+    const userType = cookieStore.get('user_type')?.value;
+    if (userType === 'customer' || userType === 'employee' || userType === 'admin') {
+      return userType;
+    }
+  } catch {}
+  return null;
+}
+
+/**
+ * Get current employee for SSR - uses auth token from cookies
+ */
+export async function getSSRCurrentEmployee() {
+  try {
+    const client = await getAuthenticatedClient();
+    const cookieStore = await cookies();
+    
+    // Fast path: check user_type first
+    const userType = cookieStore.get('user_type')?.value;
+    if (userType === 'customer') {
+      return null; // Customer, not employee
+    }
+    
+    // Get token to decode user ID
+    const token = cookieStore.get('sb-access-token')?.value || cookieStore.get('auth_token')?.value;
+    if (!token) return null;
+    
+    // Decode JWT to get user ID
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) return null;
+    
+    const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+    const authUserId = payload.sub;
+    if (!authUserId) return null;
+    
+    // Fetch employee data via RPC
+    const { data, error } = await client.rpc('get_employee_by_auth_user', {
+      p_auth_user_id: authUserId,
+    });
+    
+    if (error || !data) return null;
+    
+    // Handle RPC response wrapper
+    const result = data as { success?: boolean; data?: unknown; error?: string };
+    if (result.success === false || result.error) return null;
+    
+    return result.data || data;
+  } catch (e) {
+    console.error('[SSR] getSSRCurrentEmployee error:', e);
+    return null;
+  }
+}
+
+/**
+ * Get current customer for SSR - uses auth token from cookies
+ */
+export async function getSSRCurrentCustomer() {
+  try {
+    const client = await getAuthenticatedClient();
+    const cookieStore = await cookies();
+    
+    // Fast path: check user_type first  
+    const userType = cookieStore.get('user_type')?.value;
+    if (userType === 'employee' || userType === 'admin') {
+      return null; // Employee, not customer
+    }
+    
+    // Get token to decode user ID
+    const token = cookieStore.get('sb-access-token')?.value || cookieStore.get('auth_token')?.value;
+    if (!token) return null;
+    
+    // Decode JWT to get user ID
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) return null;
+    
+    const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+    const authUserId = payload.sub;
+    if (!authUserId) return null;
+    
+    // Fetch customer data via RPC
+    const { data, error } = await client.rpc('get_customer_by_auth_id', {
+      p_auth_user_id: authUserId,
+    });
+    
+    if (error || !data || data.length === 0) return null;
+    
+    return data[0];
+  } catch (e) {
+    console.error('[SSR] getSSRCurrentCustomer error:', e);
+    return null;
+  }
+}
+
 // Universal error logger - logs full error in dev, returns user-friendly message
 function logError(context: string, error: unknown): void {
   // Check if it's a network error for better messaging
@@ -827,21 +938,29 @@ export async function getDealsForManagement() {
 // =============================================
 
 export interface DashboardStats {
+  total_sales: number; // Date range filtered
   total_sales_today: number;
+  total_orders: number; // Date range filtered
   total_orders_today: number;
+  completed_orders: number;
+  cancelled_orders: number;
   pending_orders: number;
   preparing_orders: number;
   ready_orders: number;
+  avg_order_value: number;
   total_tables: number;
   active_tables: number;
   active_employees: number;
   present_today: number;
   low_inventory_count: number;
-  avg_order_value: number;
   delivery_orders: number;
   online_orders: number;
   walk_in_orders: number;
   dine_in_orders: number;
+  date_range?: {
+    start_date: string;
+    end_date: string;
+  };
 }
 
 export interface HourlySales {
@@ -859,21 +978,33 @@ export interface HourlySales {
 }
 
 export interface HourlySalesAdvanced {
-  hourly_data: HourlySales[];
+  type?: 'hourly' | 'daily';
+  data?: Array<{
+    hour?: number;
+    date?: string;
+    sales: number;
+    orders: number;
+  }>;
+  hourly_data?: HourlySales[];  // Legacy field for backwards compatibility
   summary: {
     total_sales: number;
     total_orders: number;
     avg_order_value: number;
-    peak_hour: number | null;
-    peak_hour_label: string;
-    peak_sales: number;
-    current_hour: number;
-    busiest_period: string;
+    peak_hour?: number | null;
+    peak_hour_label?: string;
+    peak_sales?: number;
+    current_hour?: number;
+    busiest_period?: string;
+    best_day?: string;  // For daily mode
   };
   comparison: {
-    yesterday_same_hour: number;
-    last_week_same_day: number;
-    growth_vs_yesterday: number;
+    yesterday_same_hour?: number;
+    last_week_same_day?: number;
+    growth_vs_yesterday?: number;
+    previous_sales?: number;
+    previous_orders?: number;
+    previous_period_sales?: number;
+    previous_period_orders?: number;
   };
 }
 
@@ -947,10 +1078,16 @@ export interface BillingStats {
 }
 
 // Get Admin Dashboard Stats (Server-Side) - NO CACHE for real-time order counts
-export async function getAdminDashboardStatsServer(): Promise<DashboardStats | null> {
+export async function getAdminDashboardStatsServer(
+  startDate?: string,
+  endDate?: string
+): Promise<DashboardStats | null> {
   if (!isSupabaseConfigured) return null;
 
-  const { data, error } = await (await getAuthenticatedClient()).rpc('get_admin_dashboard_stats');
+  const { data, error } = await (await getAuthenticatedClient()).rpc('get_admin_dashboard_stats', {
+    p_start_date: startDate || null,
+    p_end_date: endDate || null
+  });
 
   if (error) {
     console.error('Error fetching dashboard stats:', error);
@@ -960,12 +1097,20 @@ export async function getAdminDashboardStatsServer(): Promise<DashboardStats | n
   return data as DashboardStats;
 }
 
-// Get Hourly Sales Advanced (Server-Side)
 // Get Hourly Sales Advanced (Server-Side) - NO CACHE for authenticated data
-export async function getHourlySalesAdvancedServer(): Promise<HourlySalesAdvanced | null> {
+export async function getHourlySalesAdvancedServer(
+  startDate?: string,
+  endDate?: string
+): Promise<HourlySalesAdvanced | null> {
   if (!isSupabaseConfigured) return null;
 
-  const { data, error } = await (await getAuthenticatedClient()).rpc('get_hourly_sales_today');
+  // Use date-range version if dates provided, otherwise use today's data
+  const rpcName = startDate && endDate ? 'get_hourly_sales' : 'get_hourly_sales_today';
+  const params = startDate && endDate 
+    ? { p_start_date: startDate, p_end_date: endDate }
+    : {};
+
+  const { data, error } = await (await getAuthenticatedClient()).rpc(rpcName, params);
 
   if (error) {
     console.error('Error fetching hourly sales:', error);
@@ -3708,3 +3853,191 @@ export async function invalidateInventoryCache(): Promise<void> {
     redis.del('inventory:alerts'),
   ]);
 }
+
+// =============================================
+// SETTINGS PAGE SSR QUERIES
+// =============================================
+
+export interface SettingsEmployeeServer {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  emergency_contact?: string;
+  avatar_url?: string;
+  role: string;
+  hired_date?: string;
+  employee_id?: string;
+  is_2fa_enabled?: boolean;
+}
+
+export interface WebsiteSettingsServer {
+  siteName: string;
+  tagline: string;
+  phone: string;
+  email: string;
+  address: string;
+  openingHours: string;
+  facebook: string;
+  instagram: string;
+  twitter: string;
+  deliveryRadius: string;
+  minOrderAmount: string;
+  deliveryFee: string;
+}
+
+export interface PaymentMethodServer {
+  id: string;
+  method_type: 'jazzcash' | 'easypaisa' | 'bank';
+  method_name: string;
+  account_number: string;
+  account_holder_name: string;
+  bank_name: string | null;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaymentMethodsStatsServer {
+  total: number;
+  active: number;
+  inactive: number;
+  jazzcash: number;
+  easypaisa: number;
+  bank: number;
+}
+
+/**
+ * Get employee profile for settings page (SSR)
+ */
+export async function getEmployeeProfileServer(employeeId: string): Promise<SettingsEmployeeServer | null> {
+  if (!isSupabaseConfigured || !employeeId) {
+    return null;
+  }
+
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('get_employee_profile_by_id', {
+      p_employee_id: employeeId
+    });
+
+    if (error) {
+      console.error('[SSR] getEmployeeProfileServer error:', error.message);
+      return null;
+    }
+
+    if (data?.success && data?.employee) {
+      return data.employee as SettingsEmployeeServer;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('[SSR] getEmployeeProfileServer catch:', error);
+    return null;
+  }
+}
+
+/**
+ * Get website settings (SSR)
+ */
+export async function getWebsiteSettingsServer(): Promise<WebsiteSettingsServer | null> {
+  if (!isSupabaseConfigured) {
+    return null;
+  }
+
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('get_website_settings_internal');
+
+    if (error) {
+      console.error('[SSR] getWebsiteSettingsServer error:', error.message);
+      return null;
+    }
+
+    if (data?.settings) {
+      return data.settings as WebsiteSettingsServer;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('[SSR] getWebsiteSettingsServer catch:', error);
+    return null;
+  }
+}
+
+/**
+ * Get payment methods (SSR)
+ */
+export async function getPaymentMethodsServer(): Promise<{
+  methods: PaymentMethodServer[];
+  stats: PaymentMethodsStatsServer | null;
+}> {
+  if (!isSupabaseConfigured) {
+    return { methods: [], stats: null };
+  }
+
+  try {
+    const client = await getAuthenticatedClient();
+    
+    // Fetch payment methods
+    const { data: methods, error } = await client
+      .from('payment_methods')
+      .select('*')
+      .order('display_order', { ascending: true });
+
+    if (error) {
+      console.error('[SSR] getPaymentMethodsServer error:', error.message);
+      return { methods: [], stats: null };
+    }
+
+    // Calculate stats
+    const methodsList = methods || [];
+    const stats: PaymentMethodsStatsServer = {
+      total: methodsList.length,
+      active: methodsList.filter((m: any) => m.is_active).length,
+      inactive: methodsList.filter((m: any) => !m.is_active).length,
+      jazzcash: methodsList.filter((m: any) => m.method_type === 'jazzcash').length,
+      easypaisa: methodsList.filter((m: any) => m.method_type === 'easypaisa').length,
+      bank: methodsList.filter((m: any) => m.method_type === 'bank').length,
+    };
+
+    return {
+      methods: methodsList as PaymentMethodServer[],
+      stats
+    };
+  } catch (error) {
+    console.error('[SSR] getPaymentMethodsServer catch:', error);
+    return { methods: [], stats: null };
+  }
+}
+
+/**
+ * Get 2FA status for an employee (SSR)
+ */
+export async function get2FAStatusServer(employeeId: string): Promise<{ is_enabled: boolean }> {
+  if (!isSupabaseConfigured || !employeeId) {
+    return { is_enabled: false };
+  }
+
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client
+      .from('employees')
+      .select('is_2fa_enabled')
+      .eq('id', employeeId)
+      .single();
+
+    if (error) {
+      console.error('[SSR] get2FAStatusServer error:', error.message);
+      return { is_enabled: false };
+    }
+
+    return { is_enabled: data?.is_2fa_enabled || false };
+  } catch (error) {
+    console.error('[SSR] get2FAStatusServer catch:', error);
+    return { is_enabled: false };
+  }
+}
+

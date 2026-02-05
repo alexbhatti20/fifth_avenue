@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, createAuthenticatedClient } from '@/lib/supabase';
 import { rateLimiters } from '@/lib/redis';
 import { verifyToken } from '@/lib/jwt';
 
 // Helper to verify employee authentication
-async function verifyAuth(request: NextRequest): Promise<{ valid: boolean; error?: string; status?: number; user?: any }> {
+async function verifyAuth(request: NextRequest): Promise<{ valid: boolean; error?: string; status?: number; user?: any; token?: string }> {
   const token = request.headers.get('authorization')?.replace('Bearer ', '');
   if (!token) {
     return { valid: false, error: 'Unauthorized', status: 401 };
@@ -15,22 +15,28 @@ async function verifyAuth(request: NextRequest): Promise<{ valid: boolean; error
     return { valid: false, error: 'Invalid token', status: 401 };
   }
 
-  return { valid: true, user: decoded };
+  return { valid: true, user: decoded, token };
 }
 
 // POST /api/upload/image - Upload image to Supabase Storage
 export async function POST(request: NextRequest) {
   try {
+    console.log('[API/upload] Received upload request');
+    
     // Require authentication for uploads
     const auth = await verifyAuth(request);
     if (!auth.valid) {
+      console.error('[API/upload] Auth failed:', auth.error);
       return NextResponse.json({ error: auth.error }, { status: auth.status || 401 });
     }
+    
+    console.log('[API/upload] Auth successful, user type:', auth.user?.type);
 
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const { success } = await rateLimiters.api.limit(ip);
     
     if (!success) {
+      console.error('[API/upload] Rate limited:', ip);
       return NextResponse.json(
         { error: 'Too many requests' },
         { status: 429 }
@@ -41,6 +47,14 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
     const bucket = formData.get('bucket') as string || 'images';
     const folder = formData.get('folder') as string || 'general';
+    
+    console.log('[API/upload] File info:', { 
+      fileName: file?.name, 
+      fileSize: file?.size, 
+      fileType: file?.type,
+      bucket,
+      folder 
+    });
 
     if (!file) {
       return NextResponse.json(
@@ -78,22 +92,29 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    console.log('[API/upload] Uploading to Supabase Storage:', { bucket, fileName, hasToken: !!auth.token });
+    
+    // Use authenticated client for upload (required for RLS policies)
+    const storageClient = auth.token ? createAuthenticatedClient(auth.token) : supabase;
+    
     // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
+    const { data, error } = await storageClient.storage
       .from(bucket)
       .upload(fileName, buffer, {
         contentType: file.type,
         cacheControl: '3600',
-        upsert: false,
+        upsert: true, // Allow overwriting
       });
 
     if (error) {
-      console.error('Upload error:', error);
+      console.error('[API/upload] Storage upload error:', error);
       return NextResponse.json(
-        { error: 'Failed to upload image' },
+        { error: error.message || 'Failed to upload image' },
         { status: 500 }
       );
     }
+    
+    console.log('[API/upload] Upload successful:', data.path);
 
     // Get public URL
     const { data: publicData } = supabase.storage

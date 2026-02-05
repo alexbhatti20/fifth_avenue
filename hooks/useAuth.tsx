@@ -6,6 +6,7 @@ import {
   getAuthToken, 
   clearAuthToken 
 } from '@/lib/cookies';
+import { deduplicateRequest, CACHE_KEYS as DEDUP_KEYS, clearRequestCache } from '@/lib/request-dedup';
 
 // Use relative URLs for API calls - this always works for same-origin requests
 // No need for NEXT_PUBLIC_APP_URL which can cause CORS issues in development
@@ -127,7 +128,7 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   const fetchUser = useCallback(async () => {
-    // Prevent duplicate calls
+    // Prevent duplicate calls using both ref and deduplication
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
 
@@ -135,23 +136,39 @@ export function useAuth(): UseAuthReturn {
       // First check localStorage for persisted user
       const hasStoredUser = loadUserFromStorage();
       
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser();
+      // Skip customer fetch if user is an employee (determined during login)
+      const userType = localStorage.getItem('user_type');
+      if (userType === 'employee' || userType === 'admin') {
+        // Employee user - don't fetch customer data, just validate session
+        setIsLoading(false);
+        isFetchingRef.current = false;
+        hasFetchedRef.current = true;
+        globalAuthCache.isFetched = true;
+        return;
+      }
+      
+      // Use deduplication for getUser call
+      const authUser = await deduplicateRequest(DEDUP_KEYS.AUTH_USER, async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        return user;
+      }, { ttl: 5000 });
 
       if (authUser) {
         setAuthUser(authUser);
-        // Use RPC function to bypass RLS - this is the secure way
-        const { data: customerData, error: customerError } = await supabase.rpc('get_customer_by_auth_id', {
-          p_auth_user_id: authUser.id
-        });
+        // Use deduplication for RPC call to prevent duplicate customer fetches
+        const customerData = await deduplicateRequest(DEDUP_KEYS.CURRENT_CUSTOMER, async () => {
+          const { data, error } = await supabase.rpc('get_customer_by_auth_id', {
+            p_auth_user_id: authUser.id
+          });
+          if (error || !data || data.length === 0) return null;
+          return data[0];
+        }, { ttl: 5000 });
 
-        if (!customerError && customerData && customerData.length > 0) {
-          const customer = customerData[0];
-          setUser(customer);
-          globalAuthCache.user = customer;
+        if (customerData) {
+          setUser(customerData);
+          globalAuthCache.user = customerData;
           // Persist user data
-          localStorage.setItem('user_data', JSON.stringify(customer));
+          localStorage.setItem('user_data', JSON.stringify(customerData));
         }
         
         // Store token in both localStorage AND cookie (for SSR)
@@ -334,6 +351,8 @@ export function useAuth(): UseAuthReturn {
       const userType = data.userType as 'customer' | 'employee' | 'admin' | undefined;
       if (userType) {
         localStorage.setItem('user_type', userType);
+        // Also set cookie for SSR auth
+        document.cookie = `user_type=${userType}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
       }
 
       // Check if direct login (no OTP required)
@@ -411,6 +430,8 @@ export function useAuth(): UseAuthReturn {
       // Store userType for redirect logic
       const userType = data.userType as 'customer' | 'employee' | 'admin';
       localStorage.setItem('user_type', userType);
+      // Also set cookie for SSR auth
+      document.cookie = `user_type=${userType}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 
       // Store user data directly from response
       if (data.user) {
@@ -541,11 +562,15 @@ export function useAuth(): UseAuthReturn {
     globalAuthCache.authUser = null;
     globalAuthCache.isFetched = false;
     globalAuthCache.fetchPromise = null;
+    // Clear request deduplication cache
+    clearRequestCache();
     clearAuthToken();
     localStorage.removeItem('user_data');
     localStorage.removeItem('user_type');
     localStorage.removeItem('zoiro-cart');
     localStorage.removeItem('zoiro_guest_favorites');
+    // Clear user_type cookie for SSR
+    document.cookie = 'user_type=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     sessionStorage.clear();
     // Dispatch event for other components
     dispatchAuthChange(null);
@@ -568,6 +593,9 @@ export function useAuth(): UseAuthReturn {
     globalAuthCache.isFetched = false;
     globalAuthCache.fetchPromise = null;
     
+    // Clear request deduplication cache
+    clearRequestCache();
+    
     // Clear all storage (localStorage AND cookies)
     clearAuthToken();
     localStorage.removeItem('user_data');
@@ -575,6 +603,8 @@ export function useAuth(): UseAuthReturn {
     localStorage.removeItem('sb_access_token');
     localStorage.removeItem('zoiro-cart');
     localStorage.removeItem('zoiro_guest_favorites');
+    // Clear user_type cookie for SSR
+    document.cookie = 'user_type=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     sessionStorage.clear();
     
     // Dispatch event for other components

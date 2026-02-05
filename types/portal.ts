@@ -473,14 +473,22 @@ export interface ReportArchive {
 export interface DashboardStats {
   total_sales: number;
   total_sales_today: number;
+  total_orders: number;
   total_orders_today: number;
   total_orders_month: number;
+  completed_orders: number;
+  cancelled_orders: number;
   pending_orders: number;
+  avg_order_value: number;
   active_tables: number;
   total_tables: number;
   active_employees: number;
   present_today: number;
   low_inventory_count: number;
+  date_range?: {
+    start_date: string;
+    end_date: string;
+  };
 }
 
 export interface SalesAnalytics {

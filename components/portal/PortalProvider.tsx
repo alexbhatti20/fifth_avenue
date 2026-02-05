@@ -10,12 +10,20 @@ import { QueryProvider } from '@/lib/query-provider';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { supabase, isSupabaseConfigured, restoreSupabaseSession, setSupabaseSession } from '@/lib/supabase';
-import { getCurrentEmployee, getMyNotifications, markNotificationsRead, getAuthenticatedClient } from '@/lib/portal-queries';
+import { getCurrentEmployee, getMyNotifications, markNotificationsRead, getAuthenticatedClient, clearRequestCache } from '@/lib/portal-queries';
 import { clearPermissionsCache } from '@/lib/permissions';
 import { clearAuthToken, getAuthToken } from '@/lib/cookies';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import type { Employee, EmployeeRole, Notification } from '@/types/portal';
 import { hasPermission as checkPermission } from '@/types/portal';
+
+// Helper to sanitize avatar URLs - prevents blob URLs from being used
+function sanitizeAvatarUrl(url: string | null | undefined): string {
+  if (!url || url.trim() === '') return '';
+  // Reject blob URLs - they are temporary and not valid for storage/context
+  if (url.startsWith('blob:')) return '';
+  return url;
+}
 
 // =============================================
 // PORTAL AUTH CONTEXT - Single source of truth
@@ -70,6 +78,7 @@ export function usePortalAuthContext(): PortalAuthContextType {
 
 interface PortalProviderProps {
   children: React.ReactNode;
+  initialEmployee?: Employee | null;
 }
 
 // Loading spinner component
@@ -87,7 +96,7 @@ function LoadingSpinner() {
   );
 }
 
-export function PortalProvider({ children }: PortalProviderProps) {
+export function PortalProvider({ children, initialEmployee }: PortalProviderProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -95,8 +104,9 @@ export function PortalProvider({ children }: PortalProviderProps) {
   const audioContextRef = useRef<AudioContext | null>(null);
   
   // Auth state - managed here, shared via context
-  const [employee, setEmployee] = useState<Employee | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Initialize from SSR data if provided
+  const [employee, setEmployee] = useState<Employee | null>(initialEmployee || null);
+  const [isLoading, setIsLoading] = useState(!initialEmployee); // Skip loading if SSR data provided
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockReason, setBlockReason] = useState<string | null>(null);
   const isLoadingRef = useRef(false);
@@ -108,6 +118,20 @@ export function PortalProvider({ children }: PortalProviderProps) {
   
   const router = useRouter();
   const pathname = usePathname();
+
+  // Clean up URL query params (like ?google_login=success) after portal loads
+  useEffect(() => {
+    if (mounted && !isLoading && employee) {
+      // Clean up success query params from URL
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('google_login') || url.searchParams.has('google_register')) {
+        url.searchParams.delete('google_login');
+        url.searchParams.delete('google_register');
+        url.searchParams.delete('new_user');
+        window.history.replaceState(null, '', url.pathname);
+      }
+    }
+  }, [mounted, isLoading, employee]);
 
   // CRITICAL: Ensure body scroll is restored when mobile menu closes
   // This fixes Radix UI Dialog scroll lock not being properly cleaned up
@@ -202,8 +226,27 @@ export function PortalProvider({ children }: PortalProviderProps) {
     }
   }, [employee, loadNotifications]);
 
-  // Load employee data - only called once
+  // Load employee data - only called once, skip if SSR data provided
   const loadEmployee = useCallback(async () => {
+    // Always restore session for client-side operations (even with SSR data)
+    const accessToken = localStorage.getItem('sb_access_token') || localStorage.getItem('auth_token');
+    const refreshToken = localStorage.getItem('sb_refresh_token');
+    if (accessToken) {
+      await setSupabaseSession(accessToken, refreshToken || undefined);
+    }
+    
+    // Skip if SSR already provided employee data
+    if (initialEmployee) {
+      if (initialEmployee.portal_enabled === false) {
+        setIsBlocked(true);
+        setBlockReason(initialEmployee.block_reason || 'Your portal access has been disabled.');
+      }
+      hasLoadedRef.current = true;
+      isLoadingRef.current = false;
+      setIsLoading(false);
+      return;
+    }
+    
     if (isLoadingRef.current || hasLoadedRef.current) return;
     isLoadingRef.current = true;
     
@@ -213,10 +256,21 @@ export function PortalProvider({ children }: PortalProviderProps) {
       return;
     }
 
+    // Skip employee fetch if user is a customer (determined during login)
+    const userType = localStorage.getItem('user_type');
+    if (userType === 'customer') {
+      // Customer user - redirect to customer portal
+      setIsLoading(false);
+      isLoadingRef.current = false;
+      router.push('/');
+      return;
+    }
+
     try {
       // IMPORTANT: Restore Supabase session from cookies/localStorage first
       // This ensures auth.uid() works correctly in RLS policies
       const sessionRestored = await restoreSupabaseSession();
+      
       if (!sessionRestored) {
         // Try to restore from localStorage tokens
         const accessToken = localStorage.getItem('sb_access_token') || localStorage.getItem('auth_token');
@@ -226,6 +280,7 @@ export function PortalProvider({ children }: PortalProviderProps) {
         }
       }
 
+      // getCurrentEmployee() handles auth.getUser() internally - no need to call it here
       const emp = await getCurrentEmployee();
       if (emp) {
         if (emp.portal_enabled === false) {
@@ -241,12 +296,13 @@ export function PortalProvider({ children }: PortalProviderProps) {
           if (existingData) {
             const parsed = JSON.parse(existingData);
             // Only store essential non-sensitive data in localStorage
+            // Sanitize avatar_url to prevent blob URLs
             const updatedData = {
               id: parsed.id,
               email: parsed.email,
               name: emp.name,
               role: emp.role,
-              avatar_url: emp.avatar_url,
+              avatar_url: sanitizeAvatarUrl(emp.avatar_url),
               is_2fa_enabled: emp.is_2fa_enabled,
             };
             localStorage.setItem('user_data', JSON.stringify(updatedData));
@@ -258,13 +314,24 @@ export function PortalProvider({ children }: PortalProviderProps) {
         return;
       }
 
-      // Fallback: Check localStorage
+      // Fallback: Check localStorage - only use as fallback if we have proper employee data
       const userData = localStorage.getItem('user_data');
       const userType = localStorage.getItem('user_type');
       
+      // Only use localStorage if user_type is admin/employee AND we have valid employee_id
       if (userData && (userType === 'admin' || userType === 'employee')) {
         try {
           const parsed = JSON.parse(userData);
+          
+          // IMPORTANT: Only use localStorage fallback if we have BOTH a valid employee_id AND database ID
+          // If we only have auth_user_id, that means the localStorage was set incorrectly
+          if (!parsed.employee_id || !parsed.id || parsed.id === parsed.auth_user_id) {
+            // Clear invalid data
+            localStorage.removeItem('user_data');
+            localStorage.removeItem('user_type');
+            setEmployee(null);
+            return;
+          }
           
           let portalEnabled = true;
           let blockReasonText: string | null = null;
@@ -287,7 +354,7 @@ export function PortalProvider({ children }: PortalProviderProps) {
             phone: parsed.phone || '',
             address: parsed.address || '',
             emergency_contact: parsed.emergency_contact || '',
-            avatar_url: parsed.avatar_url || '',
+            avatar_url: sanitizeAvatarUrl(parsed.avatar_url),
             hired_date: parsed.hired_date || '',
             role: parsed.role || userType,
             status: 'active',
@@ -308,6 +375,7 @@ export function PortalProvider({ children }: PortalProviderProps) {
           hasLoadedRef.current = true;
           return;
         } catch (e) {
+          // Error parsing localStorage
           }
       }
 
@@ -329,7 +397,11 @@ export function PortalProvider({ children }: PortalProviderProps) {
       
       if (emp) {
         // Create a new object to ensure React detects the change
-        const freshEmployee = { ...emp };
+        // Sanitize avatar_url to prevent blob URLs from being stored
+        const freshEmployee = { 
+          ...emp,
+          avatar_url: sanitizeAvatarUrl(emp.avatar_url)
+        };
         setEmployee(freshEmployee);
         
         // FIX #9: Update localStorage with minimal non-sensitive data only
@@ -342,7 +414,7 @@ export function PortalProvider({ children }: PortalProviderProps) {
               email: parsed.email,
               name: emp.name,
               role: emp.role,
-              avatar_url: emp.avatar_url,
+              avatar_url: sanitizeAvatarUrl(emp.avatar_url),
               is_2fa_enabled: emp.is_2fa_enabled,
             };
             localStorage.setItem('user_data', JSON.stringify(updatedData));
@@ -358,10 +430,30 @@ export function PortalProvider({ children }: PortalProviderProps) {
 
   // Fast logout
   const fastLogout = useCallback(() => {
+    // Clear request deduplication cache
+    clearRequestCache();
+    
+    // Clear all auth-related localStorage items
     clearAuthToken();
     localStorage.removeItem('user_data');
     localStorage.removeItem('user_type');
     localStorage.removeItem('portal_sidebar_collapsed');
+    localStorage.removeItem('sb_access_token');
+    localStorage.removeItem('sb_refresh_token');
+    localStorage.removeItem('auth_token');
+    // Clear any Supabase auth storage keys
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-') || key.includes('supabase')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Clear all auth cookies
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'user_type=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    
     clearPermissionsCache();
     sessionStorage.clear();
     setEmployee(null);
@@ -373,10 +465,30 @@ export function PortalProvider({ children }: PortalProviderProps) {
 
   // Async logout
   const logout = useCallback(async () => {
+    // Clear request deduplication cache
+    clearRequestCache();
+    
+    // Clear all auth-related localStorage items
     clearAuthToken();
     localStorage.removeItem('user_data');
     localStorage.removeItem('user_type');
     localStorage.removeItem('portal_sidebar_collapsed');
+    localStorage.removeItem('sb_access_token');
+    localStorage.removeItem('sb_refresh_token');
+    localStorage.removeItem('auth_token');
+    // Clear any Supabase auth storage keys
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-') || key.includes('supabase')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Clear all auth cookies
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'user_type=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    
     clearPermissionsCache();
     sessionStorage.clear();
     setEmployee(null);
@@ -388,7 +500,8 @@ export function PortalProvider({ children }: PortalProviderProps) {
         fetch('/api/auth/logout', { method: 'POST' })
       ]);
     } catch (e) {
-      }
+      // Silent fail
+    }
   }, [router]);
 
   // Has permission check
@@ -625,6 +738,13 @@ export function PortalProvider({ children }: PortalProviderProps) {
       const userType = localStorage.getItem('user_type');
       const authToken = getAuthToken();
       const hasLocalAuth = (userType === 'admin' || userType === 'employee') && authToken;
+      
+      // If user is a customer (not employee/admin), redirect them away from portal
+      if (userType === 'customer') {
+        localStorage.removeItem('user_type'); // Clear to prevent loop
+        router.push('/');
+        return;
+      }
       
       if (!isAuthenticated && !hasLocalAuth && !isAuthPage) {
         router.push('/auth');

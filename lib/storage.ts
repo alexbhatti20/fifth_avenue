@@ -1,6 +1,5 @@
-import { createClient } from '@/lib/supabase';
-
-const supabase = createClient();
+import { supabase, createAuthenticatedClient } from '@/lib/supabase';
+import { getAuthToken } from '@/lib/cookies';
 
 // Storage bucket types
 export type StorageBucket = 'images' | 'avatars' | 'reviews' | 'documents';
@@ -142,7 +141,6 @@ export async function uploadImage(
         uploadFile = await compressImage(file, options);
         extension = options.format || 'webp';
       } catch (compressError) {
-        console.warn('Image compression failed, uploading original:', compressError);
         // Continue with original file if compression fails
       }
     }
@@ -200,7 +198,31 @@ export async function uploadSiteImage(file: File): Promise<UploadResult> {
 }
 
 /**
- * Upload an avatar/profile image
+ * Get an authenticated Supabase client using cookie-based JWT
+ * Required for storage operations in the portal
+ */
+function getStorageAuthClient() {
+  const token = getAuthToken();
+  if (token) {
+    return createAuthenticatedClient(token);
+  }
+  return supabase;
+}
+
+/**
+ * Helper to add timeout to a promise
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error(errorMessage)), ms)
+    )
+  ]);
+}
+
+/**
+ * Upload an avatar/profile image via API route (more reliable)
  * @param file - File to upload
  * @param folder - Folder within avatars bucket (customers, employees)
  * @param userId - Optional user ID for organizing files
@@ -212,25 +234,54 @@ export async function uploadAvatar(
   userId?: string
 ): Promise<UploadResult> {
   try {
-    const fileName = generateFileName(file.name);
-    const filePath = userId 
-      ? `${folder}/${userId}/${fileName}`
-      : `${folder}/${fileName}`;
+    console.log('[uploadAvatar] Starting upload', { folder, userId, fileName: file.name, fileSize: file.size });
+    
+    const token = getAuthToken();
+    
+    if (!token) {
+      console.error('[uploadAvatar] No auth token found');
+      return { success: false, error: 'No authentication token. Please log in again.' };
+    }
+    
+    console.log('[uploadAvatar] Token found, preparing upload...');
+    
+    // Use folder path with userId if provided
+    const uploadFolder = userId ? `${folder}/${userId}` : folder;
+    
+    // Create form data for upload
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucket', 'avatars');
+    formData.append('folder', uploadFolder);
+    
+    console.log('[uploadAvatar] Sending to /api/upload/image');
+    
+    // Upload via API route (server-side, bypasses client RLS issues)
+    const uploadPromise = fetch('/api/upload/image', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    
+    const response = await withTimeout(
+      uploadPromise,
+      30000,
+      'Upload timed out. Please try again.'
+    );
 
-    const { data, error } = await supabase.storage
-      .from('avatars')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: true, // Allow overwriting for profile pics
-      });
-
-    if (error) {
-      return { success: false, error: error.message };
+    const result = await response.json();
+    
+    console.log('[uploadAvatar] Response:', { ok: response.ok, result });
+    
+    if (!response.ok || !result.success) {
+      return { success: false, error: result.error || 'Failed to upload image' };
     }
 
-    const url = getPublicUrl('avatars', data.path);
-    return { success: true, url, path: data.path };
+    return { success: true, url: result.url, path: result.path };
   } catch (error: any) {
+    console.error('[uploadAvatar] Error:', error);
     return { success: false, error: error.message || 'Upload failed' };
   }
 }

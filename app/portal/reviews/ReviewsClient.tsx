@@ -587,37 +587,37 @@ export default function ReviewsClient({ initialReviews, initialStats }: ReviewsC
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Reviews Management</h1>
-          <p className="text-muted-foreground">Manage customer reviews and feedback</p>
+          <h1 className="text-xl sm:text-2xl font-bold">Reviews Management</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Manage customer reviews and feedback</p>
         </div>
-        <Button onClick={fetchData} variant="outline" disabled={isLoading}>
-          <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
-          Refresh
+        <Button onClick={fetchData} variant="outline" disabled={isLoading} size="sm" className="h-8 sm:h-9 w-full sm:w-auto">
+          <RefreshCw className={cn("h-4 w-4 sm:mr-2", isLoading && "animate-spin")} />
+          <span className="sm:inline">Refresh</span>
         </Button>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_300px] gap-6">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_300px]">
         <div className="space-y-4">
           {/* Filters */}
           <Card>
-            <CardContent className="pt-4">
-              <div className="flex flex-wrap gap-4">
-                <div className="flex-1 min-w-[200px]">
+            <CardContent className="p-3 sm:pt-4 sm:p-4">
+              <div className="flex flex-wrap gap-2 sm:gap-4">
+                <div className="flex-1 min-w-[150px] sm:min-w-[200px]">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search reviews..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 h-9"
                     />
                   </div>
                 </div>
                 <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ReviewStatusFilter)}>
-                  <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-full sm:w-[140px] h-9 text-xs sm:text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="visible">Visible</SelectItem>
@@ -626,7 +626,7 @@ export default function ReviewsClient({ initialReviews, initialStats }: ReviewsC
                   </SelectContent>
                 </Select>
                 <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                  <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[49%] sm:w-[120px] h-9 text-xs sm:text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Ratings</SelectItem>
                     {[5, 4, 3, 2, 1].map((r) => (
@@ -635,7 +635,7 @@ export default function ReviewsClient({ initialReviews, initialStats }: ReviewsC
                   </SelectContent>
                 </Select>
                 <Select value={sortBy} onValueChange={(v) => setSortBy(v as ReviewSortBy)}>
-                  <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[49%] sm:w-[130px] h-9 text-xs sm:text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="recent">Most Recent</SelectItem>
                     <SelectItem value="oldest">Oldest First</SelectItem>
@@ -647,15 +647,15 @@ export default function ReviewsClient({ initialReviews, initialStats }: ReviewsC
 
               {selectedReviews.size > 0 && (
                 <div className="flex items-center gap-2 mt-4 pt-4 border-t">
-                  <span className="text-sm text-muted-foreground">{selectedReviews.size} selected</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">{selectedReviews.size} selected</span>
                   <div className="flex-1" />
-                  <Button variant="outline" size="sm" onClick={() => setShowBulkDialog('show')}>
-                    <Eye className="h-4 w-4 mr-1" />Show
+                  <Button variant="outline" size="sm" onClick={() => setShowBulkDialog('show')} className="h-7 sm:h-8 text-xs">
+                    <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />Show
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setShowBulkDialog('hide')}>
-                    <EyeOff className="h-4 w-4 mr-1" />Hide
+                  <Button variant="outline" size="sm" onClick={() => setShowBulkDialog('hide')} className="h-7 sm:h-8 text-xs">
+                    <EyeOff className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />Hide
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedReviews(new Set())}>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedReviews(new Set())} className="h-7 sm:h-8">
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
