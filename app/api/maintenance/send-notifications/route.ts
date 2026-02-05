@@ -175,13 +175,17 @@ export async function POST(request: NextRequest) {
       title: settings.title || 'Scheduled Maintenance',
       message: settings.message,
       estimatedRestoreTime: settings.estimated_restore_time,
-    }).then((emailResult) => {
+    }).then(async (emailResult) => {
       console.log('[Maintenance Email API] Send completed:', emailResult);
       
       // Update email sent count in database using authenticated client
-      client.rpc('update_maintenance_email_sent', {
-        p_count: emailResult.sentCount,
-      }).catch((e: any) => console.error('[Maintenance Email API] Update count failed:', e));
+      try {
+        await client.rpc('update_maintenance_email_sent', {
+          p_count: emailResult.sentCount,
+        });
+      } catch (e: any) {
+        console.error('[Maintenance Email API] Update count failed:', e);
+      }
     }).catch((error: any) => {
       console.error('[Maintenance Email API] Batch send failed:', error);
     });
