@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { TwoFactorDialog } from "@/components/portal/TwoFactorDialog";
+import { GoogleSignInButton } from "@/components/ui/google-sign-in-button";
 
 type AuthFlow = 
   | 'initial'           // Enter email to check user type
@@ -118,6 +119,36 @@ export default function UnifiedAuth() {
       });
     }, 250);
   }, []);
+
+  // Handle URL parameters for Google OAuth errors/success
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const error = searchParams.get('error');
+    const googleLogin = searchParams.get('google_login');
+    const googleRegister = searchParams.get('google_register');
+    
+    if (error) {
+      toast({
+        title: "Authentication Error",
+        description: decodeURIComponent(error),
+        variant: "destructive",
+      });
+      // Clean up URL
+      window.history.replaceState({}, '', '/auth');
+    } else if (googleLogin === 'success') {
+      toast({
+        title: "Welcome back!",
+        description: "You've been signed in with Google.",
+      });
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (googleRegister === 'success') {
+      toast({
+        title: "Account Created!",
+        description: "Welcome to ZOIRO Broast!",
+      });
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [toast]);
 
   // Redirect if already logged in (only on initial mount, not after login)
   useEffect(() => {
@@ -1130,6 +1161,22 @@ export default function UnifiedAuth() {
                       )}
                     </Button>
 
+                    {/* Divider */}
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-zinc-700" />
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-4 bg-zinc-900/80 text-zinc-500">or continue with</span>
+                      </div>
+                    </div>
+
+                    {/* Google Sign In */}
+                    <GoogleSignInButton 
+                      type="login"
+                      disabled={isLoading}
+                    />
+
                     <div className="text-center">
                       <Link href="/" className="text-sm text-zinc-500 hover:text-red-500 transition-colors inline-flex items-center gap-1">
                         <Home className="w-4 h-4" />
@@ -1212,6 +1259,24 @@ export default function UnifiedAuth() {
                         </>
                       )}
                     </Button>
+
+                    {/* Google Sign In for Login - only for customers */}
+                    {flow === 'customer-login' && (
+                      <>
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-zinc-700" />
+                          </div>
+                          <div className="relative flex justify-center text-sm">
+                            <span className="px-4 bg-zinc-900/80 text-zinc-500">or</span>
+                          </div>
+                        </div>
+                        <GoogleSignInButton 
+                          type="login"
+                          disabled={isLoading}
+                        />
+                      </>
+                    )}
                   </motion.form>
                 )}
 
@@ -1363,6 +1428,22 @@ export default function UnifiedAuth() {
                         </>
                       )}
                     </Button>
+
+                    {/* Divider */}
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-zinc-700" />
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-4 bg-zinc-900/80 text-zinc-500">or sign up with</span>
+                      </div>
+                    </div>
+
+                    {/* Google Sign Up */}
+                    <GoogleSignInButton 
+                      type="register"
+                      disabled={isLoading}
+                    />
                   </motion.form>
                 )}
 
