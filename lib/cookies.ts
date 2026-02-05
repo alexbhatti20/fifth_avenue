@@ -33,6 +33,36 @@ export function hasFunctionalCookieConsent(): boolean {
   }
 }
 
+// Check if user has given consent for analytics cookies
+export function hasAnalyticsCookieConsent(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  try {
+    const prefsString = localStorage.getItem(COOKIE_PREFERENCES_KEY);
+    if (!prefsString) return false; // Default to no analytics
+    
+    const prefs: CookiePreferences = JSON.parse(prefsString);
+    return prefs.analytics === true;
+  } catch {
+    return false;
+  }
+}
+
+// Check if user has given consent for marketing cookies
+export function hasMarketingCookieConsent(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  try {
+    const prefsString = localStorage.getItem(COOKIE_PREFERENCES_KEY);
+    if (!prefsString) return false; // Default to no marketing
+    
+    const prefs: CookiePreferences = JSON.parse(prefsString);
+    return prefs.marketing === true;
+  } catch {
+    return false;
+  }
+}
+
 // Check if user has given any cookie consent
 export function hasCookieConsent(): boolean {
   if (typeof window === 'undefined') return false;
@@ -106,10 +136,11 @@ export function getAuthToken(): string | null {
   const cookieToken = getCookie(AUTH_COOKIE_NAME);
   if (cookieToken) return cookieToken;
   
-  // Fallback to localStorage (backward compatibility)
+  // Fallback to localStorage (check all token locations)
   if (typeof localStorage !== 'undefined') {
     try {
-      return localStorage.getItem('auth_token');
+      // Check sb_access_token first (used by portal), then auth_token
+      return localStorage.getItem('sb_access_token') || localStorage.getItem('auth_token');
     } catch {}
   }
   
@@ -121,10 +152,11 @@ export function setAuthToken(token: string): void {
   // Always try to set cookie (for SSR)
   setCookie(AUTH_COOKIE_NAME, token);
   
-  // Also store in localStorage as fallback
+  // Also store in localStorage (both keys for portal compatibility)
   if (typeof localStorage !== 'undefined') {
     try {
       localStorage.setItem('auth_token', token);
+      localStorage.setItem('sb_access_token', token);
     } catch {}
   }
 }
