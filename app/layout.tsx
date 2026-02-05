@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/toaster'
 import FloatingCartButton from '@/components/custom/FloatingCartButton'
 import CookieConsent from '@/components/custom/CookieConsent'
 import JsonLd from '@/components/seo/JsonLd'
+import GlobalGoogleAuthHandler from '@/components/auth/GlobalGoogleAuthHandler'
 import { ALL_KEYWORDS, SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/lib/seo'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -156,6 +157,9 @@ export default function RootLayout({
       <body className={`${inter.variable} ${bebasNeue.variable}`}>
         {/* JSON-LD Structured Data for SEO */}
         <JsonLd type="all" />
+        
+        {/* Global Google OAuth Handler for implicit flow */}
+        <GlobalGoogleAuthHandler />
         
         <CartProvider>
           <FavoritesProvider>
