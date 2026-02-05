@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -13,10 +13,12 @@ export function GlobalGoogleAuthHandler() {
   const router = useRouter();
   const pathname = usePathname();
   const [processing, setProcessing] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('Completing Google sign-in...');
+  const processedRef = useRef(false);
 
   useEffect(() => {
     const handleHashAuth = async () => {
-      // Skip if on portal pages or auth callback (those have their own handlers)
+      // Skip if on portal pages or api routes
       if (pathname?.startsWith('/portal') || pathname?.includes('/api/')) return;
       
       // Check if we have hash parameters (implicit OAuth flow)
@@ -26,10 +28,20 @@ export function GlobalGoogleAuthHandler() {
       if (!hash || !hash.includes('access_token')) return;
 
       // Prevent double processing
-      if (processing) return;
+      if (processedRef.current || processing) return;
+      processedRef.current = true;
       setProcessing(true);
 
       console.log('GlobalGoogleAuthHandler: Detected OAuth tokens in URL hash');
+
+      // Set a timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.error('Google auth processing timed out');
+        window.history.replaceState(null, '', window.location.pathname);
+        setProcessing(false);
+        processedRef.current = false;
+        router.push('/auth?error=' + encodeURIComponent('Sign-in timed out. Please try again.'));
+      }, 30000); // 30 second timeout
 
       try {
         // Parse hash parameters
@@ -39,10 +51,14 @@ export function GlobalGoogleAuthHandler() {
 
         if (!accessToken) {
           console.error('No access token in hash');
+          clearTimeout(timeoutId);
+          window.history.replaceState(null, '', window.location.pathname);
           setProcessing(false);
+          processedRef.current = false;
           return;
         }
 
+        setStatusMessage('Setting up your session...');
         console.log('Processing Google OAuth from URL hash...');
 
         // Set the session in Supabase
@@ -53,9 +69,11 @@ export function GlobalGoogleAuthHandler() {
 
         if (sessionError || !sessionData.session) {
           console.error('Failed to set session:', sessionError);
-          // Clear hash and redirect to auth with error
+          clearTimeout(timeoutId);
           window.history.replaceState(null, '', window.location.pathname);
-          router.push('/auth?error=' + encodeURIComponent('Failed to complete Google sign-in'));
+          setProcessing(false);
+          processedRef.current = false;
+          router.push('/auth?error=' + encodeURIComponent('Failed to complete Google sign-in: ' + (sessionError?.message || 'Session error')));
           return;
         }
 
@@ -64,10 +82,15 @@ export function GlobalGoogleAuthHandler() {
         const name = user?.user_metadata?.full_name || user?.user_metadata?.name || '';
 
         if (!email) {
+          clearTimeout(timeoutId);
           window.history.replaceState(null, '', window.location.pathname);
+          setProcessing(false);
+          processedRef.current = false;
           router.push('/auth?error=' + encodeURIComponent('No email received from Google'));
           return;
         }
+
+        setStatusMessage('Creating your account...');
 
         // Call our API to process the Google auth
         const response = await fetch('/api/auth/google/process', {
@@ -84,17 +107,34 @@ export function GlobalGoogleAuthHandler() {
           }),
         });
 
-        const result = await response.json();
+        clearTimeout(timeoutId);
+
+        let result;
+        try {
+          result = await response.json();
+        } catch (parseError) {
+          console.error('Failed to parse response:', parseError);
+          window.history.replaceState(null, '', window.location.pathname);
+          setProcessing(false);
+          processedRef.current = false;
+          router.push('/auth?error=' + encodeURIComponent('Server error. Please try again.'));
+          return;
+        }
 
         // Clear the hash from URL
         window.history.replaceState(null, '', window.location.pathname);
 
         if (!response.ok || result.error) {
+          console.error('API error:', result.error);
           // Sign out if there's an error
           await supabase.auth.signOut();
+          setProcessing(false);
+          processedRef.current = false;
           router.push('/auth?error=' + encodeURIComponent(result.error || 'Authentication failed'));
           return;
         }
+
+        setStatusMessage('Redirecting...');
 
         // Store tokens in localStorage as backup
         localStorage.setItem('sb_access_token', accessToken);
@@ -104,17 +144,18 @@ export function GlobalGoogleAuthHandler() {
 
         // Redirect based on user type
         if (result.userType === 'employee' || result.userType === 'admin') {
-          router.push('/portal?google_login=success');
+          window.location.href = '/portal?google_login=success';
         } else if (result.isNewUser) {
-          // Stay on home page for new customers, just refresh to show logged in state
           window.location.href = '/?google_register=success&new_user=true';
         } else {
-          // Existing customer login - refresh to show logged in state  
           window.location.href = '/?google_login=success';
         }
       } catch (error) {
         console.error('Error processing Google auth:', error);
+        clearTimeout(timeoutId);
         window.history.replaceState(null, '', window.location.pathname);
+        setProcessing(false);
+        processedRef.current = false;
         router.push('/auth?error=' + encodeURIComponent('An unexpected error occurred'));
       }
     };
@@ -122,14 +163,29 @@ export function GlobalGoogleAuthHandler() {
     handleHashAuth();
   }, [router, pathname, processing]);
 
+  // Cancel handler
+  const handleCancel = () => {
+    window.history.replaceState(null, '', window.location.pathname);
+    setProcessing(false);
+    processedRef.current = false;
+    supabase.auth.signOut();
+    router.push('/auth');
+  };
+
   // Show loading indicator while processing
   if (processing) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
-        <div className="bg-white rounded-lg p-6 flex flex-col items-center gap-4 shadow-xl">
+        <div className="bg-white rounded-lg p-6 flex flex-col items-center gap-4 shadow-xl min-w-[300px]">
           <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-700 font-medium">Completing Google sign-in...</p>
+          <p className="text-gray-700 font-medium">{statusMessage}</p>
           <p className="text-gray-500 text-sm">Please wait while we set up your account</p>
+          <button
+            onClick={handleCancel}
+            className="mt-2 text-sm text-gray-500 hover:text-gray-700 underline"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     );

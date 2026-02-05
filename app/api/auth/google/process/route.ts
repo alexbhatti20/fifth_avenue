@@ -5,7 +5,6 @@ import { redis } from '@/lib/redis';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 // Cache keys
 const USER_CACHE_KEY = (email: string) => `user:profile:${email}`;
@@ -20,19 +19,24 @@ interface ProcessGoogleAuthRequest {
 
 // POST /api/auth/google/process - Process Google OAuth after client-side token extraction
 export async function POST(request: NextRequest) {
+  console.log('Google OAuth process: Starting...');
+  
   try {
     const body: ProcessGoogleAuthRequest = await request.json();
     const { authUserId, email, name, accessToken, refreshToken } = body;
 
+    console.log('Google OAuth process: Received request for email:', email);
+
     if (!authUserId || !email || !accessToken) {
+      console.log('Google OAuth process: Missing required fields');
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Create Supabase admin client with service role for RPC calls
-    const supabase = createSupabaseClient(supabaseUrl, serviceRoleKey || supabaseKey, {
+    // Create Supabase client with anon key - RPC functions use SECURITY DEFINER to bypass RLS
+    const supabase = createSupabaseClient(supabaseUrl, supabaseKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
@@ -40,6 +44,7 @@ export async function POST(request: NextRequest) {
     });
 
     const normalizedEmail = email.toLowerCase();
+    console.log('Google OAuth process: Checking user existence for:', normalizedEmail);
 
     // Check if user exists in our system using RPC
     const { data: userResult, error: userError } = await supabase.rpc('get_user_by_email', {
@@ -47,22 +52,27 @@ export async function POST(request: NextRequest) {
     });
 
     if (userError) {
-      console.error('Error checking user:', userError);
+      console.error('Google OAuth process: Error checking user:', userError);
       return NextResponse.json(
-        { error: 'Failed to verify user' },
+        { error: 'Failed to verify user: ' + userError.message },
         { status: 500 }
       );
     }
+
+    console.log('Google OAuth process: User check result:', userResult ? userResult.length + ' users found' : 'no users');
 
     const existingUser = userResult && userResult.length > 0 ? userResult[0] : null;
 
     // Check if user is blocked/banned
     if (existingUser) {
+      console.log('Google OAuth process: Existing user found:', existingUser.user_type, existingUser.status);
+      
       const isBlocked = existingUser.is_banned === true || 
                         existingUser.status === 'blocked' ||
                         (existingUser.user_type !== 'customer' && existingUser.portal_enabled === false);
       
       if (isBlocked) {
+        console.log('Google OAuth process: User is blocked');
         return NextResponse.json(
           { error: existingUser.block_reason || 'Your account has been suspended' },
           { status: 403 }
@@ -77,6 +87,7 @@ export async function POST(request: NextRequest) {
     if (existingUser) {
       // User exists
       if (existingUser.user_type === 'admin' || existingUser.user_type === 'employee') {
+        console.log('Google OAuth process: Employee/admin login');
         // Employee/Admin - check if active
         if (existingUser.status !== 'active') {
           return NextResponse.json(
@@ -87,31 +98,35 @@ export async function POST(request: NextRequest) {
 
         // Link Google auth to employee if not already linked
         if (!existingUser.auth_user_id || existingUser.auth_user_id !== authUserId) {
+          console.log('Google OAuth process: Linking Google to employee');
           try {
             await supabase.rpc('link_google_auth_to_employee', {
               p_employee_id: existingUser.id,
               p_auth_user_id: authUserId,
             });
           } catch (linkError) {
-            console.error('Error linking Google to employee:', linkError);
+            console.error('Google OAuth process: Error linking Google to employee:', linkError);
             // Continue anyway - might already be linked
           }
         }
       } else {
+        console.log('Google OAuth process: Customer login');
         // Customer - link Google auth if not already linked
         if (!existingUser.auth_user_id || existingUser.auth_user_id !== authUserId) {
+          console.log('Google OAuth process: Linking Google to customer');
           try {
             await supabase.rpc('link_google_auth_to_customer', {
               p_customer_id: existingUser.id,
               p_auth_user_id: authUserId,
             });
           } catch (linkError) {
-            console.error('Error linking Google to customer:', linkError);
+            console.error('Google OAuth process: Error linking Google to customer:', linkError);
           }
         }
       }
     } else {
       // New user - create customer account
+      console.log('Google OAuth process: Creating new customer');
       isNewUser = true;
       userType = 'customer';
 
@@ -138,6 +153,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log('Google OAuth process: Setting cookies');
+    
     // Set cookies
     const cookieStore = await cookies();
     
@@ -167,12 +184,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Clear user cache to get fresh data
-    try {
-      await redis?.del(USER_CACHE_KEY(normalizedEmail));
-    } catch (cacheError) {
-      console.error('Error clearing cache:', cacheError);
+    // Clear user cache to get fresh data (non-blocking)
+    if (redis) {
+      redis.del(USER_CACHE_KEY(normalizedEmail)).catch((cacheError) => {
+        console.error('Error clearing cache:', cacheError);
+      });
     }
+
+    console.log('Google OAuth process: Success! userType:', userType, 'isNewUser:', isNewUser);
 
     return NextResponse.json({
       success: true,
@@ -181,7 +200,7 @@ export async function POST(request: NextRequest) {
       email: normalizedEmail,
     });
   } catch (error) {
-    console.error('Error processing Google auth:', error);
+    console.error('Google OAuth process: Fatal error:', error);
     return NextResponse.json(
       { error: 'An unexpected error occurred' },
       { status: 500 }
