@@ -141,13 +141,13 @@ export function useAuth(): UseAuthReturn {
 
       if (authUser) {
         setAuthUser(authUser);
-        const { data: customer } = await supabase
-          .from('customers')
-          .select('*')
-          .eq('auth_user_id', authUser.id)
-          .single();
+        // Use RPC function to bypass RLS - this is the secure way
+        const { data: customerData, error: customerError } = await supabase.rpc('get_customer_by_auth_id', {
+          p_auth_user_id: authUser.id
+        });
 
-        if (customer) {
+        if (!customerError && customerData && customerData.length > 0) {
+          const customer = customerData[0];
           setUser(customer);
           globalAuthCache.user = customer;
           // Persist user data

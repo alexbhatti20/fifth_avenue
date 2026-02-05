@@ -75,12 +75,12 @@ export async function verifyAuth(request?: NextRequest): Promise<AuthUser | null
       };
     }
 
-    // Check if user is a customer
-    const { data: customer } = await supabase
-      .from('customers')
-      .select('id, email, name, phone')
-      .eq('auth_user_id', user.id)
-      .single();
+    // Check if user is a customer using RPC (bypasses RLS)
+    const { data: customerData } = await supabase.rpc('get_customer_by_auth_id', {
+      p_auth_user_id: user.id
+    });
+
+    const customer = customerData && customerData.length > 0 ? customerData[0] : null;
 
     if (customer) {
       return {
