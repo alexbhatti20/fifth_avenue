@@ -1,17 +1,16 @@
 // =============================================
 // SETTINGS PAGE - SERVER COMPONENT WITH SSR
 // Fetches all settings data on server (hidden from browser)
-// Prevents duplicate API calls on client
+// Auth is handled by middleware - no need to check here
 // =============================================
 
 import SettingsClient from './SettingsClient';
-import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/jwt';
 import {
-  getEmployeeProfileServer,
+  getSSRCurrentEmployee,
   getWebsiteSettingsServer,
   getPaymentMethodsServer,
   get2FAStatusServer,
+  getMaintenanceStatusServer,
 } from '@/lib/server-queries';
 
 export const dynamic = 'force-dynamic';
@@ -19,58 +18,34 @@ export const revalidate = 0;
 
 // Server Component - fetches all settings data server-side
 export default async function SettingsPage() {
-  // Get employee ID from auth cookie
-  let employeeId: string | null = null;
-  let isAdmin = false;
-
-  try {
-    const cookieStore = await cookies();
-    const authToken = cookieStore.get('auth_token')?.value || cookieStore.get('sb-access-token')?.value;
-    const employeeData = cookieStore.get('employee_data')?.value;
-    
-    // Try to get ID from employee_data cookie first
-    if (employeeData) {
-      try {
-        const parsed = JSON.parse(employeeData);
-        employeeId = parsed.id || null;
-        isAdmin = parsed.role === 'admin';
-      } catch {}
-    }
-    
-    // Fallback to JWT token
-    if (!employeeId && authToken) {
-      try {
-        const decoded = await verifyToken(authToken);
-        if (decoded?.sub) {
-          employeeId = decoded.sub;
-          isAdmin = decoded.role === 'admin';
-        }
-      } catch {}
-    }
-  } catch {}
+  // Get current employee from SSR (middleware handles auth redirect)
+  const employee = await getSSRCurrentEmployee();
   
+  const employeeId = employee?.id || null;
+  const isAdmin = employee?.role === 'admin';
 
   // Fetch all settings data in parallel on the server
   const [
-    employeeProfile,
     websiteSettings,
     paymentMethodsData,
-    twoFAStatus
+    twoFAStatus,
+    maintenanceStatus
   ] = await Promise.all([
-    employeeId ? getEmployeeProfileServer(employeeId) : Promise.resolve(null),
     isAdmin ? getWebsiteSettingsServer() : Promise.resolve(null),
     isAdmin ? getPaymentMethodsServer() : Promise.resolve({ methods: [], stats: null }),
     employeeId ? get2FAStatusServer(employeeId) : Promise.resolve({ is_enabled: false }),
+    isAdmin ? getMaintenanceStatusServer() : Promise.resolve(null),
   ]);
 
   return (
     <SettingsClient
-      initialEmployeeProfile={employeeProfile}
+      initialEmployeeProfile={employee}
       initialWebsiteSettings={websiteSettings}
       initialPaymentMethods={paymentMethodsData.methods}
       initialPaymentStats={paymentMethodsData.stats}
       initial2FAStatus={twoFAStatus.is_enabled}
-      hasSSRData={!!employeeProfile}
+      initialMaintenanceStatus={maintenanceStatus}
+      hasSSRData={!!employee}
     />
   );
 }

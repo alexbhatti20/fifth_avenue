@@ -3096,7 +3096,8 @@ export const getPublicReviewsServer = unstable_cache(
       };
     }
 
-    const { data, error } = await (await getAuthenticatedClient()).rpc('get_public_reviews', {
+    // Use base supabase client for public data (no auth required, cached with unstable_cache)
+    const { data, error } = await supabase.rpc('get_public_reviews', {
       p_review_type: options?.type || null,
       p_item_id: null,
       p_meal_id: null,
@@ -3969,6 +3970,7 @@ export async function getWebsiteSettingsServer(): Promise<WebsiteSettingsServer 
 
 /**
  * Get payment methods (SSR)
+ * Uses RPC function to bypass RLS
  */
 export async function getPaymentMethodsServer(): Promise<{
   methods: PaymentMethodServer[];
@@ -3981,31 +3983,24 @@ export async function getPaymentMethodsServer(): Promise<{
   try {
     const client = await getAuthenticatedClient();
     
-    // Fetch payment methods
-    const { data: methods, error } = await client
-      .from('payment_methods')
-      .select('*')
-      .order('display_order', { ascending: true });
+    // Use RPC function (SECURITY DEFINER, checks auth internally)
+    const { data, error } = await client.rpc('get_all_payment_methods');
 
     if (error) {
-      console.error('[SSR] getPaymentMethodsServer error:', error.message);
+      console.error('[SSR] getPaymentMethodsServer RPC error:', error.message);
       return { methods: [], stats: null };
     }
 
-    // Calculate stats
-    const methodsList = methods || [];
-    const stats: PaymentMethodsStatsServer = {
-      total: methodsList.length,
-      active: methodsList.filter((m: any) => m.is_active).length,
-      inactive: methodsList.filter((m: any) => !m.is_active).length,
-      jazzcash: methodsList.filter((m: any) => m.method_type === 'jazzcash').length,
-      easypaisa: methodsList.filter((m: any) => m.method_type === 'easypaisa').length,
-      bank: methodsList.filter((m: any) => m.method_type === 'bank').length,
-    };
+    // RPC returns JSON with success, methods, stats
+    const result = data as any;
+    if (!result?.success) {
+      console.error('[SSR] getPaymentMethodsServer RPC failed:', result?.error);
+      return { methods: [], stats: null };
+    }
 
     return {
-      methods: methodsList as PaymentMethodServer[],
-      stats
+      methods: (result.methods || []) as PaymentMethodServer[],
+      stats: result.stats as PaymentMethodsStatsServer || null
     };
   } catch (error) {
     console.error('[SSR] getPaymentMethodsServer catch:', error);
@@ -4038,6 +4033,80 @@ export async function get2FAStatusServer(employeeId: string): Promise<{ is_enabl
   } catch (error) {
     console.error('[SSR] get2FAStatusServer catch:', error);
     return { is_enabled: false };
+  }
+}
+
+// =============================================
+// MAINTENANCE MODE SSR QUERIES
+// =============================================
+
+export interface MaintenanceStatusServer {
+  is_enabled: boolean;
+  enabled_at: string | null;
+  enabled_by: string | null;
+  reason_type: 'update' | 'bug_fix' | 'changes' | 'scheduled' | 'custom' | null;
+  custom_reason: string | null;
+  estimated_end_time: string | null;
+  title?: string | null;
+  message?: string | null;
+  show_timer?: boolean;
+  show_progress?: boolean;
+}
+
+/**
+ * Get maintenance mode status (SSR - public, no auth needed)
+ */
+export async function getMaintenanceStatusServer(): Promise<MaintenanceStatusServer> {
+  if (!isSupabaseConfigured) {
+    return {
+      is_enabled: false,
+      enabled_at: null,
+      enabled_by: null,
+      reason_type: null,
+      custom_reason: null,
+      estimated_end_time: null,
+    };
+  }
+
+  try {
+    // Use base client (public RPC, no auth needed)
+    const { data, error } = await supabase.rpc('get_maintenance_status');
+
+    if (error) {
+      console.error('[SSR] getMaintenanceStatusServer RPC error:', error.message);
+      return {
+        is_enabled: false,
+        enabled_at: null,
+        enabled_by: null,
+        reason_type: null,
+        custom_reason: null,
+        estimated_end_time: null,
+      };
+    }
+
+    return {
+      is_enabled: data?.is_enabled || false,
+      enabled_at: data?.enabled_at || null,
+      enabled_by: data?.enabled_by || null,
+      reason_type: data?.reason_type || null,
+      custom_reason: data?.custom_reason || null,
+      // Map estimated_restore_time from SQL to estimated_end_time
+      estimated_end_time: data?.estimated_restore_time || null,
+      title: data?.title || null,
+      message: data?.message || null,
+      show_timer: data?.show_timer ?? true,
+      show_progress: data?.show_progress ?? true,
+    };
+  } catch (error) {
+    console.error('[SSR] getMaintenanceStatusServer catch:', error);
+    return {
+      is_enabled: false,
+      enabled_at: null,
+      enabled_by: null,
+      reason_type: null,
+      custom_reason: null,
+      estimated_end_time: null,
+    };
   }
 }
 

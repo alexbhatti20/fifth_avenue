@@ -8,6 +8,7 @@ import {
   invalidateDealsCache,
   invalidateSiteContentCache,
 } from '@/lib/cache';
+import { sendMaintenanceNotificationBatch } from '@/lib/brevo';
 
 // =============================================
 // MENU MANAGEMENT SERVER ACTIONS
@@ -1555,3 +1556,519 @@ export async function getEmployeePayrollSummaryAction(
   }
 }
 
+// =============================================
+// PAYMENT METHODS SERVER ACTIONS (SSR - Admin Only)
+// =============================================
+
+interface PaymentMethodData {
+  method_type: 'jazzcash' | 'easypaisa' | 'bank';
+  method_name: string;
+  account_number: string;
+  account_holder_name: string;
+  bank_name?: string;
+  is_active?: boolean;
+  display_order?: number;
+}
+
+/**
+ * Get all payment methods - Server action (SSR, hidden from browser)
+ * Uses RPC function to bypass RLS
+ */
+export async function getPaymentMethodsServerAction(): Promise<{
+  success: boolean;
+  methods?: any[];
+  stats?: any;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    // Use RPC function (SECURITY DEFINER, checks auth internally)
+    const { data, error } = await client.rpc('get_all_payment_methods');
+
+    if (error) {
+      console.error('getPaymentMethodsServerAction RPC error:', error);
+      return { success: false, error: error.message || 'Failed to fetch payment methods' };
+    }
+
+    // RPC returns JSON with success, methods, stats
+    const result = data as any;
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to fetch payment methods' };
+    }
+
+    return {
+      success: true,
+      methods: result.methods || [],
+      stats: result.stats || null,
+    };
+  } catch (error: any) {
+    console.error('getPaymentMethodsServerAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Create payment method - Server action (SSR, hidden from browser)
+ * Uses RPC function to bypass RLS
+ */
+export async function createPaymentMethodServer(data: PaymentMethodData): Promise<{
+  success: boolean;
+  id?: string;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    // Use RPC function (SECURITY DEFINER, checks auth internally)
+    const { data: result, error } = await client.rpc('create_payment_method', {
+      p_method_type: data.method_type,
+      p_method_name: data.method_name,
+      p_account_number: data.account_number,
+      p_account_holder_name: data.account_holder_name,
+      p_bank_name: data.bank_name || null,
+      p_is_active: data.is_active ?? true,
+      p_display_order: data.display_order ?? 0,
+    });
+
+    if (error) {
+      console.error('createPaymentMethodServer RPC error:', error);
+      return { success: false, error: error.message || 'Failed to create payment method' };
+    }
+
+    // RPC returns JSON with success, id
+    const rpcResult = result as any;
+    if (!rpcResult?.success) {
+      return { success: false, error: rpcResult?.error || 'Failed to create payment method' };
+    }
+
+    // Invalidate cache
+    const { invalidatePaymentMethodsCache } = await import('@/lib/cache');
+    await invalidatePaymentMethodsCache();
+
+    return { success: true, id: rpcResult.id };
+  } catch (error: any) {
+    console.error('createPaymentMethodServer error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Update payment method - Server action (SSR, hidden from browser)
+ * Uses RPC function to bypass RLS
+ */
+export async function updatePaymentMethodServer(
+  id: string,
+  data: Partial<PaymentMethodData>
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    // Use RPC function (SECURITY DEFINER, checks auth internally)
+    const { data: result, error } = await client.rpc('update_payment_method', {
+      p_id: id,
+      p_method_type: data.method_type ?? null,
+      p_method_name: data.method_name ?? null,
+      p_account_number: data.account_number ?? null,
+      p_account_holder_name: data.account_holder_name ?? null,
+      p_bank_name: data.bank_name ?? null,
+      p_is_active: data.is_active ?? null,
+      p_display_order: data.display_order ?? null,
+    });
+
+    if (error) {
+      console.error('updatePaymentMethodServer RPC error:', error);
+      return { success: false, error: error.message || 'Failed to update payment method' };
+    }
+
+    // RPC returns JSON with success
+    const rpcResult = result as any;
+    if (!rpcResult?.success) {
+      return { success: false, error: rpcResult?.error || 'Failed to update payment method' };
+    }
+
+    // Invalidate cache
+    const { invalidatePaymentMethodsCache } = await import('@/lib/cache');
+    await invalidatePaymentMethodsCache();
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('updatePaymentMethodServer error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Delete payment method - Server action (SSR, hidden from browser)
+ * Uses RPC function to bypass RLS
+ */
+export async function deletePaymentMethodServer(id: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    // Use RPC function (SECURITY DEFINER, checks auth internally)
+    const { data: result, error } = await client.rpc('delete_payment_method', {
+      p_id: id,
+    });
+
+    if (error) {
+      console.error('deletePaymentMethodServer RPC error:', error);
+      return { success: false, error: error.message || 'Failed to delete payment method' };
+    }
+
+    // RPC returns JSON with success
+    const rpcResult = result as any;
+    if (!rpcResult?.success) {
+      return { success: false, error: rpcResult?.error || 'Failed to delete payment method' };
+    }
+
+    // Invalidate cache
+    const { invalidatePaymentMethodsCache } = await import('@/lib/cache');
+    await invalidatePaymentMethodsCache();
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('deletePaymentMethodServer error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Toggle payment method status - Server action (SSR, hidden from browser)
+ * Uses RPC function to bypass RLS
+ */
+export async function togglePaymentMethodStatusServer(
+  id: string,
+  is_active: boolean
+): Promise<{ success: boolean; is_active?: boolean; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    // Use RPC function (SECURITY DEFINER, checks auth internally)
+    const { data: result, error } = await client.rpc('toggle_payment_method_status', {
+      p_id: id,
+      p_is_active: is_active,
+    });
+
+    if (error) {
+      console.error('togglePaymentMethodStatusServer RPC error:', error);
+      return { success: false, error: error.message || 'Failed to toggle payment method status' };
+    }
+
+    // RPC returns JSON with success, is_active
+    const rpcResult = result as any;
+    if (!rpcResult?.success) {
+      return { success: false, error: rpcResult?.error || 'Failed to toggle payment method status' };
+    }
+
+    // Invalidate cache
+    const { invalidatePaymentMethodsCache } = await import('@/lib/cache');
+    await invalidatePaymentMethodsCache();
+
+    return { success: true, is_active: rpcResult.is_active };
+  } catch (error: any) {
+    console.error('togglePaymentMethodStatusServer error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+// =============================================
+// MAINTENANCE MODE SERVER ACTIONS (SSR - Admin Only)
+// =============================================
+
+export interface MaintenanceSettings {
+  is_enabled: boolean;
+  reason_type: 'update' | 'bug_fix' | 'changes' | 'scheduled' | 'custom';
+  custom_reason?: string;
+  title?: string;
+  message?: string;
+  estimated_restore_time?: string;
+  show_timer?: boolean;
+  show_progress?: boolean;
+}
+
+export interface MaintenanceStatus {
+  is_enabled: boolean;
+  reason_type: string;
+  custom_reason?: string;
+  title: string;
+  message?: string;
+  estimated_restore_time?: string;
+  show_timer: boolean;
+  show_progress: boolean;
+  enabled_at?: string;
+}
+
+/**
+ * Get maintenance mode status - Server action (SSR, public)
+ * Uses base supabase client (no auth required)
+ */
+export async function getMaintenanceStatusServer(): Promise<{
+  success: boolean;
+  data?: MaintenanceStatus;
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase.rpc('get_maintenance_status');
+
+    if (error) {
+      console.error('getMaintenanceStatusServer RPC error:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data as MaintenanceStatus };
+  } catch (error: any) {
+    console.error('getMaintenanceStatusServer error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Toggle maintenance mode - Server action (SSR, admin only)
+ */
+export async function toggleMaintenanceModeServer(
+  settings: MaintenanceSettings,
+  employeeId?: string
+): Promise<{
+  success: boolean;
+  is_enabled?: boolean;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data: result, error } = await client.rpc('toggle_maintenance_mode', {
+      p_is_enabled: settings.is_enabled,
+      p_reason_type: settings.reason_type,
+      p_custom_reason: settings.custom_reason || null,
+      p_title: settings.title || null,
+      p_message: settings.message || null,
+      p_estimated_restore_time: settings.estimated_restore_time || null,
+      p_show_timer: settings.show_timer ?? true,
+      p_show_progress: settings.show_progress ?? true,
+      p_employee_id: employeeId || null,
+    });
+
+    if (error) {
+      console.error('toggleMaintenanceModeServer RPC error:', error);
+      return { success: false, error: error.message };
+    }
+
+    const rpcResult = result as any;
+    if (!rpcResult?.success) {
+      return { success: false, error: rpcResult?.error || 'Failed to toggle maintenance mode' };
+    }
+
+    // Revalidate all pages to reflect maintenance status
+    revalidatePath('/');
+    revalidatePath('/menu');
+    revalidatePath('/portal');
+
+    return {
+      success: true,
+      is_enabled: rpcResult.is_enabled,
+      message: rpcResult.message,
+    };
+  } catch (error: any) {
+    console.error('toggleMaintenanceModeServer error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Send maintenance notification to all users - Server action (SSR, admin only)
+ * Delegates to API route to avoid serialization issues
+ */
+export async function sendMaintenanceNotificationToAllServer(
+  settings: MaintenanceSettings
+): Promise<{
+  success: boolean;
+  sentCount: number;
+  failedCount: number;
+  error: string;
+  customerCount: number;
+  employeeCount: number;
+}> {
+  try {
+    // Call API route to handle email sending
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/maintenance/send-notifications`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ settings }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Failed to parse error' }));
+      return {
+        success: false,
+        error: String(errorData.error || 'API request failed'),
+        sentCount: 0,
+        failedCount: 0,
+        customerCount: 0,
+        employeeCount: 0,
+      };
+    }
+
+    const result = await response.json();
+    return {
+      success: result.success || false,
+      sentCount: result.sentCount || 0,
+      failedCount: result.failedCount || 0,
+      error: String(result.error || ''),
+      customerCount: result.customerCount || 0,
+      employeeCount: result.employeeCount || 0,
+    };
+  } catch (error: any) {
+    console.error('sendMaintenanceNotificationToAllServer error:', error);
+    return {
+      success: false,
+      error: String(error?.message || 'Server error'),
+      sentCount: 0,
+      failedCount: 0,
+      customerCount: 0,
+      employeeCount: 0,
+    };
+  }
+}
+
+// =============================================
+// WEBSITE SETTINGS - SERVER ACTIONS (SSR)
+// =============================================
+
+export interface WebsiteSettingsData {
+  siteName: string;
+  tagline: string;
+  phone: string;
+  email: string;
+  address: string;
+  openingHours: string;
+  facebook: string;
+  instagram: string;
+  twitter: string;
+  deliveryRadius: string;
+  minOrderAmount: string;
+  deliveryFee: string;
+}
+
+/**
+ * Get website settings - Server action (SSR, admin only)
+ * No client-side requests visible in devtools
+ */
+export async function getWebsiteSettingsServerAction(): Promise<{
+  success: boolean;
+  settings?: WebsiteSettingsData;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data, error } = await client.rpc('get_website_settings_internal');
+
+    if (error) {
+      console.error('getWebsiteSettingsServerAction RPC error:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (data?.settings) {
+      return {
+        success: true,
+        settings: data.settings as WebsiteSettingsData,
+      };
+    }
+
+    return { success: true, settings: undefined };
+  } catch (error: any) {
+    console.error('getWebsiteSettingsServerAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Update website settings - Server action (SSR, admin only)
+ * No client-side requests visible in devtools
+ */
+export async function updateWebsiteSettingsServer(
+  settings: WebsiteSettingsData
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data, error } = await client.rpc('upsert_website_settings_internal', {
+      p_settings: settings,
+    });
+
+    if (error) {
+      console.error('updateWebsiteSettingsServer RPC error:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('updateWebsiteSettingsServer error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+// =============================================
+// EMPLOYEE PROFILE - SERVER ACTIONS (SSR)
+// =============================================
+
+export interface EmployeeProfileData {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  emergency_contact?: string;
+  avatar_url?: string;
+  role: string;
+  hired_date?: string;
+  employee_id?: string;
+  is_2fa_enabled?: boolean;
+}
+
+/**
+ * Get employee profile - Server action (SSR)
+ * No client-side requests visible in devtools
+ */
+export async function getEmployeeProfileServerAction(
+  employeeId: string
+): Promise<{
+  success: boolean;
+  employee?: EmployeeProfileData;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data, error } = await client.rpc('get_employee_profile_by_id', {
+      p_employee_id: employeeId,
+    });
+
+    if (error) {
+      console.error('getEmployeeProfileServerAction RPC error:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (data?.success && data?.employee) {
+      return {
+        success: true,
+        employee: data.employee as EmployeeProfileData,
+      };
+    }
+
+    return { success: false, error: data?.error || 'Profile not found' };
+  } catch (error: any) {
+    console.error('getEmployeeProfileServerAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}

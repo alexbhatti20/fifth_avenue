@@ -57,9 +57,10 @@ export function generateOTP(): string {
 }
 
 // Base email sending function
-export async function sendEmail({ to, subject, htmlContent }: EmailParams) {
+export async function sendEmail({ to, subject, htmlContent }: EmailParams): Promise<{ success: boolean; error?: string; data?: any }> {
   try {
     if (!BREVO_API_KEY) {
+      console.error('[Brevo] No API key configured');
       return { success: false, error: 'Email service not configured' };
     }
     
@@ -79,9 +80,15 @@ export async function sendEmail({ to, subject, htmlContent }: EmailParams) {
     
     const data = await response.json();
     
-    return { success: response.ok, data };
-  } catch (error) {
-    return { success: false, error };
+    if (!response.ok) {
+      console.error('[Brevo] API error:', data);
+      return { success: false, error: data?.message || `HTTP ${response.status}` };
+    }
+    
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('[Brevo] Send error:', error);
+    return { success: false, error: String(error?.message || 'Send failed') };
   }
 }
 
@@ -1720,4 +1727,183 @@ export async function sendCustomerUnbannedNotification(
     subject: `✅ Your ZOIRO Broast Account Has Been Restored`,
     htmlContent,
   });
+}
+
+// =============================================
+// MAINTENANCE MODE EMAIL NOTIFICATION
+// =============================================
+
+const REASON_LABELS: Record<string, string> = {
+  'update': 'System Update',
+  'bug_fix': 'Bug Fix',
+  'changes': 'Improvements',
+  'scheduled': 'Scheduled Maintenance',
+  'custom': 'Maintenance',
+};
+
+const REASON_ICONS: Record<string, string> = {
+  'update': '🔄',
+  'bug_fix': '🔧',
+  'changes': '✨',
+  'scheduled': '📅',
+  'custom': '🛠️',
+};
+
+/**
+ * Send maintenance mode notification to a user
+ */
+export async function sendMaintenanceNotification(
+  email: string,
+  name: string,
+  details: {
+    reasonType: string;
+    customReason?: string;
+    title: string;
+    message?: string;
+    estimatedRestoreTime?: string;
+  }
+) {
+  const { reasonType, customReason, title, message, estimatedRestoreTime } = details;
+  
+  const reasonLabel = REASON_LABELS[reasonType] || 'Maintenance';
+  const reasonIcon = REASON_ICONS[reasonType] || '🛠️';
+  const displayReason = reasonType === 'custom' && customReason ? customReason : reasonLabel;
+  
+  // Format restore time
+  let restoreTimeText = 'We will notify you when we\'re back online.';
+  if (estimatedRestoreTime) {
+    const restoreDate = new Date(estimatedRestoreTime);
+    restoreTimeText = `Expected completion: ${restoreDate.toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })}`;
+  }
+  
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Scheduled Maintenance</title>
+    </head>
+    <body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f5;">
+      <div style="max-width: 600px; margin: 0 auto; background: ${BRAND_WHITE};">
+        ${getEmailHeader(`${reasonIcon} ${title}`, 'Important System Notice')}
+        
+        <div style="padding: 40px 30px;">
+          <p style="font-size: 16px;">Dear ${name || 'Valued Customer'},</p>
+          
+          <p style="color: #666; font-size: 16px;">
+            We're writing to inform you that the ZOIRO Broast website will be temporarily unavailable due to ${displayReason.toLowerCase()}.
+          </p>
+          
+          <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b; padding: 20px; margin: 25px 0; border-radius: 0 12px 12px 0;">
+            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 24px; margin-right: 10px;">⏰</span>
+              <h4 style="color: #92400e; margin: 0;">Maintenance Details</h4>
+            </div>
+            <p style="margin: 0; color: #78350f; font-size: 15px; font-weight: 500;">
+              ${restoreTimeText}
+            </p>
+          </div>
+          
+          ${message ? `
+          <div style="background: ${BRAND_LIGHT_BG}; padding: 20px; border-radius: 12px; margin: 25px 0;">
+            <h4 style="color: ${BRAND_DARK}; margin: 0 0 10px;">📋 What's Happening</h4>
+            <p style="margin: 0; color: #666; font-size: 15px;">${message}</p>
+          </div>
+          ` : ''}
+          
+          <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 20px; border-radius: 12px; margin: 25px 0;">
+            <h4 style="color: #065f46; margin: 0 0 15px;">💡 What You Can Do</h4>
+            <ul style="margin: 0; padding-left: 20px; color: #047857;">
+              <li style="margin: 8px 0;">Save your favorite items for later</li>
+              <li style="margin: 8px 0;">Follow us on social media for updates</li>
+              <li style="margin: 8px 0;">Call us for urgent orders: <strong>+92 300 1234567</strong></li>
+            </ul>
+          </div>
+          
+          <p style="color: #666; font-size: 14px; text-align: center; margin-top: 30px;">
+            We apologize for any inconvenience this may cause.<br>
+            Thank you for your patience and understanding!
+          </p>
+          
+          <div style="text-align: center; margin: 25px 0; padding: 20px; background: ${BRAND_LIGHT_BG}; border-radius: 12px;">
+            <p style="margin: 0 0 10px; color: #666; font-size: 14px;">Questions? Contact us:</p>
+            <p style="margin: 0;">
+              <a href="tel:+923001234567" style="color: ${BRAND_RED}; text-decoration: none; font-weight: bold;">📞 +92 300 1234567</a>
+            </p>
+          </div>
+        </div>
+        
+        ${getEmailFooter()}
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `${reasonIcon} ZOIRO Broast - ${title}`,
+    htmlContent,
+  });
+}
+
+/**
+ * Send maintenance emails to multiple recipients (batch)
+ * Returns count of successfully sent emails
+ */
+export async function sendMaintenanceNotificationBatch(
+  recipients: { email: string; name: string }[],
+  details: {
+    reasonType: string;
+    customReason?: string;
+    title: string;
+    message?: string;
+    estimatedRestoreTime?: string;
+  }
+): Promise<{ success: boolean; sentCount: number; errors: string[] }> {
+  let sentCount = 0;
+  const errors: string[] = [];
+  
+  try {
+    // Send in batches of 10 to avoid rate limiting
+    const batchSize = 10;
+    for (let i = 0; i < recipients.length; i += batchSize) {
+      const batch = recipients.slice(i, i + batchSize);
+      
+      // Send batch in parallel
+      const results = await Promise.allSettled(
+        batch.map(r => sendMaintenanceNotification(r.email, r.name, details))
+      );
+      
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value.success) {
+          sentCount++;
+        } else {
+          const email = batch[index]?.email || 'unknown';
+          const reason = result.status === 'rejected' 
+            ? String(result.reason || 'Unknown error')
+            : 'Send failed';
+          errors.push(`Failed: ${email} - ${reason}`);
+        }
+      });
+      
+      // Small delay between batches to avoid rate limiting
+      if (i + batchSize < recipients.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+    
+    return { success: sentCount > 0 || recipients.length === 0, sentCount, errors };
+  } catch (error: any) {
+    console.error('[Brevo Batch] Error:', error);
+    errors.push(`Batch error: ${error?.message || 'Unknown error'}`);
+    return { success: false, sentCount, errors };
+  }
 }

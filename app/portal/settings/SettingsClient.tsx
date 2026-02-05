@@ -38,6 +38,11 @@ import {
   QrCode,
   Copy,
   RotateCw,
+  Wrench,
+  Power,
+  Send,
+  AlertCircle,
+  Calendar,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,10 +73,20 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SectionHeader, usePortalAuthContext } from '@/components/portal/PortalProvider';
-import { getAuthenticatedClient } from '@/lib/portal-queries';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { updateEmployeeProfileServer } from '@/lib/actions';
+import { 
+  updateEmployeeProfileServer,
+  getPaymentMethodsServerAction,
+  createPaymentMethodServer,
+  updatePaymentMethodServer,
+  deletePaymentMethodServer,
+  togglePaymentMethodStatusServer,
+  toggleMaintenanceModeServer,
+  getWebsiteSettingsServerAction,
+  updateWebsiteSettingsServer,
+  getEmployeeProfileServerAction,
+} from '@/lib/actions';
 import { uploadEmployeeAvatar } from '@/lib/storage';
 
 // Types
@@ -126,6 +141,19 @@ export interface WebsiteSettings {
   deliveryFee: string;
 }
 
+export interface MaintenanceStatus {
+  is_enabled: boolean;
+  enabled_at: string | null;
+  enabled_by: string | null;
+  reason_type: 'update' | 'bug_fix' | 'changes' | 'scheduled' | 'custom' | null;
+  custom_reason: string | null;
+  estimated_end_time: string | null;
+  title?: string | null;
+  message?: string | null;
+  show_timer?: boolean;
+  show_progress?: boolean;
+}
+
 export interface SettingsData {
   employee: Employee | null;
   paymentMethods: PaymentMethod[];
@@ -169,7 +197,7 @@ function PersonalSettings({
   );
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
-  // Fetch fresh employee data from database via RPC
+  // Fetch fresh employee data from database via SSR server action
   const fetchFreshData = useCallback(async () => {
     if (!employeeId) {
       setIsLoading(false);
@@ -178,20 +206,18 @@ function PersonalSettings({
     
     setIsLoading(true);
     try {
-      // Use RPC to get fresh data (bypasses RLS and localStorage)
-      const { data, error } = await getAuthenticatedClient().rpc('get_employee_profile_by_id', {
-        p_employee_id: employeeId
-      });
+      // Use SSR server action (no client requests visible in devtools)
+      const result = await getEmployeeProfileServerAction(employeeId);
       
-      if (error) {
+      if (!result.success) {
         toast.error('Failed to load profile');
         return;
       }
       
-      if (data?.success && data?.employee) {
-        const emp = data.employee;
+      if (result.employee) {
+        const emp = result.employee;
         
-        setEmployeeData(emp);
+        setEmployeeData(emp as any);
         setFormData({
           full_name: emp.name || '',
           email: emp.email || '',
@@ -582,11 +608,11 @@ function WebsiteSettingsForm({ initialSettings }: { initialSettings: WebsiteSett
   const fetchSettings = async () => {
     setIsLoading(true);
     try {
-      // Use internal RPC (SECURITY DEFINER bypasses permissions)
-      const { data, error } = await getAuthenticatedClient().rpc('get_website_settings_internal');
+      // Use SSR server action (no client requests visible in devtools)
+      const result = await getWebsiteSettingsServerAction();
 
-      if (!error && data?.settings) {
-        setSettings(data.settings as WebsiteSettings);
+      if (result.success && result.settings) {
+        setSettings(result.settings as WebsiteSettings);
       }
       // Silent fail - use defaults
     } catch {
@@ -599,12 +625,12 @@ function WebsiteSettingsForm({ initialSettings }: { initialSettings: WebsiteSett
   const handleSave = async () => {
     setIsSubmitting(true);
     try {
-      // Use internal RPC (SECURITY DEFINER bypasses permissions)
-      const { data, error } = await getAuthenticatedClient().rpc('upsert_website_settings_internal', {
-        p_settings: settings
-      });
+      // Use SSR server action (no client requests visible in devtools)
+      const result = await updateWebsiteSettingsServer(settings);
 
-      if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save settings');
+      }
       toast.success('Website settings updated');
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to save settings';
@@ -802,20 +828,14 @@ function PaymentMethodsSettings({
     fetchMethods();
   }, []);
 
-  // Refresh payment methods
+  // Refresh payment methods using SSR server action
   const fetchMethods = async () => {
     setLoading(true);
     try {
-      const authToken = localStorage.getItem('auth_token');
-      const response = await fetch('/api/admin/payment-methods', {
-        headers: {
-          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setMethods(data.methods || []);
-        setStats(data.stats || null);
+      const result = await getPaymentMethodsServerAction();
+      if (result.success) {
+        setMethods(result.methods || []);
+        setStats(result.stats || null);
       }
       // Silent fail - no toast for initial load errors
     } catch {
@@ -856,7 +876,7 @@ function PaymentMethodsSettings({
     setShowForm(true);
   };
 
-  // Submit form (create or update)
+  // Submit form (create or update) using SSR server actions
   const handleSubmit = async () => {
     if (!formData.method_name || !formData.account_number || !formData.account_holder_name) {
       toast.error('Please fill in all required fields');
@@ -870,29 +890,22 @@ function PaymentMethodsSettings({
 
     setIsSubmitting(true);
     try {
-      const authToken = localStorage.getItem('auth_token');
-      const url = '/api/admin/payment-methods';
-      const method = editingMethod ? 'PUT' : 'POST';
-      const body = editingMethod 
-        ? { id: editingMethod.id, ...formData }
-        : formData;
+      let result;
+      
+      if (editingMethod) {
+        // Update existing method
+        result = await updatePaymentMethodServer(editingMethod.id, formData);
+      } else {
+        // Create new method
+        result = await createPaymentMethodServer(formData as any);
+      }
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
-        },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-      if (data.success) {
+      if (result.success) {
         toast.success(editingMethod ? 'Payment method updated' : 'Payment method created');
         resetForm();
         fetchMethods();
       } else {
-        toast.error(data.error || 'Operation failed');
+        toast.error(result.error || 'Operation failed');
       }
     } catch (error) {
       toast.error('Operation failed');
@@ -901,50 +914,32 @@ function PaymentMethodsSettings({
     }
   };
 
-  // Delete method
+  // Delete method using SSR server action
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this payment method?')) return;
 
     try {
-      const authToken = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/admin/payment-methods?id=${id}`, {
-        method: 'DELETE',
-        headers: {
-          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
-        },
-      });
-
-      const data = await response.json();
-      if (data.success) {
+      const result = await deletePaymentMethodServer(id);
+      if (result.success) {
         toast.success('Payment method deleted');
         fetchMethods();
       } else {
-        toast.error(data.error || 'Failed to delete');
+        toast.error(result.error || 'Failed to delete');
       }
     } catch (error) {
       toast.error('Failed to delete');
     }
   };
 
-  // Toggle active status
+  // Toggle active status using SSR server action
   const handleToggleStatus = async (id: string, is_active: boolean) => {
     try {
-      const authToken = localStorage.getItem('auth_token');
-      const response = await fetch('/api/admin/payment-methods', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
-        },
-        body: JSON.stringify({ id, is_active }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success(data.message);
+      const result = await togglePaymentMethodStatusServer(id, is_active);
+      if (result.success) {
+        toast.success(is_active ? 'Payment method activated' : 'Payment method deactivated');
         fetchMethods();
       } else {
-        toast.error(data.error || 'Failed to update status');
+        toast.error(result.error || 'Failed to update status');
       }
     } catch (error) {
       toast.error('Failed to update status');
@@ -1630,6 +1625,574 @@ function SecuritySettings({
   );
 }
 
+// Maintenance Mode Settings (Admin only)
+function MaintenanceModeSettings({ 
+  initialStatus 
+}: { 
+  initialStatus: MaintenanceStatus | null;
+}) {
+  const [status, setStatus] = useState<MaintenanceStatus>(initialStatus || {
+    is_enabled: false,
+    enabled_at: null,
+    enabled_by: null,
+    reason_type: null,
+    custom_reason: null,
+    estimated_end_time: null,
+  });
+  const [isToggling, setIsToggling] = useState(false);
+  const [isSendingEmails, setIsSendingEmails] = useState(false);
+  const [emailProgress, setEmailProgress] = useState({ sent: 0, total: 0, progress: 0, failed: 0 });
+  
+  // Helper to convert ISO date to datetime-local format
+  const formatDateTimeLocal = (isoString: string | null) => {
+    if (!isoString) return '';
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return '';
+      // Convert to local timezone for datetime-local input
+      const offset = date.getTimezoneOffset();
+      const local = new Date(date.getTime() - offset * 60 * 1000);
+      return local.toISOString().slice(0, 16);
+    } catch {
+      return '';
+    }
+  };
+
+  const [formData, setFormData] = useState({
+    reason_type: (initialStatus?.reason_type || 'update') as 'update' | 'bug_fix' | 'changes' | 'scheduled' | 'custom',
+    custom_reason: initialStatus?.custom_reason || '',
+    estimated_end_time: formatDateTimeLocal(initialStatus?.estimated_end_time || null),
+    title: initialStatus?.title || "We'll Be Right Back",
+    message: initialStatus?.message || 'Our website is currently undergoing scheduled maintenance. We apologize for any inconvenience.',
+  });
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  const reasonLabels: Record<string, string> = {
+    update: 'System Update',
+    bug_fix: 'Bug Fix',
+    changes: 'Improvements',
+    scheduled: 'Scheduled Maintenance',
+    custom: 'Custom Reason',
+  };
+
+  const reasonIcons: Record<string, React.ReactNode> = {
+    update: <RotateCw className="h-4 w-4" />,
+    bug_fix: <Wrench className="h-4 w-4" />,
+    changes: <Settings className="h-4 w-4" />,
+    scheduled: <Calendar className="h-4 w-4" />,
+    custom: <FileText className="h-4 w-4" />,
+  };
+
+  const handleToggleMaintenance = async () => {
+    setIsToggling(true);
+    try {
+      // Convert datetime-local format (2026-02-05T14:30) to ISO timestamp
+      let estimatedRestoreTimeISO: string | undefined = undefined;
+      if (formData.estimated_end_time) {
+        // datetime-local gives local time without timezone, convert to ISO with timezone
+        const localDate = new Date(formData.estimated_end_time);
+        estimatedRestoreTimeISO = localDate.toISOString();
+      }
+
+      const result = await toggleMaintenanceModeServer({
+        is_enabled: !status.is_enabled,
+        reason_type: status.is_enabled ? 'update' : formData.reason_type,
+        custom_reason: formData.reason_type === 'custom' ? formData.custom_reason : undefined,
+        title: formData.title,
+        message: formData.message,
+        estimated_restore_time: estimatedRestoreTimeISO,
+        show_timer: true,
+        show_progress: true,
+      });
+
+      if (result.success) {
+        setStatus({
+          is_enabled: !status.is_enabled,
+          enabled_at: !status.is_enabled ? new Date().toISOString() : null,
+          enabled_by: null,
+          reason_type: !status.is_enabled ? formData.reason_type : null,
+          custom_reason: formData.reason_type === 'custom' ? formData.custom_reason : null,
+          estimated_end_time: estimatedRestoreTimeISO || null,
+          title: formData.title,
+          message: formData.message,
+          show_timer: true,
+          show_progress: true,
+        });
+        toast.success(status.is_enabled ? 'Maintenance mode disabled' : 'Maintenance mode enabled');
+        setShowConfirmDialog(false);
+      } else {
+        toast.error(result.error || 'Failed to toggle maintenance mode');
+      }
+    } catch (error) {
+      toast.error('Failed to toggle maintenance mode');
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
+  const handleSendNotifications = async () => {
+    if (!status.is_enabled) {
+      toast.error('Enable maintenance mode first');
+      return;
+    }
+
+    setIsSendingEmails(true);
+    setEmailProgress({ sent: 0, total: 0, progress: 0, failed: 0 });
+    
+    // Show initial toast
+    const toastId = toast.loading('Preparing to send notifications...', {
+      duration: Infinity,
+    });
+
+    try {
+      console.log('[Maintenance Emails] Starting request...');
+      
+      const response = await fetch('/api/maintenance/send-notifications-stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          settings: {
+            is_enabled: true,
+            reason_type: status.reason_type || 'update',
+            custom_reason: status.custom_reason || undefined,
+            title: status.title || "We'll Be Right Back",
+            message: status.message || undefined,
+            estimated_restore_time: status.estimated_end_time || undefined,
+            show_timer: status.show_timer ?? true,
+            show_progress: status.show_progress ?? true,
+          }
+        }),
+      });
+
+      console.log('[Maintenance Emails] Response status:', response.status);
+      console.log('[Maintenance Emails] Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Maintenance Emails] Error response:', errorText);
+        throw new Error(`Server returned ${response.status}: ${errorText}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      console.log('[Maintenance Emails] Starting to read stream...');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          console.log('[Maintenance Emails] Stream complete');
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        console.log('[Maintenance Emails] Buffer:', buffer);
+        
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const jsonData = line.slice(6);
+            console.log('[Maintenance Emails] Received data:', jsonData);
+            
+            try {
+              const data = JSON.parse(jsonData);
+              
+              if (data.error) {
+                console.error('[Maintenance Emails] Server error:', data.error);
+                toast.error(data.error, { id: toastId });
+                setIsSendingEmails(false);
+                return;
+              }
+
+              if (data.status === 'fetching') {
+                console.log('[Maintenance Emails] Fetching users...');
+                toast.loading('Fetching user list...', { id: toastId });
+              } else if (data.status === 'sending') {
+                console.log('[Maintenance Emails] Sending progress:', data);
+                setEmailProgress({
+                  sent: data.sent || 0,
+                  total: data.total || 0,
+                  progress: data.progress || 0,
+                  failed: data.failed || 0,
+                });
+                toast.loading(
+                  `Sending notifications... ${data.sent || 0}/${data.total || 0} sent (${data.progress || 0}%)`,
+                  { id: toastId }
+                );
+              } else if (data.status === 'complete') {
+                console.log('[Maintenance Emails] Complete:', data);
+                setEmailProgress({
+                  sent: data.sent || 0,
+                  total: data.total || 0,
+                  progress: 100,
+                  failed: data.failed || 0,
+                });
+                
+                if (data.total === 0) {
+                  toast.info(`No users to notify. Customers: ${data.customerCount}, Employees: ${data.employeeCount}`, { id: toastId });
+                } else if (data.failed > 0) {
+                  toast.warning(`Sent ${data.sent}/${data.total} emails (${data.failed} failed)`, { id: toastId });
+                } else {
+                  toast.success(`Successfully sent ${data.sent} notification emails!`, { id: toastId });
+                }
+              }
+            } catch (parseError) {
+              console.error('[Maintenance Emails] Failed to parse JSON:', jsonData, parseError);
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('[Maintenance Emails] Error:', error);
+      toast.error(error?.message || 'Failed to send notifications', { id: toastId });
+    } finally {
+      setIsSendingEmails(false);
+      setTimeout(() => setEmailProgress({ sent: 0, total: 0, progress: 0, failed: 0 }), 3000);
+    }
+  };
+
+  // Calculate minimum datetime for estimation (current time)
+  const getMinDateTime = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const local = new Date(now.getTime() - offset * 60 * 1000);
+    return local.toISOString().slice(0, 16);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Status Card */}
+      <Card className={cn(
+        "border-2 transition-colors",
+        status.is_enabled ? "border-orange-500 bg-orange-500/5" : "border-green-500 bg-green-500/5"
+      )}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "p-3 rounded-full",
+                status.is_enabled ? "bg-orange-500/20" : "bg-green-500/20"
+              )}>
+                {status.is_enabled ? (
+                  <Wrench className="h-6 w-6 text-orange-500 animate-pulse" />
+                ) : (
+                  <Power className="h-6 w-6 text-green-500" />
+                )}
+              </div>
+              <div>
+                <CardTitle className="text-lg">
+                  {status.is_enabled ? 'Maintenance Mode Active' : 'Website Online'}
+                </CardTitle>
+                <CardDescription>
+                  {status.is_enabled 
+                    ? 'Only admins can access the website. All other users see the maintenance page.'
+                    : 'Website is accessible to all users.'}
+                </CardDescription>
+              </div>
+            </div>
+            <div className={cn(
+              "px-3 py-1 rounded-full text-sm font-medium",
+              status.is_enabled 
+                ? "bg-orange-500/20 text-orange-500" 
+                : "bg-green-500/20 text-green-500"
+            )}>
+              {status.is_enabled ? 'Maintenance' : 'Online'}
+            </div>
+          </div>
+        </CardHeader>
+        {status.is_enabled && (
+          <CardContent className="pt-0 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Started:</span>
+                <span>{status.enabled_at ? new Date(status.enabled_at).toLocaleString() : 'N/A'}</span>
+              </div>
+              {status.reason_type && (
+                <div className="flex items-center gap-2">
+                  {reasonIcons[status.reason_type]}
+                  <span className="text-muted-foreground">Reason:</span>
+                  <span>{reasonLabels[status.reason_type]}</span>
+                </div>
+              )}
+              {status.reason_type === 'custom' && status.custom_reason && (
+                <div className="col-span-2 flex items-start gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <span className="text-muted-foreground">Details:</span>
+                  <span className="flex-1">{status.custom_reason}</span>
+                </div>
+              )}
+              {status.estimated_end_time && (
+                <div className="col-span-2 flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Estimated End:</span>
+                  <span>{new Date(status.estimated_end_time).toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Configuration Card */}
+      {!status.is_enabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Maintenance Configuration
+            </CardTitle>
+            <CardDescription>
+              Configure the maintenance settings before enabling
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Reason Type</Label>
+              <Select
+                value={formData.reason_type}
+                onValueChange={(value: 'update' | 'bug_fix' | 'changes' | 'scheduled' | 'custom') => 
+                  setFormData(prev => ({ ...prev, reason_type: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="update">
+                    <div className="flex items-center gap-2">
+                      <RotateCw className="h-4 w-4" />
+                      System Update
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="bug_fix">
+                    <div className="flex items-center gap-2">
+                      <Wrench className="h-4 w-4" />
+                      Bug Fix
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="changes">
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-4 w-4" />
+                      Improvements
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="scheduled">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Scheduled Maintenance
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="custom">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Custom Reason
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {formData.reason_type === 'custom' && (
+              <div className="space-y-2">
+                <Label>Custom Reason</Label>
+                <Input
+                  placeholder="Enter the reason for maintenance..."
+                  value={formData.custom_reason}
+                  onChange={(e) => setFormData(prev => ({ ...prev, custom_reason: e.target.value }))}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Page Title</Label>
+              <Input
+                placeholder="We'll Be Right Back"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Message</Label>
+              <Input
+                placeholder="Our website is currently undergoing scheduled maintenance..."
+                value={formData.message}
+                onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                This message will be displayed on the maintenance page
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Estimated End Time (Optional)</Label>
+              <Input
+                type="datetime-local"
+                value={formData.estimated_end_time}
+                onChange={(e) => setFormData(prev => ({ ...prev, estimated_end_time: e.target.value }))}
+                min={getMinDateTime()}
+              />
+              <p className="text-xs text-muted-foreground">
+                Users will see a countdown timer until this time
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Actions Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Power className="h-4 w-4" />
+            Actions
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              variant={status.is_enabled ? "default" : "destructive"}
+              onClick={() => setShowConfirmDialog(true)}
+              disabled={isToggling}
+              className="flex-1"
+            >
+              {isToggling ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {status.is_enabled ? 'Disabling...' : 'Enabling...'}
+                </>
+              ) : (
+                <>
+                  <Power className="h-4 w-4 mr-2" />
+                  {status.is_enabled ? 'Disable Maintenance Mode' : 'Enable Maintenance Mode'}
+                </>
+              )}
+            </Button>
+
+            {status.is_enabled && (
+              <Button
+                variant="outline"
+                onClick={handleSendNotifications}
+                disabled={isSendingEmails}
+                className="flex-1"
+              >
+                {isSendingEmails ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sending... {emailProgress.total > 0 && `${emailProgress.sent}/${emailProgress.total}`}
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Notify All Users
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+
+          {/* Email Sending Progress Bar */}
+          {isSendingEmails && emailProgress.total > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="space-y-2"
+            >
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  Sending notifications...
+                </span>
+                <span className="font-medium">
+                  {emailProgress.sent}/{emailProgress.total} ({emailProgress.progress}%)
+                </span>
+              </div>
+              
+              {/* Progress bar */}
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${emailProgress.progress}%` }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                />
+              </div>
+
+              {/* Stats */}
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  {emailProgress.sent} sent
+                </span>
+                {emailProgress.failed > 0 && (
+                  <span className="flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3 text-amber-500" />
+                    {emailProgress.failed} failed
+                  </span>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {status.is_enabled && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                All users except admins are currently seeing the maintenance page. 
+                You can send email notifications to inform them about the downtime.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {status.is_enabled ? 'Disable Maintenance Mode?' : 'Enable Maintenance Mode?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {status.is_enabled 
+                ? 'This will make the website accessible to all users again.'
+                : 'This will show a maintenance page to all non-admin users. Only admins will be able to access the website.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleToggleMaintenance}
+              disabled={isToggling}
+              className={status.is_enabled ? "" : "bg-destructive hover:bg-destructive/90"}
+            >
+              {isToggling ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {status.is_enabled ? 'Disabling...' : 'Enabling...'}
+                </>
+              ) : (
+                status.is_enabled ? 'Disable' : 'Enable'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
 // Props for SSR data
 interface SettingsClientProps {
   initialEmployeeProfile?: Employee | null;
@@ -1637,6 +2200,7 @@ interface SettingsClientProps {
   initialPaymentMethods?: PaymentMethod[];
   initialPaymentStats?: PaymentMethodsStats | null;
   initial2FAStatus?: boolean;
+  initialMaintenanceStatus?: MaintenanceStatus | null;
   hasSSRData?: boolean; // Explicitly set from server to indicate SSR data was fetched
 }
 
@@ -1647,6 +2211,7 @@ export default function SettingsClient({
   initialPaymentMethods = [],
   initialPaymentStats = null,
   initial2FAStatus = false,
+  initialMaintenanceStatus = null,
   hasSSRData = false,
 }: SettingsClientProps) {
   // Get context as fallback when SSR data is not available
@@ -1716,6 +2281,9 @@ export default function SettingsClient({
               <TabsTrigger value="website" className="gap-1 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
                 <Globe className="h-3 w-3 sm:h-4 sm:w-4" /> Website
               </TabsTrigger>
+              <TabsTrigger value="maintenance" className="gap-1 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
+                <Wrench className="h-3 w-3 sm:h-4 sm:w-4" /> Maintenance
+              </TabsTrigger>
             </>
           )}
         </TabsList>
@@ -1747,6 +2315,9 @@ export default function SettingsClient({
             </TabsContent>
             <TabsContent value="website">
               <WebsiteSettingsForm initialSettings={initialWebsiteSettings || null} />
+            </TabsContent>
+            <TabsContent value="maintenance">
+              <MaintenanceModeSettings initialStatus={initialMaintenanceStatus} />
             </TabsContent>
           </>
         )}

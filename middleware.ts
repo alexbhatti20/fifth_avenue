@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+// Supabase client for edge (middleware)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Allowed origins for CORS - include all possible localhost ports
 const ALLOWED_ORIGINS = [
@@ -61,10 +66,83 @@ function isSearchBot(userAgent: string): boolean {
   return SEO_BOTS.some(bot => ua.includes(bot));
 }
 
-export function middleware(request: NextRequest) {
+// Paths that should bypass maintenance mode check
+const MAINTENANCE_BYPASS_PATHS = [
+  '/maintenance',
+  '/portal/login',
+  '/api/',
+  '/_next/',
+  '/assets/',
+  '/favicon.ico',
+  '/robots.txt',
+  '/sitemap.xml',
+  '/manifest.json',
+];
+
+// Check if user is admin from cookies (edge-compatible)
+function isAdminFromCookies(request: NextRequest): boolean {
+  try {
+    // Check employee_data cookie
+    const employeeData = request.cookies.get('employee_data')?.value;
+    if (employeeData) {
+      const parsed = JSON.parse(decodeURIComponent(employeeData));
+      if (parsed.role === 'admin') return true;
+    }
+  } catch {}
+  
+  try {
+    // Check JWT token payload (basic decode, no verification in edge)
+    const authToken = request.cookies.get('auth_token')?.value || 
+                      request.cookies.get('sb-access-token')?.value;
+    if (authToken) {
+      const parts = authToken.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        if (payload.role === 'admin') return true;
+      }
+    }
+  } catch {}
+  
+  return false;
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const response = NextResponse.next();
+  let response = NextResponse.next();
   const userAgent = request.headers.get('user-agent') || '';
+
+  // =============================================
+  // MAINTENANCE MODE CHECK (SSR - No client requests)
+  // =============================================
+  const shouldCheckMaintenance = !MAINTENANCE_BYPASS_PATHS.some(path => 
+    pathname.startsWith(path) || pathname === path
+  );
+
+  if (shouldCheckMaintenance && supabaseUrl && supabaseKey) {
+    try {
+      // Create edge-compatible supabase client
+      const supabase = createClient(supabaseUrl, supabaseKey, {
+        auth: { persistSession: false },
+      });
+      
+      // Check maintenance status directly from database
+      const { data: maintenanceData } = await supabase.rpc('get_maintenance_status');
+      
+      if (maintenanceData?.is_enabled) {
+        // Check if current user is admin
+        const isAdmin = isAdminFromCookies(request);
+        
+        // If not admin, redirect to maintenance page
+        if (!isAdmin) {
+          const maintenanceUrl = new URL('/maintenance', request.url);
+          return NextResponse.redirect(maintenanceUrl);
+        }
+      }
+    } catch (error) {
+      // If maintenance check fails, allow access (fail-open for availability)
+      console.error('[Middleware] Maintenance check failed:', error);
+    }
+  }
 
   // Security headers
   response.headers.set('X-DNS-Prefetch-Control', 'on');

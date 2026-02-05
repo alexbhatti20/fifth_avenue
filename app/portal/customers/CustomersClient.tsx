@@ -472,7 +472,7 @@ function CustomerDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] sm:max-h-[85vh] overflow-y-auto overscroll-contain touch-pan-y">
         <DialogHeader>
           <DialogTitle>Customer Details</DialogTitle>
         </DialogHeader>
@@ -541,41 +541,41 @@ function CustomerDetailDialog({
             )}
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
               <Card>
-                <CardContent className="pt-4">
+                <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4">
                   <div className="flex items-center gap-2 text-muted-foreground mb-1">
                     <ShoppingBag className="h-4 w-4" />
                     <span className="text-xs">Total Orders</span>
                   </div>
-                  <p className="text-2xl font-bold">{customer.total_orders}</p>
+                  <p className="text-xl sm:text-2xl font-bold">{customer.total_orders}</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="pt-4">
+                <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4">
                   <div className="flex items-center gap-2 text-muted-foreground mb-1">
                     <Wallet className="h-4 w-4" />
                     <span className="text-xs">Total Spent</span>
                   </div>
-                  <p className="text-2xl font-bold">Rs. {customer.total_spending?.toLocaleString()}</p>
+                  <p className="text-xl sm:text-2xl font-bold">Rs. {customer.total_spending?.toLocaleString()}</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="pt-4">
+                <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4">
                   <div className="flex items-center gap-2 text-muted-foreground mb-1">
                     <Star className="h-4 w-4 text-amber-500" />
                     <span className="text-xs">Loyalty Points</span>
                   </div>
-                  <p className="text-2xl font-bold">{customer.loyalty_points || 0}</p>
+                  <p className="text-xl sm:text-2xl font-bold">{customer.loyalty_points || 0}</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="pt-4">
+                <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4">
                   <div className="flex items-center gap-2 text-muted-foreground mb-1">
                     <FileText className="h-4 w-4" />
                     <span className="text-xs">Total Invoices</span>
                   </div>
-                  <p className="text-2xl font-bold">{customer.total_invoices}</p>
+                  <p className="text-xl sm:text-2xl font-bold">{customer.total_invoices}</p>
                 </CardContent>
               </Card>
             </div>
@@ -610,7 +610,7 @@ function CustomerDetailDialog({
                   <CardTitle className="text-sm">Recent Orders</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-2 max-h-40 sm:max-h-48 overflow-y-auto overscroll-contain touch-pan-y">
                     {customer.recent_orders.map((order: any) => (
                       <div key={order.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                         <div>

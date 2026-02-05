@@ -156,6 +156,20 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Set employee_data cookie for maintenance mode admin bypass check
+    const employeeData = JSON.stringify({
+      id: employee.id,
+      role: employee.role, // 'admin' or 'employee'
+      name: employee.name,
+    });
+    response.cookies.set('employee_data', encodeURIComponent(employeeData), {
+      httpOnly: false, // Readable by middleware
+      secure: isSecure,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+
     return response;
   } catch (error: any) {
     console.error('2FA verify error:', error);

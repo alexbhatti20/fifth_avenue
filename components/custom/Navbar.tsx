@@ -9,7 +9,7 @@ import {
   Menu, X, ShoppingCart, User, Sparkles, Phone, 
   LogOut, Settings, Package, Heart, Award, CreditCard,
   MapPin, ChevronDown, Bell, History, Flame, Star,
-  ArrowRight, Crown
+  ArrowRight, Crown, LayoutGrid, Users, ClipboardList
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -133,6 +133,7 @@ function Navbar() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [animationLoaded, setAnimationLoaded] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const [userType, setUserType] = useState<string | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
@@ -147,7 +148,18 @@ function Navbar() {
   // Track hydration to prevent mismatch
   useEffect(() => {
     setHasMounted(true);
+    // Get user type from localStorage
+    const storedUserType = localStorage.getItem('user_type');
+    setUserType(storedUserType);
   }, []);
+
+  // Update user type when user changes (login/logout)
+  useEffect(() => {
+    if (hasMounted) {
+      const storedUserType = localStorage.getItem('user_type');
+      setUserType(storedUserType);
+    }
+  }, [user, hasMounted]);
 
   // Lazy load animation after initial render
   useEffect(() => {
@@ -208,22 +220,59 @@ function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${window.scrollY}px`;
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+    };
+  }, [isMobileMenuOpen]);
+
   const handleSignOut = async () => {
     await signOut();
     setIsUserMenuOpen(false);
     router.push("/");
   };
 
-  // User dropdown menu items
-  const userMenuItems = useMemo(() => [
-    { icon: Package, label: "My Orders", href: "/orders", color: "text-blue-500" },
-    { icon: History, label: "Order History", href: "/orders/history", color: "text-purple-500" },
-    { icon: MapPin, label: "Track Order", href: "/orders/track", color: "text-green-500" },
-    { icon: Award, label: "Loyalty Points", href: "/loyalty", color: "text-yellow-500" },
-    { icon: CreditCard, label: "Payments", href: "/payments", color: "text-emerald-500" },
-    { icon: Heart, label: "Favorites", href: "/favorites", color: "text-red-500" },
-    { icon: Settings, label: "Settings", href: "/settings", color: "text-gray-500" },
-  ], []);
+  // User dropdown menu items - different for employees vs customers
+  const userMenuItems = useMemo(() => {
+    // Employee/Admin menu items - redirect to portal
+    if (userType === 'admin' || userType === 'employee') {
+      return [
+        { icon: LayoutGrid, label: "Go to Portal", href: "/portal", color: "text-primary" },
+        { icon: ClipboardList, label: "Orders", href: "/portal/orders", color: "text-blue-500" },
+        { icon: Users, label: "Employees", href: "/portal/employees", color: "text-purple-500" },
+        { icon: Settings, label: "Settings", href: "/portal/settings", color: "text-gray-500" },
+      ];
+    }
+    // Customer menu items
+    return [
+      { icon: Package, label: "My Orders", href: "/orders", color: "text-blue-500" },
+      { icon: History, label: "Order History", href: "/orders/history", color: "text-purple-500" },
+      { icon: MapPin, label: "Track Order", href: "/orders/track", color: "text-green-500" },
+      { icon: Award, label: "Loyalty Points", href: "/loyalty", color: "text-yellow-500" },
+      { icon: CreditCard, label: "Payments", href: "/payments", color: "text-emerald-500" },
+      { icon: Heart, label: "Favorites", href: "/favorites", color: "text-red-500" },
+      { icon: Settings, label: "Settings", href: "/settings", color: "text-gray-500" },
+    ];
+  }, [userType]);
 
   return (
     <motion.header
@@ -394,7 +443,7 @@ function Navbar() {
                       {user.name?.split(' ')[0] || 'User'}
                     </span>
                     <span className={`text-[10px] leading-tight ${isScrolled ? "text-muted-foreground" : "text-white/70"}`}>
-                      Premium Member
+                      {userType === 'admin' ? 'Administrator' : userType === 'employee' ? 'Staff Member' : 'Premium Member'}
                     </span>
                   </div>
                   <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
@@ -579,9 +628,16 @@ function Navbar() {
             animate={{ opacity: 1, height: "auto" }}
             exit={disableAnimations ? { opacity: 0 } : { opacity: 0, height: 0 }}
             transition={disableAnimations ? { duration: 0.1 } : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="md:hidden bg-background/95 backdrop-blur-xl border-t border-border/50 shadow-2xl overflow-hidden"
+            className="md:hidden bg-background/95 backdrop-blur-xl border-t border-border/50 shadow-2xl"
+            style={{ maxHeight: 'calc(100dvh - 64px)' }}
           >
-            <div className="container-custom py-5 flex flex-col gap-2">
+            <div 
+              className="container-custom py-5 flex flex-col gap-2 overflow-y-auto overscroll-contain touch-pan-y scrollbar-thin"
+              style={{ 
+                maxHeight: 'calc(100dvh - 64px)', 
+                WebkitOverflowScrolling: 'touch'
+              }}
+            >
               {/* Premium User Info - Mobile */}
               {user && (
                 <motion.div
@@ -741,6 +797,9 @@ function Navbar() {
                   </Link>
                 </motion.div>
               )}
+              
+              {/* Safe area padding for bottom */}
+              <div className="h-6 flex-shrink-0" />
             </div>
           </motion.div>
         )}

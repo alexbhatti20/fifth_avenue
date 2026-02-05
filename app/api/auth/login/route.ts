@@ -468,6 +468,22 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Set employee_data cookie for maintenance mode admin bypass check
+    if (isEmployee || isAdmin) {
+      const employeeData = JSON.stringify({
+        id: userProfile.id,
+        role: userProfile.type, // 'admin' or 'employee'
+        name: userProfile.name,
+      });
+      response.cookies.set('employee_data', encodeURIComponent(employeeData), {
+        httpOnly: false, // Readable by middleware
+        secure: isSecure,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      });
+    }
+
     return response;
 
   } catch (error) {

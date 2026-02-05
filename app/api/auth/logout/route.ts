@@ -51,6 +51,12 @@ export async function POST(request: NextRequest) {
     response.cookies.set('auth-token', '', cookieOptions);
     response.cookies.set('sb-access-token', '', cookieOptions);
     response.cookies.set('sb-refresh-token', '', cookieOptions);
+    
+    // Clear employee_data cookie (for maintenance mode admin bypass)
+    response.cookies.set('employee_data', '', {
+      ...cookieOptions,
+      httpOnly: false, // Match how it was set
+    });
 
     return response;
 
@@ -74,6 +80,12 @@ export async function POST(request: NextRequest) {
     response.cookies.set('auth-token', '', cookieOptions);
     response.cookies.set('sb-access-token', '', cookieOptions);
     response.cookies.set('sb-refresh-token', '', cookieOptions);
+    
+    // Clear employee_data cookie (for maintenance mode admin bypass)
+    response.cookies.set('employee_data', '', {
+      ...cookieOptions,
+      httpOnly: false, // Match how it was set
+    });
 
     return response;
   }
