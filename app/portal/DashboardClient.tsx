@@ -1135,7 +1135,7 @@ function WaiterDashboard() {
         <div className="text-sm text-muted-foreground">
           {isToday ? 'Live data' : `${dateRange.startDate} to ${dateRange.endDate}`}
         </div>
-        <DateRangePicker value={dateRange} onChange={setDateRange} />
+        <DateRangePicker currentPreset={dateRange.preset} currentDateRange={{ startDate: dateRange.startDate, endDate: dateRange.endDate }} />
       </div>
       
       <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
@@ -1681,7 +1681,7 @@ function DeliveryDashboard() {
         <div className="text-sm text-muted-foreground">
           {isToday ? 'Live data (refreshes every 30s)' : `${dateRange.startDate} to ${dateRange.endDate}`}
         </div>
-        <DateRangePicker value={dateRange} onChange={setDateRange} />
+        <DateRangePicker currentPreset={dateRange.preset} currentDateRange={{ startDate: dateRange.startDate, endDate: dateRange.endDate }} />
       </div>
       
       {/* Stats */}
