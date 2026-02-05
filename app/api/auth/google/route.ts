@@ -7,9 +7,13 @@ export async function POST(request: NextRequest) {
     const { type } = await request.json();
     
     // type can be 'login' or 'register'
-    // We store the intent in the redirect URL to handle it after callback
-    const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const redirectTo = `${origin}/api/auth/google/callback?intent=${type || 'login'}`;
+    // Determine the base URL from the request
+    const host = request.headers.get('host') || '';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const baseUrl = `${protocol}://${host}`;
+    const redirectTo = `${baseUrl}/api/auth/google/callback?intent=${type || 'login'}`;
+
+    console.log('Google OAuth redirect URL:', redirectTo);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

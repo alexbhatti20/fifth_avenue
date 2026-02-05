@@ -169,8 +169,12 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
   
-  const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const baseUrl = origin.includes('localhost') ? 'http://localhost:3000' : origin;
+  // Get base URL from the request
+  const host = request.headers.get('host') || 'zoirobroast.me';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const baseUrl = `${protocol}://${host}`;
+
+  console.log('Google OAuth callback - baseUrl:', baseUrl);
 
   // Handle OAuth errors
   if (error) {
