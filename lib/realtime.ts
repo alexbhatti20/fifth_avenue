@@ -2,8 +2,47 @@ import { supabase } from './supabase';
 
 // Realtime channels - only for per-entity subscriptions that need unique filters
 const channels = {
+  orders: null as any,
   riderAssignments: null as any,
 };
+
+// Subscribe to order updates (for customer order tracking page)
+export function subscribeToOrders(
+  callback: (payload: any) => void,
+  filter?: { status?: string; customerId?: string }
+) {
+  if (channels.orders) {
+    channels.orders.unsubscribe();
+  }
+
+  channels.orders = supabase
+    .channel('customer-orders-channel')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'orders',
+        ...(filter?.customerId ? { filter: `customer_id=eq.${filter.customerId}` } : {}),
+      },
+      (payload) => {
+        // Apply client-side status filter if needed
+        const newRecord = payload.new as any;
+        if (filter?.status && newRecord?.status !== filter.status) {
+          return;
+        }
+        callback(payload);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    if (channels.orders) {
+      channels.orders.unsubscribe();
+      channels.orders = null;
+    }
+  };
+}
 
 // Subscribe to orders assigned to a specific delivery rider
 // This listens for when an order is assigned OR when status changes to 'ready'
@@ -58,6 +97,10 @@ export function subscribeToRiderAssignments(
 
 // Cleanup all subscriptions
 export function cleanupRealtimeSubscriptions() {
+  if (channels.orders) {
+    channels.orders.unsubscribe();
+    channels.orders = null;
+  }
   if (channels.riderAssignments) {
     channels.riderAssignments.unsubscribe();
     channels.riderAssignments = null;

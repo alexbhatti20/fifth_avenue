@@ -8,7 +8,14 @@
 // =============================================
 
 import { supabase } from './supabase';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+
+type PostgresChangesFilter = {
+  event: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
+  schema: string;
+  table: string;
+  filter?: string;
+};
 
 // Callback receives the Realtime payload so consumers can
 // inspect eventType / new / old when needed.  Existing
@@ -73,18 +80,16 @@ class RealtimeSubscriptionManager {
     }
 
     // Create new channel subscription
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: options?.event || '*',
-          schema: 'public',
-          table,
-          ...(options?.filter ? { filter: options.filter } : {}),
-        },
-        (payload) => this.notifyAll(channelName, payload)
-      )
+    const config: PostgresChangesFilter = {
+      event: options?.event || '*',
+      schema: 'public',
+      table,
+    };
+    if (options?.filter) config.filter = options.filter;
+
+    const channel = (supabase
+      .channel(channelName) as any)
+      .on('postgres_changes', config, (payload: any) => this.notifyAll(channelName, payload))
       .subscribe();
 
     const callbacks = new Set<RealtimeCallback>();
@@ -117,19 +122,17 @@ class RealtimeSubscriptionManager {
     }
 
     // Create new channel with multiple table subscriptions
-    let channel = supabase.channel(channelName);
+    let channel: any = supabase.channel(channelName);
 
     tables.forEach(({ table, filter, event }) => {
-      channel = channel.on(
-        'postgres_changes',
-        {
-          event: event || '*',
-          schema: 'public',
-          table,
-          ...(filter ? { filter } : {}),
-        },
-        (payload) => this.notifyAll(channelName, payload)
-      );
+      const config: PostgresChangesFilter = {
+        event: event || '*',
+        schema: 'public',
+        table,
+      };
+      if (filter) config.filter = filter;
+
+      channel = channel.on('postgres_changes', config, (payload: any) => this.notifyAll(channelName, payload));
     });
 
     channel.subscribe();
