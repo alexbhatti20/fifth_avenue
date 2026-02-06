@@ -113,31 +113,3 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [...staticPages, ...categoryPages];
 }
-    },
-    {
-      url: `${baseUrl}/privacy`,
-      lastModified: currentDate,
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
-  ];
-
-  // Menu category pages (add dynamically if needed)
-  const menuCategories = [
-    'broast',
-    'burgers',
-    'wings',
-    'deals',
-    'beverages',
-    'sides',
-  ];
-
-  const categoryPages: MetadataRoute.Sitemap = menuCategories.map((category) => ({
-    url: `${baseUrl}/menu/${category}`,
-    lastModified: currentDate,
-    changeFrequency: 'weekly' as const,
-    priority: 0.8,
-  }));
-
-  return [...staticPages, ...categoryPages];
-}
