@@ -1907,3 +1907,257 @@ export async function sendMaintenanceNotificationBatch(
     return { success: false, sentCount, errors };
   }
 }
+
+// =============================================
+// CONTACT MESSAGE REPLY EMAIL
+// For replying to customer contact form submissions
+// =============================================
+
+/**
+ * Send reply to a contact form message
+ */
+export async function sendContactMessageReply(
+  recipientEmail: string,
+  recipientName: string,
+  originalMessage: string,
+  replyMessage: string,
+  repliedByName: string,
+  originalSubject?: string
+) {
+  const truncatedOriginal = originalMessage.length > 500 
+    ? originalMessage.substring(0, 500) + '...' 
+    : originalMessage;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Reply from ZOIRO Broast</title>
+    </head>
+    <body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f5;">
+      <div style="max-width: 600px; margin: 0 auto; background: ${BRAND_WHITE};">
+        ${getEmailHeader('📬 Reply to Your Message', 'Thank you for contacting us')}
+        
+        <div style="padding: 30px;">
+          <h2 style="color: ${BRAND_DARK}; margin-top: 0;">Hello ${recipientName}! 👋</h2>
+          
+          <p>Thank you for reaching out to us. We've reviewed your message and here is our response:</p>
+          
+          <!-- Reply Message -->
+          <div style="background: #f0fdf4; border: 2px solid #22c55e; border-radius: 10px; padding: 20px; margin: 25px 0;">
+            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 24px; margin-right: 10px;">💬</span>
+              <strong style="color: #16a34a;">Our Response</strong>
+            </div>
+            <div style="color: ${BRAND_DARK}; white-space: pre-wrap; font-size: 15px;">${replyMessage}</div>
+          </div>
+          
+          <!-- Original Message Reference -->
+          <div style="background: ${BRAND_LIGHT_BG}; border-left: 4px solid ${BRAND_RED}; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+            <p style="margin: 0 0 8px; color: #666; font-size: 13px;">
+              <strong>Your Original Message${originalSubject ? ` (Re: ${originalSubject})` : ''}:</strong>
+            </p>
+            <p style="margin: 0; color: #555; font-size: 14px; font-style: italic;">"${truncatedOriginal}"</p>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 25px 0;">
+          
+          <p style="margin-bottom: 5px;">Need more help? Don't hesitate to reach out:</p>
+          <ul style="color: #444; margin: 10px 0;">
+            <li>📞 Call us: <a href="tel:+923046292822" style="color: ${BRAND_RED};">+92 304 629 2822</a></li>
+            <li>💬 WhatsApp: <a href="https://wa.me/923046292822" style="color: ${BRAND_RED};">+92 304 629 2822</a></li>
+            <li>📧 Email: <a href="mailto:zorobroast@gmail.com" style="color: ${BRAND_RED};">zorobroast@gmail.com</a></li>
+          </ul>
+          
+          <div style="text-align: center; margin-top: 30px;">
+            ${getButton('Visit Our Menu', `${COMPANY_URL}/menu`)}
+          </div>
+          
+          <p style="margin-top: 25px; font-size: 13px; color: #888;">
+            Responded by: <strong>${repliedByName}</strong> from ZOIRO Broast Team
+          </p>
+        </div>
+        
+        ${getEmailFooter()}
+      </div>
+    </body>
+    </html>
+  `;
+
+  const subjectLine = originalSubject 
+    ? `Re: ${originalSubject} - ZOIRO Broast` 
+    : `Reply to your message - ZOIRO Broast`;
+
+  return sendEmail({
+    to: recipientEmail,
+    subject: subjectLine,
+    htmlContent,
+  });
+}
+
+// =============================================
+// SALARY SLIP / PAYSLIP EMAIL NOTIFICATION
+// =============================================
+
+export async function sendPayslipNotification({
+  employeeEmail,
+  employeeName,
+  employeeId,
+  periodStart,
+  periodEnd,
+  baseSalary,
+  overtimePay,
+  bonuses,
+  deductions,
+  taxAmount,
+  netSalary,
+  paymentMethod,
+  status,
+  paidAt,
+  processedBy,
+}: {
+  employeeEmail: string;
+  employeeName: string;
+  employeeId: string;
+  periodStart: string;
+  periodEnd: string;
+  baseSalary: number;
+  overtimePay: number;
+  bonuses: number;
+  deductions: number;
+  taxAmount: number;
+  netSalary: number;
+  paymentMethod?: string;
+  status: string;
+  paidAt?: string;
+  processedBy?: string;
+}) {
+  const formatDate = (d: string) => new Date(d).toLocaleDateString('en-PK', { year: 'numeric', month: 'long', day: 'numeric' });
+  const formatCurrency = (n: number) => `Rs. ${n.toLocaleString('en-PK')}`;
+
+  const isPaid = status === 'paid';
+  const statusColor = isPaid ? '#22c55e' : '#eab308';
+  const statusLabel = isPaid ? 'PAID' : 'PENDING';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="UTF-8"></head>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f4;">
+      <div style="max-width: 600px; margin: 0 auto; background: ${BRAND_WHITE};">
+        
+        ${getEmailHeader('Salary Slip', `Pay Period: ${formatDate(periodStart)} - ${formatDate(periodEnd)}`)}
+        
+        <div style="padding: 30px;">
+          <!-- Status Badge -->
+          <div style="text-align: center; margin-bottom: 25px;">
+            <span style="display: inline-block; background: ${statusColor}15; color: ${statusColor}; padding: 8px 24px; border-radius: 20px; font-weight: bold; font-size: 14px; border: 1px solid ${statusColor}30;">
+              ● ${statusLabel}
+            </span>
+          </div>
+
+          <!-- Employee Info -->
+          <div style="background: ${BRAND_LIGHT_BG}; border-radius: 12px; padding: 20px; margin-bottom: 25px; border-left: 4px solid ${BRAND_RED};">
+            <h3 style="margin: 0 0 10px; color: ${BRAND_DARK}; font-size: 16px;">Employee Details</h3>
+            <table style="width: 100%; font-size: 14px;">
+              <tr>
+                <td style="padding: 4px 0; color: #666;">Name</td>
+                <td style="padding: 4px 0; font-weight: bold; text-align: right;">${employeeName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #666;">Employee ID</td>
+                <td style="padding: 4px 0; font-weight: bold; text-align: right;">${employeeId}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #666;">Pay Period</td>
+                <td style="padding: 4px 0; text-align: right;">${formatDate(periodStart)} - ${formatDate(periodEnd)}</td>
+              </tr>
+              ${paymentMethod ? `<tr>
+                <td style="padding: 4px 0; color: #666;">Payment Method</td>
+                <td style="padding: 4px 0; text-align: right;">${paymentMethod.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
+              </tr>` : ''}
+            </table>
+          </div>
+
+          <!-- Salary Breakdown -->
+          <div style="background: ${BRAND_WHITE}; border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+            <h3 style="margin: 0 0 15px; color: ${BRAND_DARK}; font-size: 16px;">Salary Breakdown</h3>
+            
+            <!-- Earnings -->
+            <p style="margin: 0 0 8px; color: #22c55e; font-weight: bold; font-size: 13px; text-transform: uppercase;">Earnings</p>
+            <table style="width: 100%; font-size: 14px; margin-bottom: 15px;">
+              <tr>
+                <td style="padding: 6px 0; color: #444;">Base Salary</td>
+                <td style="padding: 6px 0; text-align: right; font-weight: 600;">${formatCurrency(baseSalary)}</td>
+              </tr>
+              ${overtimePay > 0 ? `<tr>
+                <td style="padding: 6px 0; color: #444;">Overtime Pay</td>
+                <td style="padding: 6px 0; text-align: right; color: #22c55e;">+${formatCurrency(overtimePay)}</td>
+              </tr>` : ''}
+              ${bonuses > 0 ? `<tr>
+                <td style="padding: 6px 0; color: #444;">Bonuses</td>
+                <td style="padding: 6px 0; text-align: right; color: #22c55e;">+${formatCurrency(bonuses)}</td>
+              </tr>` : ''}
+            </table>
+
+            <!-- Deductions -->
+            ${(deductions > 0 || taxAmount > 0) ? `
+            <p style="margin: 0 0 8px; color: #ef4444; font-weight: bold; font-size: 13px; text-transform: uppercase;">Deductions</p>
+            <table style="width: 100%; font-size: 14px; margin-bottom: 15px;">
+              ${deductions > 0 ? `<tr>
+                <td style="padding: 6px 0; color: #444;">Deductions</td>
+                <td style="padding: 6px 0; text-align: right; color: #ef4444;">-${formatCurrency(deductions)}</td>
+              </tr>` : ''}
+              ${taxAmount > 0 ? `<tr>
+                <td style="padding: 6px 0; color: #444;">Tax</td>
+                <td style="padding: 6px 0; text-align: right; color: #ef4444;">-${formatCurrency(taxAmount)}</td>
+              </tr>` : ''}
+            </table>
+            ` : ''}
+
+            <!-- Net Salary -->
+            <div style="border-top: 2px solid ${BRAND_RED}; padding-top: 15px; margin-top: 10px;">
+              <table style="width: 100%;">
+                <tr>
+                  <td style="font-size: 16px; font-weight: bold; color: ${BRAND_DARK};">Net Salary</td>
+                  <td style="font-size: 22px; font-weight: bold; color: #22c55e; text-align: right;">${formatCurrency(netSalary)}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          ${paidAt ? `
+          <div style="background: #22c55e10; border: 1px solid #22c55e30; border-radius: 12px; padding: 15px; margin-bottom: 25px; text-align: center;">
+            <p style="margin: 0; color: #22c55e; font-weight: bold;">✅ Payment processed on ${formatDate(paidAt)}</p>
+          </div>
+          ` : ''}
+
+          ${processedBy ? `
+          <p style="font-size: 13px; color: #888; text-align: center;">
+            Processed by: <strong>${processedBy}</strong>
+          </p>
+          ` : ''}
+
+          <div style="text-align: center; margin-top: 20px;">
+            ${getButton('View in Portal', `${COMPANY_URL}/portal/payroll`)}
+          </div>
+          
+          <p style="font-size: 12px; color: #aaa; text-align: center; margin-top: 20px;">
+            This is an automated salary notification from ZOIRO Broast. If you have any questions, please contact your administrator.
+          </p>
+        </div>
+        
+        ${getEmailFooter()}
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: employeeEmail,
+    subject: `Salary Slip - ${formatDate(periodStart)} to ${formatDate(periodEnd)} | ZOIRO Broast`,
+    htmlContent,
+  });
+}

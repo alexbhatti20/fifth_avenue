@@ -2658,7 +2658,7 @@ export async function getAllReviewStatsServer(): Promise<AllReviewStatsServer | 
 }
 
 // =============================================
-// PAYROLL SERVER TYPES
+// PAYROLL SERVER TYPES (v3 - Advanced)
 // =============================================
 
 export interface PayslipEmployeeServer {
@@ -2666,6 +2666,9 @@ export interface PayslipEmployeeServer {
   name: string;
   role: string;
   employee_id: string;
+  avatar_url?: string;
+  email?: string;
+  phone?: string;
 }
 
 export interface PayslipServer {
@@ -2685,101 +2688,185 @@ export interface PayslipServer {
   payment_method?: string;
   paid_at?: string;
   notes?: string;
+  created_by?: string;
+  created_by_name?: string;
   created_at: string;
+  updated_at?: string;
 }
 
-export interface PayrollSummaryServer {
+export interface PayrollDashboardServer {
   total_payroll: number;
+  total_paid: number;
   pending_count: number;
   pending_amount: number;
   paid_this_month: number;
-  employees_count: number;
+  paid_last_month: number;
+  total_employees: number;
+  total_salary_budget: number;
+  payslips_this_month: number;
+  avg_salary: number;
 }
-
-// Get Payslips (Server-Side) - NO CACHE for authenticated data
-export async function getPayslipsServer(filters?: {
-  employeeId?: string;
-  status?: string;
-  startDate?: string;
-  endDate?: string;
-  limit?: number;
-}): Promise<PayslipServer[]> {
-  if (!isSupabaseConfigured) return [];
-
-  const { data, error } = await (await getAuthenticatedClient()).rpc('get_payslips_v2', {
-    p_employee_id: filters?.employeeId,
-    p_status: filters?.status,
-    p_start_date: filters?.startDate,
-    p_end_date: filters?.endDate,
-    p_limit: filters?.limit || 100,
-  });
-
-  if (error) {
-    console.error('Error fetching payslips:', error);
-    return [];
-  }
-
-  return (data || []) as PayslipServer[];
-}
-
-// Get Payroll Summary (Server-Side) - NO CACHE for authenticated data
-export async function getPayrollSummaryServer(periodStart?: string, periodEnd?: string): Promise<PayrollSummaryServer | null> {
-  if (!isSupabaseConfigured) return null;
-
-  const { data, error } = await (await getAuthenticatedClient()).rpc('get_payroll_summary_v2', {
-    p_period_start: periodStart,
-    p_period_end: periodEnd,
-  });
-
-  if (error) {
-    console.error('Error fetching payroll summary:', error);
-    return null;
-  }
-
-  return data as PayrollSummaryServer;
-}
-
-// =============================================
-// ALL EMPLOYEES SERVER (for Payroll)
-// =============================================
 
 export interface PayrollEmployeeServer {
   id: string;
   name: string;
   email: string;
   phone: string | null;
-  role: 'admin' | 'manager' | 'kitchen' | 'waiter' | 'delivery' | 'cashier';
-  status: 'active' | 'inactive' | 'on_leave';
+  role: string;
+  status: string;
   employee_id: string;
-  hire_date: string | null;
   salary: number | null;
-  profile_image: string | null;
+  hired_date: string | null;
+  avatar_url: string | null;
+  bank_details: Record<string, any> | null;
   address: string | null;
-  cnic: string | null;
-  department: string | null;
+  date_of_birth: string | null;
+  blood_group: string | null;
+  emergency_contact: string | null;
+  emergency_contact_name: string | null;
   created_at: string;
-  updated_at: string;
+  latest_payroll: {
+    id: string;
+    base_salary: number;
+    payment_frequency: string;
+    bank_details: Record<string, any>;
+    month: number;
+    year: number;
+    bonus: number;
+    deductions: number;
+    tips: number;
+    total_amount: number;
+    paid: boolean;
+  } | null;
+  total_payslips: number;
+  pending_payslips: number;
+  total_paid_amount: number;
 }
 
-// Get All Employees for Payroll (Server-Side) - NO CACHE for authenticated data
-export async function getAllEmployeesServer(): Promise<PayrollEmployeeServer[]> {
+export interface PayslipDetailServer {
+  payslip: {
+    id: string;
+    period_start: string;
+    period_end: string;
+    base_salary: number;
+    overtime_hours: number;
+    overtime_rate: number;
+    bonuses: number;
+    deductions: number;
+    tax_amount: number;
+    net_salary: number;
+    status: string;
+    payment_method: string | null;
+    paid_at: string | null;
+    notes: string | null;
+    created_at: string;
+    created_by_name: string | null;
+  };
+  employee: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    role: string;
+    employee_id: string;
+    hired_date: string | null;
+    salary: number | null;
+    bank_details: Record<string, any> | null;
+    avatar_url: string | null;
+    address: string | null;
+    date_of_birth: string | null;
+    blood_group: string | null;
+  };
+  company: {
+    name: string;
+    tagline: string;
+    email: string;
+    phone: string;
+    address: string;
+    ntn: string;
+    logo_url: string;
+  };
+}
+
+export interface PayslipsPaginatedServer {
+  payslips: PayslipServer[];
+  total_count: number;
+  page: number;
+  total_pages: number;
+}
+
+// Get Payroll Dashboard (Server-Side)
+export async function getPayrollDashboardServer(): Promise<PayrollDashboardServer | null> {
+  if (!isSupabaseConfigured) return null;
+
+  const { data, error } = await (await getAuthenticatedClient()).rpc('get_payroll_dashboard');
+
+  if (error) {
+    console.error('Error fetching payroll dashboard:', error);
+    return null;
+  }
+
+  return data as PayrollDashboardServer;
+}
+
+// Get Employees with Payroll Info (Server-Side)
+export async function getEmployeesPayrollListServer(): Promise<PayrollEmployeeServer[]> {
   if (!isSupabaseConfigured) return [];
 
-  const { data, error } = await (await getAuthenticatedClient()).rpc('get_employees_paginated', {
-    p_page: 1,
-    p_limit: 500,
-    p_search: null,
-    p_role: null,
-    p_status: null,
+  const { data, error } = await (await getAuthenticatedClient()).rpc('get_employees_payroll_list');
+
+  if (error) {
+    console.error('Error fetching employees payroll list:', error);
+    return [];
+  }
+
+  return (data || []) as PayrollEmployeeServer[];
+}
+
+// Get Payslips Advanced (Server-Side) with pagination
+export async function getPayslipsServer(filters?: {
+  employeeId?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<PayslipsPaginatedServer> {
+  if (!isSupabaseConfigured) return { payslips: [], total_count: 0, page: 1, total_pages: 0 };
+
+  const { data, error } = await (await getAuthenticatedClient()).rpc('get_payslips_advanced', {
+    p_employee_id: filters?.employeeId || null,
+    p_status: filters?.status || null,
+    p_start_date: filters?.startDate || null,
+    p_end_date: filters?.endDate || null,
+    p_search: filters?.search || null,
+    p_page: filters?.page || 1,
+    p_limit: filters?.limit || 50,
   });
 
   if (error) {
-    console.error('Error fetching employees:', error);
-    return [];
-    }
+    console.error('Error fetching payslips:', error);
+    return { payslips: [], total_count: 0, page: 1, total_pages: 0 };
+  }
 
-    const result = Array.isArray(data) ? data[0] : data;
-    return (result?.employees || []) as PayrollEmployeeServer[];
+  return (data || { payslips: [], total_count: 0, page: 1, total_pages: 0 }) as PayslipsPaginatedServer;
+}
+
+// Get Payslip Detail for PDF (Server-Side)
+export async function getPayslipDetailServer(payslipId: string): Promise<PayslipDetailServer | null> {
+  if (!isSupabaseConfigured) return null;
+
+  const { data, error } = await (await getAuthenticatedClient()).rpc('get_payslip_detail', {
+    p_payslip_id: payslipId,
+  });
+
+  if (error) {
+    console.error('Error fetching payslip detail:', error);
+    return null;
+  }
+
+  return data as PayslipDetailServer;
 }
 
 // =============================================
@@ -3800,12 +3887,11 @@ export async function resolveInventoryAlert(
 }
 
 // =============================================
-// PAYROLL QUERIES (SSR)
+// PAYROLL QUERIES (SSR) - Additional helpers
 // =============================================
 
 /**
- * Get employee payroll summary (SSR version)
- * Fetches payroll settings, recent payslips, and payment totals
+ * Get employee payroll summary - Used by employee detail page
  */
 export async function getEmployeePayrollSummaryServer(employeeId: string): Promise<any> {
   if (!isSupabaseConfigured) {
@@ -3815,13 +3901,11 @@ export async function getEmployeePayrollSummaryServer(employeeId: string): Promi
 
   try {
     const client = await getAuthenticatedClient();
-    const { data, error } = await client.rpc('get_employee_payroll_v2', {
-      p_employee_id: employeeId,
-      p_limit: 10
+    const { data, error } = await client.rpc('get_payslip_detail', {
+      p_payslip_id: employeeId, // This is a fallback; main payroll uses new RPCs
     });
 
     if (error) {
-      // Log detailed error info for debugging
       console.error('[SSR] getEmployeePayrollSummaryServer error:', {
         code: error.code,
         message: error.message,
@@ -4107,6 +4191,164 @@ export async function getMaintenanceStatusServer(): Promise<MaintenanceStatusSer
       custom_reason: null,
       estimated_end_time: null,
     };
+  }
+}
+
+// =============================================
+// CONTACT MESSAGES SERVER TYPES & FUNCTIONS
+// For Admin/Manager portal - SSR optimized
+// =============================================
+
+export interface ContactMessageServer {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  subject?: string;
+  message: string;
+  status: 'unread' | 'read' | 'replied' | 'archived';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  reply_message?: string;
+  replied_at?: string;
+  reply_sent_via?: 'email' | 'phone' | 'both';
+  created_at: string;
+  updated_at: string;
+  replied_by?: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  customer?: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    total_orders: number;
+    is_verified: boolean;
+  };
+}
+
+export interface ContactMessageStatsServer {
+  total: number;
+  unread: number;
+  read: number;
+  replied: number;
+  archived: number;
+  urgent: number;
+  high_priority: number;
+  today: number;
+  this_week: number;
+  avg_response_time_hours?: number;
+}
+
+export interface ContactMessagesResponseServer {
+  success: boolean;
+  messages: ContactMessageServer[];
+  total_count: number;
+  has_more: boolean;
+  error?: string;
+}
+
+export interface ContactMessageFiltersServer {
+  status?: 'unread' | 'read' | 'replied' | 'archived' | 'all';
+  sortBy?: 'recent' | 'oldest' | 'priority';
+  limit?: number;
+  offset?: number;
+  search?: string;
+}
+
+/**
+ * Get Contact Messages (Admin/Manager SSR) - optimized RPC
+ */
+export async function getContactMessagesServer(
+  filters?: ContactMessageFiltersServer
+): Promise<ContactMessagesResponseServer> {
+  if (!isSupabaseConfigured) {
+    return { success: false, error: 'Database not configured', messages: [], total_count: 0, has_more: false };
+  }
+
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('get_contact_messages_advanced', {
+      p_status: filters?.status || 'all',
+      p_sort_by: filters?.sortBy || 'recent',
+      p_limit: filters?.limit || 50,
+      p_offset: filters?.offset || 0,
+      p_search: filters?.search || null,
+    });
+
+    if (error) {
+      console.error('[SSR] getContactMessagesServer RPC error:', error.message);
+      return { success: false, error: error.message, messages: [], total_count: 0, has_more: false };
+    }
+
+    // Handle RPC response wrapper
+    const result = data as ContactMessagesResponseServer;
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to fetch messages', messages: [], total_count: 0, has_more: false };
+    }
+
+    return result;
+  } catch (error) {
+    console.error('[SSR] getContactMessagesServer catch:', error);
+    return { success: false, error: 'Server error', messages: [], total_count: 0, has_more: false };
+  }
+}
+
+/**
+ * Get Contact Message Stats (Admin/Manager SSR)
+ */
+export async function getContactMessageStatsServer(): Promise<ContactMessageStatsServer | null> {
+  if (!isSupabaseConfigured) return null;
+
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('get_contact_message_stats');
+
+    if (error) {
+      console.error('[SSR] getContactMessageStatsServer RPC error:', error.message);
+      return null;
+    }
+
+    const result = data as { success: boolean; stats: ContactMessageStatsServer; error?: string };
+    if (!result?.success) {
+      console.error('[SSR] getContactMessageStatsServer:', result?.error);
+      return null;
+    }
+
+    return result.stats;
+  } catch (error) {
+    console.error('[SSR] getContactMessageStatsServer catch:', error);
+    return null;
+  }
+}
+
+/**
+ * Get Single Contact Message by ID (Admin/Manager SSR)
+ */
+export async function getContactMessageByIdServer(messageId: string): Promise<ContactMessageServer | null> {
+  if (!isSupabaseConfigured) return null;
+
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('get_contact_message_by_id', {
+      p_message_id: messageId,
+    });
+
+    if (error) {
+      console.error('[SSR] getContactMessageByIdServer RPC error:', error.message);
+      return null;
+    }
+
+    const result = data as { success: boolean; message: ContactMessageServer; error?: string };
+    if (!result?.success) {
+      return null;
+    }
+
+    return result.message;
+  } catch (error) {
+    console.error('[SSR] getContactMessageByIdServer catch:', error);
+    return null;
   }
 }
 

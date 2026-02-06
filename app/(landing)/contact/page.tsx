@@ -54,6 +54,7 @@ export default function ContactPage() {
     name: "",
     email: "",
     phone: "",
+    subject: "",
     message: "",
   });
 
@@ -91,7 +92,7 @@ export default function ContactPage() {
         description: data.message || "We'll get back to you within 24 hours.",
       });
 
-      setFormData({ name: "", email: "", phone: "", message: "" });
+      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
       setTimeout(() => setSubmitStatus('idle'), 5000);
 
     } catch (error: any) {
@@ -435,6 +436,19 @@ export default function ContactPage() {
                           className="h-12 rounded-xl"
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="subject" className="text-sm font-semibold">Subject (Optional)</Label>
+                      <Input
+                        id="subject"
+                        type="text"
+                        placeholder="What's your message about?"
+                        value={formData.subject}
+                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                        maxLength={255}
+                        className="h-12 rounded-xl"
+                      />
                     </div>
 
                     <div className="space-y-2">

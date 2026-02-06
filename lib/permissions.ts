@@ -29,6 +29,7 @@ export const ALL_PAGES = {
   reports: { path: '/portal/reports', label: 'Reports', icon: 'BarChart3' },
   perks: { path: '/portal/perks', label: 'Perks & Loyalty', icon: 'Gift' },
   reviews: { path: '/portal/reviews', label: 'Reviews', icon: 'Star' },
+  messages: { path: '/portal/messages', label: 'Messages', icon: 'MessageSquare' },
   notifications: { path: '/portal/notifications', label: 'Notifications', icon: 'Bell' },
   deals: { path: '/portal/deals', label: 'Deals', icon: 'Percent' },
   audit: { path: '/portal/audit', label: 'Audit Log', icon: 'FileSearch' },
@@ -59,7 +60,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<EmployeeRole, {
     pages: [
       ...GENERAL_PAGES,
       'menu', 'orders', 'kitchen', 'delivery', 'tables', 'billing',
-      'inventory', 'reports', 'perks', 'reviews', 'deals', 'notifications', 'customers',
+      'inventory', 'reports', 'perks', 'reviews', 'messages', 'deals', 'notifications', 'customers',
     ],
     orderFilters: ['all'],
     features: ['manage_orders', 'manage_tables', 'view_reports', 'manage_inventory'],

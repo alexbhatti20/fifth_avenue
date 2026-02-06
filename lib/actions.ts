@@ -1536,12 +1536,34 @@ export async function updateEmployeeProfileServer(
 }
 
 // =============================================
-// EMPLOYEE PAYROLL SERVER ACTIONS
+// EMPLOYEE PAYROLL SERVER ACTIONS (v3 - Advanced)
 // =============================================
 
 /**
+ * Helper: Get current employee via authenticated RPC (bypasses RLS)
+ * Uses getAuthenticatedClient + getServerSession to reliably get employee data
+ */
+async function getPayrollAdmin() {
+  const { getAuthenticatedClient, getServerSession } = await import('@/lib/server-queries');
+  const user = await getServerSession();
+  if (!user?.id) return null;
+  
+  const client = await getAuthenticatedClient();
+  const { data } = await client.rpc('get_employee_by_auth_user', {
+    p_auth_user_id: user.id,
+  });
+  
+  if (!data) return null;
+  
+  // RPC returns {success, data: employee} or direct employee object
+  const emp = (data as any)?.data || data;
+  if (!emp?.role || emp.role !== 'admin') return null;
+  
+  return emp;
+}
+
+/**
  * Get employee payroll summary - Server action (SSR, hidden from browser)
- * Fetches payroll settings, recent payslips, and payment totals
  */
 export async function getEmployeePayrollSummaryAction(
   employeeId: string
@@ -1552,6 +1574,218 @@ export async function getEmployeePayrollSummaryAction(
     return data;
   } catch (error: any) {
     console.error('getEmployeePayrollSummaryAction error:', error);
+    return null;
+  }
+}
+
+/**
+ * Create Payslip - Server action (SSR, hidden from browser)
+ */
+export async function createPayslipAction(data: {
+  employeeId: string;
+  periodStart: string;
+  periodEnd: string;
+  baseSalary: number;
+  overtimeHours?: number;
+  overtimeRate?: number;
+  bonuses?: number;
+  deductions?: number;
+  taxAmount?: number;
+  paymentMethod?: string;
+  notes?: string;
+  createdBy?: string;
+}): Promise<{ success: boolean; id?: string; netSalary?: number; employeeName?: string; error?: string }> {
+  try {
+    const { getAuthenticatedClient } = await import('@/lib/server-queries');
+    
+    const emp = await getPayrollAdmin();
+    if (!emp) return { success: false, error: 'Admin access required' };
+    
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('create_payslip_advanced', {
+      p_employee_id: data.employeeId,
+      p_period_start: data.periodStart,
+      p_period_end: data.periodEnd,
+      p_base_salary: data.baseSalary,
+      p_overtime_hours: data.overtimeHours || 0,
+      p_overtime_rate: data.overtimeRate || 1.5,
+      p_bonuses: data.bonuses || 0,
+      p_deductions: data.deductions || 0,
+      p_tax_amount: data.taxAmount || 0,
+      p_payment_method: data.paymentMethod || null,
+      p_notes: data.notes || null,
+      p_created_by: data.createdBy || emp.id || null,
+    });
+
+    if (error) return { success: false, error: error.message };
+    return { success: result?.success, id: result?.id, netSalary: result?.net_salary, employeeName: result?.employee_name, error: result?.error };
+  } catch (error: any) {
+    console.error('createPayslipAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Update Payslip - Server action (SSR, hidden from browser) 
+ */
+export async function updatePayslipAction(data: {
+  payslipId: string;
+  status?: string;
+  paymentMethod?: string;
+  bonuses?: number;
+  deductions?: number;
+  taxAmount?: number;
+  overtimeHours?: number;
+  notes?: string;
+}): Promise<{ success: boolean; netSalary?: number; error?: string }> {
+  try {
+    const { getAuthenticatedClient } = await import('@/lib/server-queries');
+    
+    const emp = await getPayrollAdmin();
+    if (!emp) return { success: false, error: 'Admin access required' };
+    
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('update_payslip_advanced', {
+      p_payslip_id: data.payslipId,
+      p_status: data.status || null,
+      p_payment_method: data.paymentMethod || null,
+      p_bonuses: data.bonuses ?? null,
+      p_deductions: data.deductions ?? null,
+      p_tax_amount: data.taxAmount ?? null,
+      p_overtime_hours: data.overtimeHours ?? null,
+      p_notes: data.notes || null,
+    });
+
+    if (error) return { success: false, error: error.message };
+    return { success: result?.success, netSalary: result?.net_salary, error: result?.error };
+  } catch (error: any) {
+    console.error('updatePayslipAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Delete Payslip - Server action (SSR, hidden from browser)
+ */
+export async function deletePayslipAction(payslipId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { getAuthenticatedClient } = await import('@/lib/server-queries');
+    
+    const emp = await getPayrollAdmin();
+    if (!emp) return { success: false, error: 'Admin access required' };
+    
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('delete_payslip_advanced', {
+      p_payslip_id: payslipId,
+    });
+
+    if (error) return { success: false, error: error.message };
+    return result || { success: false, error: 'Unknown error' };
+  } catch (error: any) {
+    console.error('deletePayslipAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Update Employee Salary - Server action (SSR, hidden from browser)
+ */
+export async function updateEmployeeSalaryAction(data: {
+  employeeId: string;
+  newSalary: number;
+  paymentFrequency?: string;
+  bankDetails?: Record<string, any>;
+}): Promise<{ success: boolean; oldSalary?: number; newSalary?: number; employeeName?: string; error?: string }> {
+  try {
+    const { getAuthenticatedClient } = await import('@/lib/server-queries');
+    
+    const emp = await getPayrollAdmin();
+    if (!emp) return { success: false, error: 'Admin access required' };
+    
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('update_employee_salary', {
+      p_employee_id: data.employeeId,
+      p_new_salary: data.newSalary,
+      p_payment_frequency: data.paymentFrequency || null,
+      p_bank_details: data.bankDetails || null,
+      p_updated_by: emp.id || null,
+    });
+
+    if (error) return { success: false, error: error.message };
+    return { 
+      success: result?.success, 
+      oldSalary: result?.old_salary, 
+      newSalary: result?.new_salary, 
+      employeeName: result?.employee_name,
+      error: result?.error 
+    };
+  } catch (error: any) {
+    console.error('updateEmployeeSalaryAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Bulk Pay Payslips - Server action (SSR, hidden from browser)
+ */
+export async function bulkPayPayslipsAction(
+  payslipIds: string[],
+  paymentMethod: string = 'bank_transfer'
+): Promise<{ success: boolean; paidCount?: number; error?: string }> {
+  try {
+    const { getAuthenticatedClient } = await import('@/lib/server-queries');
+    
+    const emp = await getPayrollAdmin();
+    if (!emp) return { success: false, error: 'Admin access required' };
+    
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('bulk_pay_payslips', {
+      p_payslip_ids: payslipIds,
+      p_payment_method: paymentMethod,
+    });
+
+    if (error) return { success: false, error: error.message };
+    return { success: result?.success, paidCount: result?.paid_count, error: result?.error };
+  } catch (error: any) {
+    console.error('bulkPayPayslipsAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Bulk Delete Payslips - Server action (SSR, hidden from browser)
+ */
+export async function bulkDeletePayslipsAction(
+  payslipIds: string[]
+): Promise<{ success: boolean; deletedCount?: number; error?: string }> {
+  try {
+    const { getAuthenticatedClient } = await import('@/lib/server-queries');
+    
+    const emp = await getPayrollAdmin();
+    if (!emp) return { success: false, error: 'Admin access required' };
+    
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('bulk_delete_payslips', {
+      p_payslip_ids: payslipIds,
+    });
+
+    if (error) return { success: false, error: error.message };
+    return { success: result?.success, deletedCount: result?.deleted_count, error: result?.error };
+  } catch (error: any) {
+    console.error('bulkDeletePayslipsAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Get Payslip Detail for PDF - Server action (SSR, hidden from browser)
+ */
+export async function getPayslipDetailAction(payslipId: string): Promise<any> {
+  try {
+    const { getPayslipDetailServer } = await import('@/lib/server-queries');
+    return await getPayslipDetailServer(payslipId);
+  } catch (error: any) {
+    console.error('getPayslipDetailAction error:', error);
     return null;
   }
 }
@@ -2069,6 +2303,213 @@ export async function getEmployeeProfileServerAction(
     return { success: false, error: data?.error || 'Profile not found' };
   } catch (error: any) {
     console.error('getEmployeeProfileServerAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+// =============================================
+// CONTACT MESSAGES - SERVER ACTIONS (SSR)
+// For admin/manager portal management
+// =============================================
+
+import { sendContactMessageReply } from '@/lib/brevo';
+
+/**
+ * Update contact message status (SSR)
+ */
+export async function updateContactMessageStatusAction(
+  messageId: string,
+  status: 'unread' | 'read' | 'replied' | 'archived'
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data, error } = await client.rpc('update_contact_message_status', {
+      p_message_id: messageId,
+      p_status: status,
+    });
+
+    if (error) {
+      console.error('updateContactMessageStatusAction RPC error:', error);
+      return { success: false, error: error.message };
+    }
+
+    const result = data as { success: boolean; error?: string };
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to update status' };
+    }
+
+    revalidatePath('/portal/messages');
+    return { success: true };
+  } catch (error: any) {
+    console.error('updateContactMessageStatusAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Update contact message priority (SSR)
+ */
+export async function updateContactMessagePriorityAction(
+  messageId: string,
+  priority: 'low' | 'normal' | 'high' | 'urgent'
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data, error } = await client.rpc('update_contact_message_priority', {
+      p_message_id: messageId,
+      p_priority: priority,
+    });
+
+    if (error) {
+      console.error('updateContactMessagePriorityAction RPC error:', error);
+      return { success: false, error: error.message };
+    }
+
+    const result = data as { success: boolean; error?: string };
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to update priority' };
+    }
+
+    revalidatePath('/portal/messages');
+    return { success: true };
+  } catch (error: any) {
+    console.error('updateContactMessagePriorityAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Reply to contact message and send email (SSR)
+ */
+export async function replyToContactMessageAction(
+  messageId: string,
+  replyMessage: string,
+  repliedById: string,
+  repliedByName: string,
+  originalMessage: string,
+  originalSubject?: string,
+  sendVia: 'email' | 'phone' | 'both' = 'email'
+): Promise<{ success: boolean; error?: string; emailSent?: boolean }> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    // Save reply to database
+    const { data, error } = await client.rpc('add_contact_message_reply', {
+      p_message_id: messageId,
+      p_reply_message: replyMessage,
+      p_replied_by: repliedById,
+      p_send_via: sendVia,
+    });
+
+    if (error) {
+      console.error('replyToContactMessageAction RPC error:', error);
+      return { success: false, error: error.message };
+    }
+
+    const result = data as { 
+      success: boolean; 
+      error?: string; 
+      send_email?: boolean;
+      recipient_email?: string;
+      recipient_name?: string;
+    };
+    
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to save reply' };
+    }
+
+    // Send email if requested
+    let emailSent = false;
+    if (result.send_email && result.recipient_email && sendVia !== 'phone') {
+      try {
+        const emailResult = await sendContactMessageReply(
+          result.recipient_email,
+          result.recipient_name || 'Customer',
+          originalMessage,
+          replyMessage,
+          repliedByName,
+          originalSubject
+        );
+        emailSent = emailResult.success;
+        
+        if (!emailResult.success) {
+          console.warn('Email send failed but reply saved:', emailResult.error);
+        }
+      } catch (emailError) {
+        console.error('Email send error:', emailError);
+        // Reply is saved, just email failed
+      }
+    }
+
+    revalidatePath('/portal/messages');
+    return { success: true, emailSent };
+  } catch (error: any) {
+    console.error('replyToContactMessageAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Bulk delete contact messages (Admin only - SSR)
+ */
+export async function bulkDeleteContactMessagesAction(
+  messageIds: string[]
+): Promise<{ success: boolean; deletedCount?: number; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data, error } = await client.rpc('bulk_delete_contact_messages', {
+      p_message_ids: messageIds,
+    });
+
+    if (error) {
+      console.error('bulkDeleteContactMessagesAction RPC error:', error);
+      return { success: false, error: error.message };
+    }
+
+    const result = data as { success: boolean; deleted_count?: number; error?: string };
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to delete messages' };
+    }
+
+    revalidatePath('/portal/messages');
+    return { success: true, deletedCount: result.deleted_count || 0 };
+  } catch (error: any) {
+    console.error('bulkDeleteContactMessagesAction error:', error);
+    return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+/**
+ * Bulk update contact message status (SSR)
+ */
+export async function bulkUpdateContactStatusAction(
+  messageIds: string[],
+  status: 'unread' | 'read' | 'replied' | 'archived'
+): Promise<{ success: boolean; updatedCount?: number; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data, error } = await client.rpc('bulk_update_contact_status', {
+      p_message_ids: messageIds,
+      p_status: status,
+    });
+
+    if (error) {
+      console.error('bulkUpdateContactStatusAction RPC error:', error);
+      return { success: false, error: error.message };
+    }
+
+    const result = data as { success: boolean; updated_count?: number; error?: string };
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to update messages' };
+    }
+
+    revalidatePath('/portal/messages');
+    return { success: true, updatedCount: result.updated_count || 0 };
+  } catch (error: any) {
+    console.error('bulkUpdateContactStatusAction error:', error);
     return { success: false, error: error.message || 'Server error' };
   }
 }

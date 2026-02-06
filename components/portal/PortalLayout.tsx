@@ -31,6 +31,7 @@ import {
   Star,
   Home,
   MoreHorizontal,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -85,6 +86,7 @@ const iconMap: Record<string, any> = {
   ChefHat,
   Gift,
   Star,
+  MessageSquare,
 };
 
 // Navigation items with role-based visibility
@@ -186,6 +188,12 @@ const navItems: NavItem[] = [
     path: '/portal/reviews', 
     icon: 'Star',
     pageKey: 'reviews',
+  },
+  { 
+    label: 'Messages', 
+    path: '/portal/messages', 
+    icon: 'MessageSquare',
+    pageKey: 'messages',
   },
   { 
     label: 'Settings', 

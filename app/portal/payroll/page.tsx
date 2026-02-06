@@ -1,23 +1,25 @@
-import { getPayslipsServer, getPayrollSummaryServer, getAllEmployeesServer } from '@/lib/server-queries';
+import {
+  getPayrollDashboardServer,
+  getEmployeesPayrollListServer,
+  getPayslipsServer,
+} from '@/lib/server-queries';
 import PayrollClient from './PayrollClient';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function PayrollPage() {
-  // Fetch initial data server-side (hidden from browser Network tab)
-  const [payslips, employees, summary] = await Promise.all([
-    getPayslipsServer({ limit: 100 }),
-    getAllEmployeesServer(),
-    getPayrollSummaryServer(),
+  const [dashboard, employees, payslips] = await Promise.all([
+    getPayrollDashboardServer(),
+    getEmployeesPayrollListServer(),
+    getPayslipsServer({ page: 1, limit: 50 }),
   ]);
 
-  // Server types are compatible with PayrollClient's PayrollEmployee type
   return (
     <PayrollClient
-      initialPayslips={payslips as any}
+      initialDashboard={dashboard}
       initialEmployees={employees}
-      initialSummary={summary as any}
+      initialPayslips={payslips}
     />
   );
 }
