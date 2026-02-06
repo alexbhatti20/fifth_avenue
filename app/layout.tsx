@@ -155,8 +155,8 @@ export default function RootLayout({
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
       <body className={`${inter.variable} ${bebasNeue.variable}`}>
-        {/* JSON-LD Structured Data for SEO */}
-        <JsonLd type="all" />
+        {/* JSON-LD Structured Data for SEO - Comprehensive schema markup */}
+        <JsonLd type="home" />
         
         {/* Global Google OAuth Handler for implicit flow */}
         <GlobalGoogleAuthHandler />

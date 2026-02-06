@@ -1,26 +1,96 @@
+# =============================================
 # ZOIRO Broast - robots.txt
+# Best Broast Chicken in Vehari, Pakistan
 # https://zoirobroast.me
+# =============================================
 
+# Google Bot (Primary)
 User-agent: Googlebot
 Allow: /
+Allow: /menu
+Allow: /contact
+Allow: /reviews
+Allow: /loyalty
+Allow: /features
+Disallow: /api/
+Disallow: /portal/
+Disallow: /_next/static/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /favorites
+Disallow: /auth/callback
+Disallow: /auth/reset-password
 
+# Google Images Bot
+User-agent: Googlebot-Image
+Allow: /assets/
+Allow: /images/
+Disallow: /api/
+
+# Bing Bot
 User-agent: Bingbot
 Allow: /
+Disallow: /api/
+Disallow: /portal/
+Disallow: /_next/static/
 
+# Facebook Crawler (for sharing)
+User-agent: facebookexternalhit
+Allow: /
+User-agent: Facebot
+Allow: /
+
+# Twitter Crawler
 User-agent: Twitterbot
 Allow: /
 
-User-agent: facebookexternalhit
+# LinkedIn Crawler
+User-agent: LinkedInBot
 Allow: /
 
+# WhatsApp Preview
+User-agent: WhatsApp
+Allow: /
+
+# Pinterest
+User-agent: Pinterest
+Allow: /
+
+# All other bots
 User-agent: *
 Allow: /
-
-# Disallow sensitive paths
 Disallow: /api/
 Disallow: /portal/
 Disallow: /_next/
 Disallow: /admin/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /favorites
+Disallow: /*.json$
+Disallow: /*?*sort=
+Disallow: /*?*filter=
 
-# Sitemap
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+# Crawl-delay for non-priority bots (be polite)
+User-agent: *
+Crawl-delay: 1
+
+# Sitemap Location
 Sitemap: https://zoirobroast.me/sitemap.xml
+
+# Host directive (for Yandex)
+Host: https://zoirobroast.me

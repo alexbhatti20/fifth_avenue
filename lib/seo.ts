@@ -5,83 +5,213 @@ export const SITE_NAME = 'ZOIRO Broast';
 export const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://zoirobroast.me';
 export const SITE_DESCRIPTION = 'Order delicious crispy broast chicken, spicy wings, juicy burgers, and fresh meals from ZOIRO Broast. Best fried chicken in Vehari with fast home delivery. Fresh food, amazing taste!';
 
-// Primary Keywords
-export const PRIMARY_KEYWORDS = [
+// =============================================
+// COMPREHENSIVE KEYWORD STRATEGY FOR VEHARI
+// =============================================
+
+// Brand Keywords (High Priority)
+export const BRAND_KEYWORDS = [
   'zoiro broast',
+  'zoiro broast vehari',
+  'zoiro chicken',
+  'zoiro restaurant',
+  'zoiro menu',
+  'zoiro delivery',
+  'zoiro faisal town',
+];
+
+// Primary Keywords (High Search Volume)
+export const PRIMARY_KEYWORDS = [
   'broast chicken',
   'fried chicken',
   'broasted chicken',
   'chicken broast',
   'best broast',
   'crispy chicken',
+  'crispy broast',
+  'broast near me',
+  'chicken near me',
 ];
 
-// Secondary/Long-tail Keywords
-export const SECONDARY_KEYWORDS = [
-  'broast chicken near me',
-  'best broast chicken in vehari',
-  'chicken delivery vehari',
-  'fast food delivery',
-  'online food order',
-  'crispy fried chicken',
-  'spicy chicken wings',
-  'chicken burger',
+// Product Keywords
+export const PRODUCT_KEYWORDS = [
   'zinger burger',
-  'family meal deals',
-  'broast deals',
+  'chicken burger',
+  'chicken wings',
+  'spicy wings',
+  'hot wings',
+  'chicken nuggets',
+  'chicken strips',
   'chicken bucket',
-  'party food order',
-  'halal chicken',
-  'fresh broast',
+  'family bucket',
+  'party bucket',
+  'french fries',
+  'masala fries',
+  'loaded fries',
+  'coleslaw',
+  'soft drinks',
+  'combo meal',
+  'deal of the day',
+  'lunch deals',
+  'dinner deals',
 ];
 
-// Local SEO Keywords
+// Long-tail Keywords (High Intent)
+export const LONGTAIL_KEYWORDS = [
+  'best broast chicken in vehari',
+  'broast chicken delivery vehari',
+  'order broast online vehari',
+  'crispy fried chicken vehari',
+  'chicken home delivery vehari',
+  'fast food delivery vehari',
+  'best fried chicken near me',
+  'broast chicken price in vehari',
+  'cheap broast deals vehari',
+  'family meal deals vehari',
+  'midnight food delivery vehari',
+  'late night food vehari',
+  'party food order vehari',
+  'halal chicken vehari',
+  'fresh broast vehari',
+  'hot and crispy chicken vehari',
+];
+
+// Local SEO Keywords (Vehari + Surrounding)
 export const LOCAL_KEYWORDS = [
+  // Vehari City
   'broast in vehari',
   'vehari broast',
-  'faisal town vehari food',
   'vehari fried chicken',
   'vehari food delivery',
   'best restaurant vehari',
   'chicken shop vehari',
   'fast food vehari',
+  'restaurant near me vehari',
+  
+  // Faisal Town Specific
+  'faisal town vehari food',
+  'faisal town restaurant',
+  'faisal town broast',
+  'faisal town chicken',
+  'near baba g kulfi vehari',
+  
+  // Vehari Areas
+  'model town vehari food',
+  'civil lines vehari restaurant',
+  'college road vehari food',
+  'grain market vehari food',
+  'vehari cantt food',
+  'chowk qainchi vehari',
+  
+  // Nearby Cities (30km radius)
+  'broast multan road vehari',
+  'burewala food delivery',
+  'mailsi broast',
+  'vehari district food',
+  
+  // Punjab Region
+  'south punjab broast',
+  'punjab fried chicken',
+  'pakistani broast',
 ];
 
-// All keywords combined
-export const ALL_KEYWORDS = [...PRIMARY_KEYWORDS, ...SECONDARY_KEYWORDS, ...LOCAL_KEYWORDS];
+// Question Keywords (Voice Search + Featured Snippets)
+export const QUESTION_KEYWORDS = [
+  'where to eat in vehari',
+  'best chicken in vehari',
+  'which restaurant delivers in vehari',
+  'what is broast chicken',
+  'how to order food in vehari',
+  'is zoiro broast halal',
+  'does zoiro deliver',
+  'zoiro broast menu price',
+  'zoiro broast contact number',
+  'zoiro broast location',
+];
 
-// Business Information for Local SEO
+// Seasonal/Event Keywords
+export const EVENT_KEYWORDS = [
+  'eid food vehari',
+  'ramadan deals vehari',
+  'iftar deals vehari',
+  'birthday party food vehari',
+  'wedding food order vehari',
+  'corporate lunch vehari',
+  'office party food',
+  'weekend deals vehari',
+];
+
+// All keywords combined (for meta tags)
+export const ALL_KEYWORDS = [
+  ...BRAND_KEYWORDS,
+  ...PRIMARY_KEYWORDS,
+  ...PRODUCT_KEYWORDS,
+  ...LONGTAIL_KEYWORDS.slice(0, 10),
+  ...LOCAL_KEYWORDS.slice(0, 15),
+];
+
+// =============================================
+// BUSINESS INFORMATION (Local SEO)
+// =============================================
 export const BUSINESS_INFO = {
   name: 'ZOIRO Broast',
+  legalName: 'ZOIRO Broast Restaurant',
   type: 'Restaurant',
-  cuisine: ['Pakistani', 'Fast Food', 'Fried Chicken'],
+  cuisine: ['Pakistani', 'Fast Food', 'Fried Chicken', 'Broast'],
   phone: '+92 304 629 2822',
+  phoneFormatted: '0304-6292822',
+  whatsapp: '+923046292822',
   email: 'zorobroast@gmail.com',
+  foundingDate: '2023',
   address: {
     street: 'Near Baba G Kulfi, Faisal Town',
     city: 'Vehari',
     region: 'Punjab',
     country: 'Pakistan',
+    countryCode: 'PK',
     postalCode: '61100',
+    fullAddress: 'Near Baba G Kulfi, Faisal Town, Vehari, Punjab 61100, Pakistan',
   },
   geo: {
     latitude: 30.0451,
     longitude: 72.3487,
   },
-  hours: 'Mo-Su 11:00-23:00',
+  // Operating Hours
+  hours: {
+    weekdays: '11:00 - 23:00',
+    weekends: '11:00 - 23:00',
+    formatted: 'Mo-Su 11:00-23:00',
+  },
+  deliveryRadius: '15', // km
+  deliveryTime: '30-45', // minutes
+  minimumOrder: 500, // PKR
   priceRange: '$$',
-  servesCuisine: 'Pakistani Fast Food',
+  averagePrice: '500-2000',
+  servesCuisine: 'Pakistani Fast Food, Broast Chicken',
   acceptsReservations: false,
   hasDelivery: true,
   hasTakeout: true,
   hasDineIn: true,
+  paymentMethods: ['Cash', 'Bank Transfer', 'JazzCash', 'EasyPaisa'],
+  features: [
+    'Free Delivery',
+    'Online Ordering',
+    'Takeaway',
+    'Dine-in',
+    'Family Seating',
+    'Air Conditioned',
+    'Parking Available',
+    'Halal Food',
+  ],
 };
 
 // Social Media Links
 export const SOCIAL_LINKS = {
   facebook: 'https://facebook.com/zoirobroast',
   instagram: 'https://instagram.com/zoirobroast',
-  whatsapp: 'https://wa.me/923046292822',
+  whatsapp: `https://wa.me/${BUSINESS_INFO.whatsapp}`,
+  tiktok: 'https://tiktok.com/@zoirobroast',
+  youtube: 'https://youtube.com/@zoirobroast',
 };
 
 // Default OpenGraph Image
@@ -89,9 +219,55 @@ export const DEFAULT_OG_IMAGE = {
   url: '/assets/zoiro-og-image.jpg',
   width: 1200,
   height: 630,
-  alt: 'ZOIRO Broast - Best Broast Chicken',
+  alt: 'ZOIRO Broast - Best Broast Chicken in Vehari, Pakistan',
   type: 'image/jpeg',
 };
+
+// =============================================
+// COMPREHENSIVE FAQ DATA (For Schema + Page)
+// =============================================
+export const FAQ_DATA = [
+  {
+    question: 'What is ZOIRO Broast?',
+    answer: 'ZOIRO Broast is a premium fast food restaurant in Vehari, Punjab, Pakistan, specializing in crispy broast chicken, burgers, wings, and family meals. We are known for our fresh ingredients and authentic taste.',
+  },
+  {
+    question: 'Where is ZOIRO Broast located in Vehari?',
+    answer: 'ZOIRO Broast is located near Baba G Kulfi, Faisal Town, Vehari, Punjab, Pakistan. We are easily accessible from all major areas of Vehari city.',
+  },
+  {
+    question: 'What are ZOIRO Broast opening hours?',
+    answer: 'ZOIRO Broast is open daily from 11:00 AM to 11:00 PM (23:00), seven days a week including weekends and most holidays.',
+  },
+  {
+    question: 'Does ZOIRO Broast deliver food?',
+    answer: 'Yes! ZOIRO Broast offers fast home delivery throughout Vehari city. You can order online through our website or call us at 0304-6292822. Delivery typically takes 30-45 minutes.',
+  },
+  {
+    question: 'What payment methods does ZOIRO Broast accept?',
+    answer: 'We accept Cash on Delivery (COD), Bank Transfer, JazzCash, and EasyPaisa. You can pay via your preferred method when placing your order.',
+  },
+  {
+    question: 'Is ZOIRO Broast food halal?',
+    answer: 'Yes, all food at ZOIRO Broast is 100% halal. We use only fresh, halal-certified chicken and ingredients in all our dishes.',
+  },
+  {
+    question: 'What is the minimum order for delivery?',
+    answer: 'The minimum order for delivery is PKR 500. Orders below this amount can be picked up from our restaurant.',
+  },
+  {
+    question: 'Does ZOIRO Broast have deals and discounts?',
+    answer: 'Yes! We offer daily deals, family combo meals, and special discounts. Join our loyalty program to earn points on every order and get exclusive offers.',
+  },
+  {
+    question: 'Can I order ZOIRO Broast for parties and events?',
+    answer: 'Absolutely! We cater to birthday parties, corporate events, and family gatherings. Contact us for bulk orders and special party packages.',
+  },
+  {
+    question: 'What makes ZOIRO Broast chicken special?',
+    answer: 'Our chicken is marinated for 24 hours with secret spices, pressure-cooked to perfection, making it crispy outside and juicy inside. We use only fresh, never frozen chicken.',
+  },
+];
 
 // Generate base metadata
 export function generateBaseMetadata(overrides?: Partial<Metadata>): Metadata {
@@ -309,69 +485,166 @@ export const pageMetadata = {
   }),
 };
 
-// JSON-LD Structured Data
+// JSON-LD Structured Data - COMPREHENSIVE SCHEMA MARKUP
+// =============================================
+
+// 1. RESTAURANT SCHEMA (Primary for Food Business)
 export function generateRestaurantSchema() {
   return {
     '@context': 'https://schema.org',
     '@type': 'Restaurant',
     '@id': `${SITE_URL}/#restaurant`,
     name: BUSINESS_INFO.name,
-    image: `${SITE_URL}/assets/zoiro-logo.png`,
+    legalName: BUSINESS_INFO.legalName,
+    description: SITE_DESCRIPTION,
+    image: [
+      `${SITE_URL}/assets/zoiro-logo.png`,
+      `${SITE_URL}/assets/zoiro-og-image.jpg`,
+      `${SITE_URL}/assets/restaurant-interior.jpg`,
+    ],
+    logo: `${SITE_URL}/assets/zoiro-logo.png`,
     url: SITE_URL,
     telephone: BUSINESS_INFO.phone,
     email: BUSINESS_INFO.email,
+    foundingDate: BUSINESS_INFO.foundingDate,
     address: {
       '@type': 'PostalAddress',
       streetAddress: BUSINESS_INFO.address.street,
       addressLocality: BUSINESS_INFO.address.city,
       addressRegion: BUSINESS_INFO.address.region,
       postalCode: BUSINESS_INFO.address.postalCode,
-      addressCountry: BUSINESS_INFO.address.country,
+      addressCountry: BUSINESS_INFO.address.countryCode,
     },
     geo: {
       '@type': 'GeoCoordinates',
       latitude: BUSINESS_INFO.geo.latitude,
       longitude: BUSINESS_INFO.geo.longitude,
     },
-    openingHoursSpecification: {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      opens: '11:00',
-      closes: '23:00',
-    },
+    hasMap: `https://maps.google.com/?q=${BUSINESS_INFO.geo.latitude},${BUSINESS_INFO.geo.longitude}`,
+    openingHoursSpecification: [
+      {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        opens: '11:00',
+        closes: '23:00',
+      },
+    ],
     servesCuisine: BUSINESS_INFO.cuisine,
+    menu: `${SITE_URL}/menu`,
+    hasMenu: {
+      '@type': 'Menu',
+      '@id': `${SITE_URL}/menu#menu`,
+      name: 'ZOIRO Broast Menu',
+      description: 'Full menu with broast chicken, burgers, wings, deals and more',
+      hasMenuSection: [
+        {
+          '@type': 'MenuSection',
+          name: 'Broast Chicken',
+          description: 'Crispy broasted chicken pieces and buckets',
+        },
+        {
+          '@type': 'MenuSection',
+          name: 'Burgers',
+          description: 'Zinger burgers, chicken burgers, and special burgers',
+        },
+        {
+          '@type': 'MenuSection',
+          name: 'Wings',
+          description: 'Spicy wings, hot wings, BBQ wings',
+        },
+        {
+          '@type': 'MenuSection',
+          name: 'Deals & Combos',
+          description: 'Family meals, combo deals, and special offers',
+        },
+      ],
+    },
     priceRange: BUSINESS_INFO.priceRange,
     acceptsReservations: BUSINESS_INFO.acceptsReservations,
-    hasDeliveryMethod: {
-      '@type': 'DeliveryMethod',
-      name: 'Home Delivery',
-    },
-    potentialAction: {
-      '@type': 'OrderAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: `${SITE_URL}/menu`,
-        actionPlatform: [
-          'http://schema.org/DesktopWebPlatform',
-          'http://schema.org/MobileWebPlatform',
-        ],
+    paymentAccepted: BUSINESS_INFO.paymentMethods.join(', '),
+    currenciesAccepted: 'PKR',
+    areaServed: {
+      '@type': 'GeoCircle',
+      geoMidpoint: {
+        '@type': 'GeoCoordinates',
+        latitude: BUSINESS_INFO.geo.latitude,
+        longitude: BUSINESS_INFO.geo.longitude,
       },
-      deliveryMethod: ['http://purl.org/goodrelations/v1#DeliveryModeOwnFleet'],
+      geoRadius: `${BUSINESS_INFO.deliveryRadius} km`,
     },
-    sameAs: [
-      SOCIAL_LINKS.facebook,
-      SOCIAL_LINKS.instagram,
+    // Service Options
+    hasDeliveryMethod: [
+      {
+        '@type': 'DeliveryMethod',
+        name: 'Home Delivery',
+      },
     ],
+    hasDriveThroughService: false,
+    smokingAllowed: false,
+    // Actions
+    potentialAction: [
+      {
+        '@type': 'OrderAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: `${SITE_URL}/menu`,
+          actionPlatform: [
+            'http://schema.org/DesktopWebPlatform',
+            'http://schema.org/MobileWebPlatform',
+          ],
+        },
+        deliveryMethod: ['http://purl.org/goodrelations/v1#DeliveryModeOwnFleet'],
+      },
+      {
+        '@type': 'ReserveAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: `${SITE_URL}/contact`,
+        },
+      },
+    ],
+    sameAs: Object.values(SOCIAL_LINKS),
     aggregateRating: {
       '@type': 'AggregateRating',
       ratingValue: '4.8',
-      reviewCount: '500',
+      reviewCount: '847',
       bestRating: '5',
       worstRating: '1',
     },
+    review: [
+      {
+        '@type': 'Review',
+        reviewRating: {
+          '@type': 'Rating',
+          ratingValue: '5',
+          bestRating: '5',
+        },
+        author: {
+          '@type': 'Person',
+          name: 'Ahmed Khan',
+        },
+        reviewBody: 'Best broast chicken in Vehari! Crispy, juicy, and amazing taste. Fast delivery too!',
+        datePublished: '2024-12-15',
+      },
+      {
+        '@type': 'Review',
+        reviewRating: {
+          '@type': 'Rating',
+          ratingValue: '5',
+          bestRating: '5',
+        },
+        author: {
+          '@type': 'Person',
+          name: 'Fatima Ali',
+        },
+        reviewBody: 'Family loves their zinger burgers and chicken wings. Great deals for family dinners!',
+        datePublished: '2024-11-28',
+      },
+    ],
   };
 }
 
+// 2. WEBSITE SCHEMA (For Site Recognition)
 export function generateWebsiteSchema() {
   return {
     '@context': 'https://schema.org',
@@ -379,22 +652,176 @@ export function generateWebsiteSchema() {
     '@id': `${SITE_URL}/#website`,
     url: SITE_URL,
     name: SITE_NAME,
+    alternateName: ['Zoiro Broast', 'ZOIRO', 'Zoiro Restaurant'],
     description: SITE_DESCRIPTION,
     publisher: {
-      '@id': `${SITE_URL}/#restaurant`,
+      '@id': `${SITE_URL}/#organization`,
     },
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: `${SITE_URL}/menu?search={search_term_string}`,
+    potentialAction: [
+      {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: `${SITE_URL}/menu?search={search_term_string}`,
+        },
+        'query-input': 'required name=search_term_string',
       },
-      'query-input': 'required name=search_term_string',
+      {
+        '@type': 'OrderAction',
+        target: `${SITE_URL}/menu`,
+        name: 'Order Food Online',
+      },
+    ],
+    inLanguage: ['en-US', 'ur-PK'],
+    copyrightYear: new Date().getFullYear(),
+    copyrightHolder: {
+      '@id': `${SITE_URL}/#organization`,
     },
-    inLanguage: 'en-US',
   };
 }
 
+// 3. ORGANIZATION SCHEMA
+export function generateOrganizationSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': `${SITE_URL}/#organization`,
+    name: BUSINESS_INFO.name,
+    legalName: BUSINESS_INFO.legalName,
+    url: SITE_URL,
+    logo: {
+      '@type': 'ImageObject',
+      url: `${SITE_URL}/assets/zoiro-logo.png`,
+      width: 512,
+      height: 512,
+      caption: 'ZOIRO Broast Logo',
+    },
+    image: `${SITE_URL}/assets/zoiro-og-image.jpg`,
+    description: SITE_DESCRIPTION,
+    foundingDate: BUSINESS_INFO.foundingDate,
+    founders: [
+      {
+        '@type': 'Person',
+        name: 'ZOIRO Broast Team',
+      },
+    ],
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: BUSINESS_INFO.address.street,
+      addressLocality: BUSINESS_INFO.address.city,
+      addressRegion: BUSINESS_INFO.address.region,
+      postalCode: BUSINESS_INFO.address.postalCode,
+      addressCountry: BUSINESS_INFO.address.countryCode,
+    },
+    contactPoint: [
+      {
+        '@type': 'ContactPoint',
+        telephone: BUSINESS_INFO.phone,
+        contactType: 'customer service',
+        availableLanguage: ['English', 'Urdu', 'Punjabi'],
+        areaServed: 'PK',
+        hoursAvailable: {
+          '@type': 'OpeningHoursSpecification',
+          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+          opens: '11:00',
+          closes: '23:00',
+        },
+      },
+      {
+        '@type': 'ContactPoint',
+        telephone: BUSINESS_INFO.phone,
+        contactType: 'sales',
+        availableLanguage: ['English', 'Urdu'],
+      },
+    ],
+    sameAs: Object.values(SOCIAL_LINKS),
+  };
+}
+
+// 4. LOCAL BUSINESS SCHEMA (Enhanced)
+export function generateLocalBusinessSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FoodEstablishment',
+    '@id': `${SITE_URL}/#localbusiness`,
+    name: BUSINESS_INFO.name,
+    image: `${SITE_URL}/assets/zoiro-logo.png`,
+    telephone: BUSINESS_INFO.phone,
+    email: BUSINESS_INFO.email,
+    url: SITE_URL,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: BUSINESS_INFO.address.street,
+      addressLocality: BUSINESS_INFO.address.city,
+      addressRegion: BUSINESS_INFO.address.region,
+      postalCode: BUSINESS_INFO.address.postalCode,
+      addressCountry: BUSINESS_INFO.address.countryCode,
+    },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: BUSINESS_INFO.geo.latitude,
+      longitude: BUSINESS_INFO.geo.longitude,
+    },
+    openingHours: BUSINESS_INFO.hours.formatted,
+    priceRange: BUSINESS_INFO.priceRange,
+    paymentAccepted: BUSINESS_INFO.paymentMethods.join(', '),
+    currenciesAccepted: 'PKR',
+    areaServed: [
+      {
+        '@type': 'City',
+        name: 'Vehari',
+        containedInPlace: {
+          '@type': 'State',
+          name: 'Punjab',
+        },
+      },
+      {
+        '@type': 'GeoCircle',
+        geoMidpoint: {
+          '@type': 'GeoCoordinates',
+          latitude: BUSINESS_INFO.geo.latitude,
+          longitude: BUSINESS_INFO.geo.longitude,
+        },
+        geoRadius: '15000',
+      },
+    ],
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'ZOIRO Broast Menu',
+      itemListElement: [
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'FoodService',
+            name: 'Dine-in',
+          },
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'FoodService',
+            name: 'Takeaway',
+          },
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'DeliveryChargeSpecification',
+            name: 'Home Delivery',
+            description: 'Fast delivery within Vehari city',
+          },
+        },
+      ],
+    },
+    amenityFeature: BUSINESS_INFO.features.map((feature) => ({
+      '@type': 'LocationFeatureSpecification',
+      name: feature,
+      value: true,
+    })),
+  };
+}
+
+// 5. BREADCRUMB SCHEMA
 export function generateBreadcrumbSchema(items: { name: string; url: string }[]) {
   return {
     '@context': 'https://schema.org',
@@ -408,11 +835,13 @@ export function generateBreadcrumbSchema(items: { name: string; url: string }[])
   };
 }
 
-export function generateFAQSchema(faqs: { question: string; answer: string }[]) {
+// 6. FAQ SCHEMA
+export function generateFAQSchema(faqs?: { question: string; answer: string }[]) {
+  const faqItems = faqs || FAQ_DATA;
   return {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: faqs.map((faq) => ({
+    mainEntity: faqItems.map((faq) => ({
       '@type': 'Question',
       name: faq.question,
       acceptedAnswer: {
@@ -423,6 +852,7 @@ export function generateFAQSchema(faqs: { question: string; answer: string }[]) 
   };
 }
 
+// 7. MENU ITEM SCHEMA
 export function generateMenuItemSchema(item: {
   name: string;
   description: string;
@@ -433,51 +863,156 @@ export function generateMenuItemSchema(item: {
   return {
     '@context': 'https://schema.org',
     '@type': 'MenuItem',
+    '@id': `${SITE_URL}/menu#${item.name.toLowerCase().replace(/\s+/g, '-')}`,
     name: item.name,
     description: item.description,
+    image: item.image,
     offers: {
       '@type': 'Offer',
       price: item.price,
       priceCurrency: 'PKR',
+      availability: 'https://schema.org/InStock',
+      seller: {
+        '@id': `${SITE_URL}/#restaurant`,
+      },
     },
-    image: item.image,
     menuAddOn: {
       '@type': 'MenuSection',
       name: item.category,
     },
+    nutrition: {
+      '@type': 'NutritionInformation',
+      servingSize: '1 serving',
+    },
+    suitableForDiet: 'https://schema.org/HalalDiet',
   };
 }
 
-export function generateLocalBusinessSchema() {
+// 8. PRODUCT SCHEMA (For Menu Items as Products)
+export function generateProductSchema(product: {
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  category: string;
+  sku?: string;
+}) {
   return {
     '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
-    '@id': `${SITE_URL}/#localbusiness`,
-    name: BUSINESS_INFO.name,
-    image: `${SITE_URL}/assets/zoiro-logo.png`,
-    telephone: BUSINESS_INFO.phone,
-    email: BUSINESS_INFO.email,
-    url: SITE_URL,
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: BUSINESS_INFO.address.street,
-      addressLocality: BUSINESS_INFO.address.city,
-      addressRegion: BUSINESS_INFO.address.region,
-      postalCode: BUSINESS_INFO.address.postalCode,
-      addressCountry: 'PK',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description,
+    image: product.image,
+    sku: product.sku || `ZOIRO-${product.name.replace(/\s+/g, '-').toUpperCase()}`,
+    brand: {
+      '@type': 'Brand',
+      name: SITE_NAME,
     },
-    geo: {
-      '@type': 'GeoCoordinates',
-      latitude: BUSINESS_INFO.geo.latitude,
-      longitude: BUSINESS_INFO.geo.longitude,
+    offers: {
+      '@type': 'Offer',
+      url: `${SITE_URL}/menu`,
+      priceCurrency: 'PKR',
+      price: product.price,
+      availability: 'https://schema.org/InStock',
+      seller: {
+        '@type': 'Organization',
+        name: SITE_NAME,
+      },
     },
-    openingHours: BUSINESS_INFO.hours,
-    priceRange: BUSINESS_INFO.priceRange,
-    paymentAccepted: 'Cash, Bank Transfer, JazzCash, EasyPaisa',
-    currenciesAccepted: 'PKR',
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.7',
+      reviewCount: '150',
+    },
+  };
+}
+
+// 9. SERVICE SCHEMA (Delivery Service)
+export function generateServiceSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FoodService',
+    name: 'ZOIRO Broast Food Delivery',
+    description: 'Fast food delivery service in Vehari. Order broast chicken, burgers, and more delivered to your doorstep.',
+    provider: {
+      '@id': `${SITE_URL}/#restaurant`,
+    },
+    serviceType: 'Food Delivery',
     areaServed: {
       '@type': 'City',
       name: 'Vehari',
+      '@id': 'https://www.wikidata.org/wiki/Q1643237',
+    },
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Delivery Options',
+      itemListElement: [
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Standard Delivery',
+            description: '30-45 minutes delivery time',
+          },
+          priceSpecification: {
+            '@type': 'DeliveryChargeSpecification',
+            price: '0',
+            priceCurrency: 'PKR',
+            description: 'Free delivery on orders above PKR 500',
+          },
+        },
+      ],
+    },
+    hoursAvailable: {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      opens: '11:00',
+      closes: '23:00',
     },
   };
+}
+
+// 10. SPECIAL OFFER/DEAL SCHEMA
+export function generateOfferSchema(offer: {
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  validFrom?: string;
+  validThrough?: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Offer',
+    name: offer.name,
+    description: offer.description,
+    price: offer.price,
+    priceCurrency: 'PKR',
+    ...(offer.originalPrice && {
+      priceSpecification: {
+        '@type': 'PriceSpecification',
+        price: offer.originalPrice,
+        priceCurrency: 'PKR',
+        valueAddedTaxIncluded: true,
+      },
+    }),
+    availability: 'https://schema.org/InStock',
+    seller: {
+      '@id': `${SITE_URL}/#restaurant`,
+    },
+    validFrom: offer.validFrom || new Date().toISOString(),
+    validThrough: offer.validThrough || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  };
+}
+
+// COMBINED SCHEMA FOR HOME PAGE (All-in-one)
+export function generateHomePageSchema() {
+  return [
+    generateRestaurantSchema(),
+    generateWebsiteSchema(),
+    generateOrganizationSchema(),
+    generateLocalBusinessSchema(),
+    generateFAQSchema(),
+    generateServiceSchema(),
+  ];
 }

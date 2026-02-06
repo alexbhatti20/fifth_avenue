@@ -5,81 +5,68 @@ import {
   generateLocalBusinessSchema,
   generateBreadcrumbSchema,
   generateFAQSchema,
+  generateOrganizationSchema,
+  generateServiceSchema,
+  generateHomePageSchema,
+  generateProductSchema,
+  generateOfferSchema,
   SITE_URL,
-  SITE_NAME
+  SITE_NAME,
+  FAQ_DATA,
 } from '@/lib/seo';
 
 interface JsonLdProps {
-  type?: 'restaurant' | 'website' | 'local-business' | 'breadcrumb' | 'faq' | 'all';
+  type?: 'restaurant' | 'website' | 'local-business' | 'breadcrumb' | 'faq' | 'organization' | 'service' | 'home' | 'all';
   breadcrumbs?: { name: string; url: string }[];
   faqs?: { question: string; answer: string }[];
+  product?: { name: string; description: string; price: number; image: string; category: string; };
 }
 
-export default function JsonLd({ type = 'all', breadcrumbs, faqs }: JsonLdProps) {
-  const schemas: object[] = [];
+export default function JsonLd({ type = 'all', breadcrumbs, faqs, product }: JsonLdProps) {
+  let schemas: object[] = [];
 
-  if (type === 'all' || type === 'restaurant') {
-    schemas.push(generateRestaurantSchema());
+  if (type === 'home' || type === 'all') {
+    schemas = generateHomePageSchema();
+  } else {
+    if (type === 'restaurant') {
+      schemas.push(generateRestaurantSchema());
+    }
+    if (type === 'website') {
+      schemas.push(generateWebsiteSchema());
+    }
+    if (type === 'local-business') {
+      schemas.push(generateLocalBusinessSchema());
+    }
+    if (type === 'organization') {
+      schemas.push(generateOrganizationSchema());
+    }
+    if (type === 'service') {
+      schemas.push(generateServiceSchema());
+    }
+    if (type === 'faq') {
+      schemas.push(generateFAQSchema(faqs));
+    }
+    if (type === 'breadcrumb' && breadcrumbs) {
+      schemas.push(generateBreadcrumbSchema(breadcrumbs));
+    }
   }
 
-  if (type === 'all' || type === 'website') {
-    schemas.push(generateWebsiteSchema());
-  }
-
-  if (type === 'all' || type === 'local-business') {
-    schemas.push(generateLocalBusinessSchema());
-  }
-
-  if (type === 'breadcrumb' && breadcrumbs) {
-    schemas.push(generateBreadcrumbSchema(breadcrumbs));
-  }
-
-  if (type === 'faq' && faqs) {
-    schemas.push(generateFAQSchema(faqs));
-  }
-
-  // Organization Schema
-  const organizationSchema = {
+  // Use single merged JSON-LD for better performance
+  const mergedSchema = {
     '@context': 'https://schema.org',
-    '@type': 'Organization',
-    '@id': `${SITE_URL}/#organization`,
-    name: SITE_NAME,
-    url: SITE_URL,
-    logo: {
-      '@type': 'ImageObject',
-      url: `${SITE_URL}/assets/zoiro-logo.png`,
-      width: 512,
-      height: 512,
-    },
-    contactPoint: {
-      '@type': 'ContactPoint',
-      telephone: '+92-304-629-2822',
-      contactType: 'customer service',
-      availableLanguage: ['English', 'Urdu'],
-      areaServed: 'PK',
-    },
-    sameAs: [
-      'https://facebook.com/zoirobroast',
-      'https://instagram.com/zoirobroast',
-    ],
+    '@graph': schemas.map(s => {
+      const { '@context': _, ...rest } = s as any;
+      return rest;
+    }),
   };
 
-  if (type === 'all') {
-    schemas.push(organizationSchema);
-  }
-
   return (
-    <>
-      {schemas.map((schema, index) => (
-        <Script
-          key={index}
-          id={`json-ld-${index}`}
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-          strategy="afterInteractive"
-        />
-      ))}
-    </>
+    <Script
+      id="json-ld-merged"
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(mergedSchema) }}
+      strategy="beforeInteractive"
+    />
   );
 }
 
@@ -90,7 +77,7 @@ export function RestaurantJsonLd() {
       id="restaurant-json-ld"
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(generateRestaurantSchema()) }}
-      strategy="afterInteractive"
+      strategy="beforeInteractive"
     />
   );
 }
@@ -101,18 +88,40 @@ export function BreadcrumbJsonLd({ items }: { items: { name: string; url: string
       id="breadcrumb-json-ld"
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(generateBreadcrumbSchema(items)) }}
-      strategy="afterInteractive"
+      strategy="beforeInteractive"
     />
   );
 }
 
-export function FAQJsonLd({ faqs }: { faqs: { question: string; answer: string }[] }) {
+export function FAQJsonLd({ faqs }: { faqs?: { question: string; answer: string }[] }) {
   return (
     <Script
       id="faq-json-ld"
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(generateFAQSchema(faqs)) }}
-      strategy="afterInteractive"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(generateFAQSchema(faqs || FAQ_DATA)) }}
+      strategy="beforeInteractive"
+    />
+  );
+}
+
+export function ProductJsonLd({ product }: { product: { name: string; description: string; price: number; image: string; category: string; } }) {
+  return (
+    <Script
+      id="product-json-ld"
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(generateProductSchema(product)) }}
+      strategy="beforeInteractive"
+    />
+  );
+}
+
+export function OfferJsonLd({ offer }: { offer: { name: string; description: string; price: number; originalPrice?: number; } }) {
+  return (
+    <Script
+      id="offer-json-ld"
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(generateOfferSchema(offer)) }}
+      strategy="beforeInteractive"
     />
   );
 }
