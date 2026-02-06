@@ -128,10 +128,7 @@ export const metadata: Metadata = {
     'format-detection': 'telephone=no',
   },
   verification: {
-    // Add verification codes when available
-    // google: 'your-google-verification-code',
-    // yandex: 'your-yandex-verification-code',
-    // bing: 'your-bing-verification-code',
+    google: 'AdHBIVqRzJMmXv6l_i_f2Ae6ZYvkL54hg4lbtlSGPQs',
   },
 }
 
