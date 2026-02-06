@@ -48,6 +48,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { StatsCard, SectionHeader, DataTableWrapper } from '@/components/portal/PortalProvider';
 import { usePortalAuth, useRealtimeOrders, useRealtimeTables } from '@/hooks/usePortal';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { realtimeManager, CHANNEL_NAMES } from '@/lib/realtime-manager';
 import { supabase } from '@/lib/supabase';
 import { getAuthenticatedClient } from '@/lib/portal-queries';
 import { cn } from '@/lib/utils';
@@ -1241,21 +1242,15 @@ function KitchenDashboard() {
     
     fetchKitchenData();
     
-    // Set up realtime subscription for kitchen orders
-    const channel = supabase
-      .channel('kitchen-dashboard-orders')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'orders',
-        filter: 'status=in.(confirmed,preparing,ready)'
-      }, () => {
-        fetchKitchenData();
-      })
-      .subscribe();
+    // Use shared ORDERS channel (deduplicated – no extra Postgres subscription)
+    const unsubscribe = realtimeManager.subscribe(
+      CHANNEL_NAMES.ORDERS,
+      'orders',
+      fetchKitchenData
+    );
     
     return () => {
-      supabase.removeChannel(channel);
+      unsubscribe();
     };
   }, []);
 

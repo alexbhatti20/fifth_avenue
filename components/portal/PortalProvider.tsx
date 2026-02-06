@@ -10,6 +10,7 @@ import { QueryProvider } from '@/lib/query-provider';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { supabase, isSupabaseConfigured, restoreSupabaseSession, setSupabaseSession } from '@/lib/supabase';
+import { realtimeManager, CHANNEL_NAMES } from '@/lib/realtime-manager';
 import { getCurrentEmployee, getMyNotifications, markNotificationsRead, getAuthenticatedClient, clearRequestCache } from '@/lib/portal-queries';
 import { clearPermissionsCache } from '@/lib/permissions';
 import { clearAuthToken, getAuthToken } from '@/lib/cookies';
@@ -195,33 +196,29 @@ export function PortalProvider({ children, initialEmployee }: PortalProviderProp
     if (employee && !notificationsLoadedRef.current) {
       loadNotifications();
       
-      // Subscribe to new notifications
-      const channel = supabase
-        .channel('notifications-provider')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${employee.id}`,
-          },
-          (payload) => {
-            setNotifications((prev) => [payload.new as Notification, ...prev]);
-            
-            // Show browser notification if supported
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification((payload.new as Notification).title, {
-                body: (payload.new as Notification).message,
-                icon: '/assets/logo.png',
-              });
-            }
-          }
-        )
-        .subscribe();
+      // Subscribe to new notifications via shared NOTIFICATIONS channel
+      const callback = (payload?: any) => {
+        if (payload?.eventType !== 'INSERT') return;
+        setNotifications((prev) => [payload.new as Notification, ...prev]);
+        
+        // Show browser notification if supported
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new window.Notification((payload.new as Notification).title, {
+            body: (payload.new as Notification).message,
+            icon: '/assets/logo.png',
+          });
+        }
+      };
+
+      const unsubscribe = realtimeManager.subscribe(
+        CHANNEL_NAMES.NOTIFICATIONS,
+        'notifications',
+        callback,
+        { filter: `user_id=eq.${employee.id}` }
+      );
 
       return () => {
-        channel.unsubscribe();
+        unsubscribe();
       };
     }
   }, [employee, loadNotifications]);

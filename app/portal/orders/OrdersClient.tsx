@@ -79,7 +79,7 @@ import {
 } from '@/components/ui/table';
 import { SectionHeader, DataTableWrapper } from '@/components/portal/PortalProvider';
 import { updateOrderStatusQuickServer } from '@/lib/actions';
-import { supabase } from '@/lib/supabase';
+import { realtimeManager, CHANNEL_NAMES } from '@/lib/realtime-manager';
 import { getAvailableDeliveryRiders, assignDeliveryRider, type DeliveryRider } from '@/lib/portal-queries';
 // FIX #18: Import shared timer for performance
 import { useSharedTimer } from '@/lib/shared-timer';
@@ -1038,35 +1038,35 @@ export default function OrdersClient({
   };
 
   // Real-time subscription for changes from OTHER users/sources only
+  // Uses shared ORDERS channel (deduplicated across all portal pages)
   useEffect(() => {
     let lastUpdateTime = Date.now();
     
-    const channel = supabase
-      .channel('orders-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          // Only refresh if enough time has passed (avoid duplicate refresh from our own action)
-          const now = Date.now();
-          if (now - lastUpdateTime > 3000) { // 3 second cooldown
-            if (refreshTimerRef.current) {
-              clearTimeout(refreshTimerRef.current);
-            }
-            refreshTimerRef.current = setTimeout(() => {
-              router.refresh();
-              lastUpdateTime = Date.now();
-            }, 2000);
-          }
+    const callback = () => {
+      // Only refresh if enough time has passed (avoid duplicate refresh from our own action)
+      const now = Date.now();
+      if (now - lastUpdateTime > 3000) { // 3 second cooldown
+        if (refreshTimerRef.current) {
+          clearTimeout(refreshTimerRef.current);
         }
-      )
-      .subscribe();
+        refreshTimerRef.current = setTimeout(() => {
+          router.refresh();
+          lastUpdateTime = Date.now();
+        }, 2000);
+      }
+    };
+
+    const unsubscribe = realtimeManager.subscribe(
+      CHANNEL_NAMES.ORDERS,
+      'orders',
+      callback
+    );
 
     return () => {
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
       }
-      channel.unsubscribe();
+      unsubscribe();
     };
   }, [router]);
 

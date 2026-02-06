@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { realtimeManager, CHANNEL_NAMES } from '@/lib/realtime-manager';
 import { useRouter } from 'next/navigation';
 import type {
@@ -97,11 +96,16 @@ export function useAdminDashboard(options?: UseDashboardOptions): UseDashboardRe
       loadStats();
     }
 
-    // Use deduplicated realtime subscriptions
-    const unsubscribe = realtimeManager.subscribeMultiple(
-      CHANNEL_NAMES.DASHBOARD,
+    // Listen to orders via shared ORDERS channel (deduplicated across all portal pages)
+    const unsubOrders = realtimeManager.subscribe(
+      CHANNEL_NAMES.ORDERS,
+      'orders',
+      loadStats
+    );
+    // Attendance + tables on a separate lightweight channel (only dashboard needs these)
+    const unsubMeta = realtimeManager.subscribeMultiple(
+      CHANNEL_NAMES.DASHBOARD_META,
       [
-        { table: 'orders' },
         { table: 'restaurant_tables' },
         { table: 'attendance' },
       ],
@@ -109,7 +113,8 @@ export function useAdminDashboard(options?: UseDashboardOptions): UseDashboardRe
     );
 
     return () => {
-      unsubscribe();
+      unsubOrders();
+      unsubMeta();
     };
   }, [loadStats, options?.initialStats]);
 
@@ -258,9 +263,9 @@ export function useKitchenOrders(): UseOrdersReturn {
   useEffect(() => {
     loadOrders();
 
-    // Use deduplicated realtime subscription
+    // Use shared ORDERS channel (same channel as orders page, dashboard, etc.)
     const unsubscribe = realtimeManager.subscribe(
-      CHANNEL_NAMES.KITCHEN,
+      CHANNEL_NAMES.ORDERS,
       'orders',
       loadOrders
     );
@@ -444,34 +449,32 @@ export function useRealtimeOrdersAdvanced(filters?: UseOrdersAdvancedFilters): U
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - load once on mount
 
-  // Real-time subscription
+  // Real-time subscription via shared ORDERS channel (deduplicated)
   useEffect(() => {
-    const channel = supabase
-      .channel('orders-advanced-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        (payload) => {
-          // Apply filters if set
-          if (filtersRef.current?.status && payload.new) {
-            if ((payload.new as Order).status !== filtersRef.current.status) {
-              return;
-            }
-          }
-          if (filtersRef.current?.orderType && payload.new) {
-            if ((payload.new as Order).order_type !== filtersRef.current.orderType) {
-              return;
-            }
-          }
-          
-          // Debounced refresh to avoid multiple rapid updates
-          debouncedRefresh();
+    const callback = (payload?: any) => {
+      // Apply client-side filters if set
+      if (filtersRef.current?.status && payload?.new) {
+        if ((payload.new as Order).status !== filtersRef.current.status) {
+          return;
         }
-      )
-      .subscribe();
+      }
+      if (filtersRef.current?.orderType && payload?.new) {
+        if ((payload.new as Order).order_type !== filtersRef.current.orderType) {
+          return;
+        }
+      }
+      // Debounced refresh to avoid multiple rapid updates
+      debouncedRefresh();
+    };
+
+    const unsubscribe = realtimeManager.subscribe(
+      CHANNEL_NAMES.ORDERS,
+      'orders',
+      callback
+    );
 
     return () => {
-      channel.unsubscribe();
+      unsubscribe();
     };
   }, [debouncedRefresh]);
 
@@ -521,34 +524,29 @@ export function useWaiterDashboard(): UseWaiterDashboardReturn {
   useEffect(() => {
     loadDashboard();
 
-    // Subscribe to relevant changes
-    const channel = supabase
-      .channel('waiter-dashboard')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          loadDashboard();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'restaurant_tables' },
-        () => {
-          loadDashboard();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'waiter_tips' },
-        () => {
-          loadDashboard();
-        }
-      )
-      .subscribe();
+    // Use shared ORDERS channel for order updates
+    const unsubOrders = realtimeManager.subscribe(
+      CHANNEL_NAMES.ORDERS,
+      'orders',
+      loadDashboard
+    );
+    // Use shared TABLES channel for table updates
+    const unsubTables = realtimeManager.subscribe(
+      CHANNEL_NAMES.TABLES,
+      'restaurant_tables',
+      loadDashboard
+    );
+    // Waiter tips on a dedicated lightweight channel
+    const unsubTips = realtimeManager.subscribe(
+      CHANNEL_NAMES.WAITER,
+      'waiter_tips',
+      loadDashboard
+    );
 
     return () => {
-      channel.unsubscribe();
+      unsubOrders();
+      unsubTables();
+      unsubTips();
     };
   }, [loadDashboard]);
 

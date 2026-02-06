@@ -49,7 +49,8 @@ import {
   getUnreadNotificationCount,
   type PortalNotification,
 } from '@/lib/portal-queries';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { realtimeManager, CHANNEL_NAMES } from '@/lib/realtime-manager';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -291,30 +292,26 @@ export default function NotificationsClient({
       fetchNotifications();
     }
 
-    // Set up realtime subscription for new notifications
+    // Use shared NOTIFICATIONS channel (deduplicated with PortalProvider)
     if (!isSupabaseConfigured || !employee?.id) return;
     
-    const channel = supabase
-      .channel('portal_notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${employee?.id}`,
-        },
-        (payload) => {
-          const newNotification = payload.new as PortalNotification;
-          setNotifications((prev) => [newNotification, ...prev]);
-          setUnreadCount(prev => prev + 1);
-          toast.info(newNotification.title, { description: newNotification.message });
-        }
-      )
-      .subscribe();
+    const callback = (payload?: any) => {
+      if (payload?.eventType !== 'INSERT') return;
+      const newNotification = payload.new as PortalNotification;
+      setNotifications((prev) => [newNotification, ...prev]);
+      setUnreadCount(prev => prev + 1);
+      toast.info(newNotification.title, { description: newNotification.message });
+    };
+
+    const unsubscribe = realtimeManager.subscribe(
+      CHANNEL_NAMES.NOTIFICATIONS,
+      'notifications',
+      callback,
+      { filter: `user_id=eq.${employee.id}` }
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      unsubscribe();
     };
   }, [employee?.id, fetchNotifications, initialNotifications.length]);
 

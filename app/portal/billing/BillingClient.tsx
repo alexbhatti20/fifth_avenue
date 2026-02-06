@@ -35,7 +35,7 @@ import { toast } from 'sonner';
 import { usePortalAuth } from '@/hooks/usePortal';
 import { playNotificationSound, enableAudio, isAudioContextEnabled } from '@/lib/notification-sound';
 import type { BillingStatsServer, BillableOrderServer } from '@/lib/server-queries';
-import { createClient } from '@/lib/supabase';
+import { realtimeManager, CHANNEL_NAMES } from '@/lib/realtime-manager';
 
 // Import billing module components
 import {
@@ -47,9 +47,6 @@ import {
   type BillingStats,
   type InvoiceDetails,
 } from '@/components/portal/billing';
-
-// Supabase client for realtime only (Server Actions used for data fetching)
-const supabase = createClient();
 
 // Allowed roles for billing page
 const ALLOWED_ROLES = ['admin', 'manager', 'billing_staff', 'waiter', 'reception'];
@@ -188,67 +185,64 @@ export default function BillingClient({ initialStats, initialPendingOrders, init
     setSoundEnabled(isAudioContextEnabled());
   }, []);
 
-  // Real-time subscription for new online orders
+  // Real-time subscription for new online orders via shared ORDERS channel
   useEffect(() => {
     if (!isAuthorized) return;
 
-    const channel = supabase
-      .channel('billing-online-orders')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'orders',
-          filter: 'order_type=eq.online',
-        },
-        async (payload) => {
-          const newOrder = payload.new as any;
+    const callback = async (payload?: any) => {
+      // Only react to INSERT events for online orders
+      if (payload?.eventType !== 'INSERT') return;
+      const newOrder = payload.new as any;
+      if (newOrder?.order_type !== 'online') return;
+      
+      // Check if this is a new order we haven't notified about
+      if (newOrder.id !== lastOnlineOrderRef.current) {
+        lastOnlineOrderRef.current = newOrder.id;
+        
+        // Show notification
+        setNewOnlineOrder({
+          id: newOrder.id,
+          order_number: newOrder.order_number,
+          customer_name: newOrder.customer_name || 'Online Customer',
+          total: newOrder.total,
+          created_at: newOrder.created_at,
+        });
+        
+        // Play notification sound
+        try {
+          await playNotificationSound('new_order');
+        } catch (e) {
           
-          // Check if this is a new order we haven't notified about
-          if (newOrder.id !== lastOnlineOrderRef.current) {
-            lastOnlineOrderRef.current = newOrder.id;
-            
-            // Show notification
-            setNewOnlineOrder({
-              id: newOrder.id,
-              order_number: newOrder.order_number,
-              customer_name: newOrder.customer_name || 'Online Customer',
-              total: newOrder.total,
-              created_at: newOrder.created_at,
-            });
-            
-            // Play notification sound (with await)
-            try {
-              await playNotificationSound('new_order');
-            } catch (e) {
-              
-            }
-            
-            // Show toast notification
-            toast.info(
-              `🛒 New Online Order #${newOrder.order_number}`,
-              {
-                description: `${newOrder.customer_name || 'Online Customer'} - Rs. ${newOrder.total?.toLocaleString()}`,
-                duration: 10000,
-                action: {
-                  label: 'View',
-                  onClick: () => router.push(`/portal/orders`),
-                },
-              }
-            );
-            
-            // Refresh pending orders count
-            fetchPendingOrders();
-            
-            // Auto-dismiss after 8 seconds
-            setTimeout(() => {
-              setNewOnlineOrder(null);
-            }, 8000);
-          }
         }
-      )
-      .subscribe();
+        
+        // Show toast notification
+        toast.info(
+          `🛒 New Online Order #${newOrder.order_number}`,
+          {
+            description: `${newOrder.customer_name || 'Online Customer'} - Rs. ${newOrder.total?.toLocaleString()}`,
+            duration: 10000,
+            action: {
+              label: 'View',
+              onClick: () => router.push(`/portal/orders`),
+            },
+          }
+        );
+        
+        // Refresh pending orders count
+        fetchPendingOrders();
+        
+        // Auto-dismiss after 8 seconds
+        setTimeout(() => {
+          setNewOnlineOrder(null);
+        }, 8000);
+      }
+    };
+
+    const unsubscribe = realtimeManager.subscribe(
+      CHANNEL_NAMES.ORDERS,
+      'orders',
+      callback
+    );
 
     // Auto-refresh every 30 seconds
     const refreshInterval = setInterval(() => {
@@ -256,7 +250,7 @@ export default function BillingClient({ initialStats, initialPendingOrders, init
     }, 30000);
 
     return () => {
-      supabase.removeChannel(channel);
+      unsubscribe();
       clearInterval(refreshInterval);
     };
   }, [isAuthorized, fetchPendingOrders, router]);

@@ -74,7 +74,8 @@ import { SectionHeader, StatsCard, DataTableWrapper } from '@/components/portal/
 import { usePortalAuth } from '@/hooks/usePortal';
 import { supabase } from '@/lib/supabase';
 import { getAuthenticatedClient } from '@/lib/portal-queries';
-import { subscribeToRiderAssignments, subscribeToReadyForDelivery } from '@/lib/realtime';
+import { subscribeToRiderAssignments } from '@/lib/realtime';
+import { realtimeManager, CHANNEL_NAMES } from '@/lib/realtime-manager';
 import {
   playNotificationSound,
   showNotificationWithSound,
@@ -1305,27 +1306,40 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
       }
     );
 
-    // Also subscribe to ready orders
-    const unsubscribeReady = subscribeToReadyForDelivery(
-      (readyOrder) => {
-        if (!knownOrdersRef.current.has(readyOrder.id)) {
-          knownOrdersRef.current.add(readyOrder.id);
-          setOrders((prev) => [readyOrder, ...prev]);
-          
-          // Play subtle sound for available orders
-          playNotificationSound('new_order');
-        }
-        setLastUpdate(new Date());
-      },
-      (updatedOrder) => {
-        setOrders((prev) => {
-          // Remove if delivered or cancelled
-          if (['delivered', 'cancelled'].includes(updatedOrder.status)) {
-            return prev.filter((o) => o.id !== updatedOrder.id);
+    // Also subscribe to ready orders via shared ORDERS channel
+    const unsubscribeReady = realtimeManager.subscribe(
+      CHANNEL_NAMES.ORDERS,
+      'orders',
+      (payload?: any) => {
+        if (payload?.eventType !== 'UPDATE') return;
+        const newRecord = payload.new as any;
+        const oldRecord = payload.old as any;
+        
+        // Check if status changed to 'ready' and is online/delivery order
+        if (
+          newRecord?.status === 'ready' &&
+          oldRecord?.status !== 'ready' &&
+          newRecord?.order_type === 'online'
+        ) {
+          if (!knownOrdersRef.current.has(newRecord.id)) {
+            knownOrdersRef.current.add(newRecord.id);
+            setOrders((prev) => [newRecord, ...prev]);
+            playNotificationSound('new_order');
           }
-          return prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o));
-        });
-        setLastUpdate(new Date());
+          setLastUpdate(new Date());
+        } else if (
+          newRecord?.status === 'ready' ||
+          newRecord?.status === 'delivering' ||
+          newRecord?.status === 'delivered'
+        ) {
+          setOrders((prev) => {
+            if (['delivered', 'cancelled'].includes(newRecord.status)) {
+              return prev.filter((o: any) => o.id !== newRecord.id);
+            }
+            return prev.map((o: any) => (o.id === newRecord.id ? newRecord : o));
+          });
+          setLastUpdate(new Date());
+        }
       }
     );
 

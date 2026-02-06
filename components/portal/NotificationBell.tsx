@@ -27,7 +27,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { useRealtimeNotifications } from '@/lib/portal-realtime';
 import { usePortalAuth } from '@/hooks/usePortal';
 import { cn } from '@/lib/utils';
 

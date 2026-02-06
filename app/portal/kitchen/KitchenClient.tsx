@@ -61,7 +61,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/lib/supabase';
+import { realtimeManager, CHANNEL_NAMES } from '@/lib/realtime-manager';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 // FIX #18: Import shared timer for performance
@@ -1422,30 +1422,29 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
     }
   }, [orders]);
 
-  // Real-time subscription
+  // Real-time subscription via shared ORDERS channel (deduplicated across portal)
   useEffect(() => {
-    const channel = supabase
-      .channel('kitchen-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        (payload) => {
-          
-          fetchOrders();
-          
-          // Play sound for new orders
-          if (payload.eventType === 'INSERT' && soundEnabled) {
-            playNotificationSound();
-            toast.info('New order received!', {
-              icon: <Bell className="h-4 w-4" />,
-            });
-          }
-        }
-      )
-      .subscribe();
+    const soundEnabledRef = soundEnabled; // capture for closure
+    const callback = (payload?: any) => {
+      fetchOrders();
+      
+      // Play sound for new orders
+      if (payload?.eventType === 'INSERT' && soundEnabledRef) {
+        playNotificationSound();
+        toast.info('New order received!', {
+          icon: <Bell className="h-4 w-4" />,
+        });
+      }
+    };
+
+    const unsubscribe = realtimeManager.subscribe(
+      CHANNEL_NAMES.ORDERS,
+      'orders',
+      callback
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      unsubscribe();
     };
   }, [fetchOrders, soundEnabled]);
 
