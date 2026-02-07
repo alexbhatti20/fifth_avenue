@@ -485,47 +485,60 @@ function MaintenancePage({
         </motion.div>
       </motion.div>
 
+      {/* Developer Floating Action Button - Top Right */}
+      <motion.a
+        href="https://waqarx.me"
+        target="_blank"
+        rel="noopener noreferrer"
+        initial={{ opacity: 0, y: -30, scale: 0.8 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: 'spring', delay: 1, stiffness: 120, damping: 14 }}
+        whileHover={{ scale: 1.1, boxShadow: '0 0 40px rgba(168,85,247,0.5), 0 0 80px rgba(236,72,153,0.2)' }}
+        whileTap={{ scale: 0.95 }}
+        className="fixed top-5 right-5 z-50 group flex items-center gap-3 px-6 py-3 rounded-2xl text-sm font-bold tracking-wide uppercase cursor-pointer overflow-hidden transition-all duration-300"
+        style={{
+          background: 'linear-gradient(135deg, #0d0d1a 0%, #1a1a2e 50%, #0d0d1a 100%)',
+        }}
+      >
+        {/* Animated rotating border */}
+        <span className="absolute inset-0 rounded-2xl" style={{ padding: '2px', background: 'conic-gradient(from var(--dev-angle, 0deg), #a855f7, #ec4899, #3b82f6, #06b6d4, #22c55e, #a855f7)', WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude', animation: 'devRotateBorder 3s linear infinite' }} />
+        {/* Inner glow */}
+        <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: 'radial-gradient(ellipse at center, rgba(168,85,247,0.15) 0%, transparent 70%)' }} />
+        {/* Shimmer sweep */}
+        <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" style={{ background: 'linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0.03) 55%, transparent 65%)', backgroundSize: '250% 100%', animation: 'devShimmer 2.5s ease-in-out infinite' }} />
+        {/* Code icon */}
+        <svg className="relative w-5 h-5 text-purple-400 group-hover:text-purple-300 transition-colors duration-300" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>
+        {/* Text */}
+        <span className="relative bg-gradient-to-r from-purple-300 via-pink-300 to-cyan-300 bg-clip-text text-transparent font-extrabold">Developer</span>
+        {/* Live dot */}
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+        </span>
+      </motion.a>
+
       {/* Footer */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.2 }}
-        className="absolute bottom-6 text-center flex flex-col items-center gap-3"
+        className="absolute bottom-6 text-center"
       >
-        <motion.a
-          href="https://waqarx.me"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group relative inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold tracking-wider uppercase overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] hover:scale-105"
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.96 }}
-          style={{
-            background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%)',
-            border: '1px solid transparent',
-            backgroundClip: 'padding-box',
-          }}
-        >
-          {/* Animated border gradient */}
-          <span className="absolute inset-0 rounded-full p-[1px] -z-10" style={{ background: 'linear-gradient(270deg, #a855f7, #ec4899, #3b82f6, #06b6d4, #a855f7)', backgroundSize: '300% 300%', animation: 'devBorderShift 4s ease infinite' }} />
-          <span className="absolute inset-[1px] rounded-full bg-zinc-950/90 -z-10" />
-          {/* Shimmer sweep */}
-          <span className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: 'linear-gradient(105deg, transparent 40%, rgba(168,85,247,0.15) 45%, rgba(236,72,153,0.1) 55%, transparent 60%)', backgroundSize: '200% 100%', animation: 'devShimmer 2s ease-in-out infinite' }} />
-          <svg className="w-3.5 h-3.5 text-purple-400 group-hover:text-purple-300 transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>
-          <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">Developer</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-        </motion.a>
         <p className="text-zinc-600 text-sm">© {new Date().getFullYear()} ZOIRO Injected Broast. All rights reserved.</p>
       </motion.div>
 
       <style jsx global>{`
-        @keyframes devBorderShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        @property --dev-angle {
+          syntax: '<angle>';
+          initial-value: 0deg;
+          inherits: false;
+        }
+        @keyframes devRotateBorder {
+          to { --dev-angle: 360deg; }
         }
         @keyframes devShimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
+          0% { background-position: 250% 0; }
+          100% { background-position: -250% 0; }
         }
       `}</style>
 
