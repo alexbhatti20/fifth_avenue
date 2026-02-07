@@ -4,8 +4,8 @@ import PaymentsClient from "./PaymentsClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Payment History | Zoiro Broast",
-  description: "View your payment history and transaction details at Zoiro Broast",
+  title: "Payment History | ZOIRO Injected Broast",
+  description: "View your payment history and transaction details at ZOIRO Injected Broast",
 };
 
 export default async function PaymentsPage() {

@@ -9,11 +9,11 @@ import MenuClient from "./MenuClient";
 
 // SEO Metadata
 export const metadata: Metadata = {
-  title: "Menu | Zoiro Broast - Fresh & Delicious",
+  title: "Menu | ZOIRO Injected Broast - Fresh & Delicious",
   description: "Explore our signature broasted chicken, juicy burgers, crispy wings, and more. Made fresh with premium ingredients. Order online for delivery or pickup.",
-  keywords: ["menu", "broasted chicken", "burgers", "wings", "fast food", "zoiro broast", "delivery"],
+  keywords: ["menu", "broasted chicken", "burgers", "wings", "fast food", "ZOIRO Injected Broast", "delivery"],
   openGraph: {
-    title: "Menu | Zoiro Broast",
+    title: "Menu | ZOIRO Injected Broast",
     description: "Explore our signature broasted chicken, juicy burgers, crispy wings, and more.",
     type: "website",
   },

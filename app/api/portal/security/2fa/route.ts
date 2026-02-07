@@ -111,8 +111,8 @@ export async function GET(request: NextRequest) {
 
     // Generate new secret for setup
     const secret = speakeasy.generateSecret({
-      name: `ZOIRO Broast (${employee.email})`,
-      issuer: 'ZOIRO Broast Hub',
+      name: `ZOIRO Injected Broast (${employee.email})`,
+      issuer: 'ZOIRO Injected Broast Hub',
       length: 32,
     });
 

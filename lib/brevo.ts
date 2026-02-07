@@ -1,6 +1,6 @@
 const BREVO_API_KEY = process.env.BREVO_API_KEY!;
 const SENDER_EMAIL = process.env.SENDER_EMAIL || 'noreply@zoirobroast.com';
-const SENDER_NAME = 'Zoiro Broast';
+const SENDER_NAME = 'Zoiro Injected Broast';
 const COMPANY_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 const LOGO_URL = 'https://eqfeeiryzslccyivkphf.supabase.co/storage/v1/object/public/images/website/images.png';
 
@@ -13,7 +13,7 @@ const BRAND_LIGHT_BG = '#f9f9f9';
 // Shared email header component
 const getEmailHeader = (title: string, subtitle?: string) => `
   <div style="background: ${BRAND_DARK}; padding: 30px 20px; text-align: center;">
-    <img src="${LOGO_URL}" alt="ZOIRO Broast" style="height: 60px; margin-bottom: 15px;" />
+    <img src="${LOGO_URL}" alt="ZOIRO Injected Broast" style="height: 60px; margin-bottom: 15px;" />
     <h1 style="color: ${BRAND_WHITE}; margin: 0; font-size: 24px; font-weight: bold;">${title}</h1>
     ${subtitle ? `<p style="color: #cccccc; margin: 10px 0 0; font-size: 14px;">${subtitle}</p>` : ''}
   </div>
@@ -22,8 +22,8 @@ const getEmailHeader = (title: string, subtitle?: string) => `
 // Shared email footer component
 const getEmailFooter = () => `
   <div style="background: ${BRAND_DARK}; color: ${BRAND_WHITE}; padding: 30px; text-align: center;">
-    <img src="${LOGO_URL}" alt="ZOIRO Broast" style="height: 40px; margin-bottom: 15px;" />
-    <p style="margin: 5px 0; font-size: 14px;"><strong>ZOIRO Broast</strong></p>
+    <img src="${LOGO_URL}" alt="ZOIRO Injected Broast" style="height: 40px; margin-bottom: 15px;" />
+    <p style="margin: 5px 0; font-size: 14px;"><strong>ZOIRO Injected Broast</strong></p>
     <p style="margin: 5px 0; font-size: 12px; color: #aaa;">Injected Broast - Saucy. Juicy. Crispy.</p>
     <p style="margin: 15px 0 5px; font-size: 12px; color: #888;">
       📞 +92 300 1234567 | 📧 info@zoiro.com
@@ -34,7 +34,7 @@ const getEmailFooter = () => `
       <a href="${COMPANY_URL}" style="color: ${BRAND_RED}; text-decoration: none; margin: 0 10px;">Website</a>
     </div>
     <p style="font-size: 11px; color: #666; margin-top: 20px;">
-      © ${new Date().getFullYear()} Zoiro Broast. All rights reserved.<br>
+      © ${new Date().getFullYear()} Zoiro Injected Broast. All rights reserved.<br>
       This is an automated email. Please do not reply directly.
     </p>
   </div>
@@ -142,7 +142,7 @@ export async function sendPasswordResetOTP(email: string, name: string, otp: str
 
   return sendEmail({
     to: email,
-    subject: `${otp} - Reset Your ZOIRO Broast Password`,
+    subject: `${otp} - Reset Your ZOIRO Injected Broast Password`,
     htmlContent,
   });
 }
@@ -155,15 +155,15 @@ export async function sendRegistrationOTP(email: string, name: string, otp: stri
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Welcome to ZOIRO Broast</title>
+      <title>Welcome to ZOIRO Injected Broast</title>
     </head>
     <body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f5;">
       <div style="max-width: 600px; margin: 0 auto; background: ${BRAND_WHITE};">
-        ${getEmailHeader('Welcome to ZOIRO Broast!', 'Complete your registration')}
+        ${getEmailHeader('Welcome to ZOIRO Injected Broast!', 'Complete your registration')}
         
         <div style="padding: 30px;">
           <h2 style="color: ${BRAND_DARK}; margin-top: 0;">Hello ${name}! 👋</h2>
-          <p>Thank you for joining the ZOIRO Broast family. To complete your registration, please verify your email with the OTP below:</p>
+          <p>Thank you for joining the ZOIRO Injected Broast family. To complete your registration, please verify your email with the OTP below:</p>
           
           <div style="background: ${BRAND_LIGHT_BG}; border: 2px dashed ${BRAND_RED}; border-radius: 10px; padding: 25px; text-align: center; margin: 25px 0;">
             <p style="margin: 0 0 10px; font-size: 14px; color: #666;">Your Verification Code</p>
@@ -201,7 +201,7 @@ export async function sendRegistrationOTP(email: string, name: string, otp: stri
 
   return sendEmail({
     to: email,
-    subject: `${otp} is your ZOIRO Broast verification code`,
+    subject: `${otp} is your ZOIRO Injected Broast verification code`,
     htmlContent,
   });
 }
@@ -237,7 +237,7 @@ export async function sendLoginOTP(email: string, name: string, otp: string) {
           <p>For your security:</p>
           <ul style="color: #444;">
             <li>Never share this OTP with anyone</li>
-            <li>ZOIRO Broast staff will never ask for your OTP</li>
+            <li>ZOIRO Injected Broast staff will never ask for your OTP</li>
             <li>This code expires in 10 minutes</li>
           </ul>
         </div>
@@ -250,7 +250,7 @@ export async function sendLoginOTP(email: string, name: string, otp: string) {
 
   return sendEmail({
     to: email,
-    subject: `${otp} is your ZOIRO Broast login code`,
+    subject: `${otp} is your ZOIRO Injected Broast login code`,
     htmlContent,
   });
 }
@@ -319,7 +319,7 @@ export async function sendEmployeeActivation(
 
   return sendEmail({
     to: email,
-    subject: `Welcome to ZOIRO Broast - Activate Your Employee Account`,
+    subject: `Welcome to ZOIRO Injected Broast - Activate Your Employee Account`,
     htmlContent,
   });
 }
@@ -480,14 +480,14 @@ export async function sendOTPEmail(
           <ul>
             <li>This OTP expires in 2 minutes</li>
             <li>Never share this code with anyone</li>
-            <li>Zoiro Broast will never ask for your OTP</li>
+            <li>ZOIRO Injected Broast will never ask for your OTP</li>
             <li>If you didn't request this, please ignore this email</li>
           </ul>
           
-          <p>Best regards,<br>The Zoiro Broast Team</p>
+          <p>Best regards,<br>The ZOIRO Injected Broast Team</p>
         </div>
         <div class="footer">
-          <p>© ${new Date().getFullYear()} Zoiro Broast. All rights reserved.</p>
+          <p>© ${new Date().getFullYear()} ZOIRO Injected Broast. All rights reserved.</p>
         </div>
       </div>
     </body>
@@ -681,7 +681,7 @@ export async function sendPromoCodeEmail({
           </div>
           ` : ''}
           
-          <p>As a valued member of the ZOIRO Broast family, you've unlocked an exclusive promo code just for you!</p>
+          <p>As a valued member of the ZOIRO Injected Broast family, you've unlocked an exclusive promo code just for you!</p>
           
           <div class="promo-box">
             <div class="promo-label">Your Exclusive Promo Code</div>
@@ -721,16 +721,16 @@ export async function sendPromoCodeEmail({
           </ul>
         </div>
         <div class="footer">
-          <p><strong>ZOIRO Broast</strong></p>
+          <p><strong>ZOIRO Injected Broast</strong></p>
           <p>Injected Broast - Saucy. Juicy. Crispy.</p>
           <div class="social-links">
             <a href="#">Facebook</a> |
             <a href="#">Instagram</a> |
             <a href="${COMPANY_URL}">Website</a>
           </div>
-          <p>© ${new Date().getFullYear()} Zoiro Broast. All rights reserved.</p>
+          <p>© ${new Date().getFullYear()} ZOIRO Injected Broast. All rights reserved.</p>
           <p style="font-size: 10px; color: #999;">
-            You received this email because you are a registered customer of ZOIRO Broast.
+            You received this email because you are a registered customer of ZOIRO Injected Broast.
           </p>
         </div>
       </div>
@@ -839,7 +839,7 @@ export async function sendInvoiceEmail({
       <div style="max-width: 600px; margin: 0 auto; background: ${BRAND_WHITE};">
         <!-- Header with Logo -->
         <div style="background: ${BRAND_DARK}; padding: 30px 20px; text-align: center;">
-          <img src="${LOGO_URL}" alt="ZOIRO Broast" style="height: 60px; margin-bottom: 10px;" />
+          <img src="${LOGO_URL}" alt="ZOIRO Injected Broast" style="height: 60px; margin-bottom: 10px;" />
           <h1 style="color: ${BRAND_WHITE}; margin: 0; font-size: 24px;">Your Receipt</h1>
           <p style="color: #aaa; margin: 5px 0 0; font-size: 14px;">Thank you for dining with us!</p>
         </div>
@@ -980,7 +980,7 @@ export async function sendInvoiceEmail({
 
   return sendEmail({
     to,
-    subject: `🧾 Your ZOIRO Broast Receipt - ${invoiceNumber}`,
+    subject: `🧾 Your ZOIRO Injected Broast Receipt - ${invoiceNumber}`,
     htmlContent,
   });
 }
@@ -1035,15 +1035,15 @@ export async function sendEmployeeWelcomeEmail({
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Welcome to ZOIRO Broast Team!</title>
+      <title>Welcome to ZOIRO Injected Broast Team!</title>
     </head>
     <body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f5;">
       <div style="max-width: 600px; margin: 0 auto; background: ${BRAND_WHITE};">
         <!-- Header -->
         <div style="background: linear-gradient(135deg, ${BRAND_DARK} 0%, #2d2d2d 100%); padding: 40px 20px; text-align: center;">
-          <img src="${LOGO_URL}" alt="ZOIRO Broast" style="height: 60px; margin-bottom: 15px;" />
+          <img src="${LOGO_URL}" alt="ZOIRO Injected Broast" style="height: 60px; margin-bottom: 15px;" />
           <h1 style="color: ${BRAND_WHITE}; margin: 0; font-size: 28px;">Welcome to the Team! 🎉</h1>
-          <p style="color: #ccc; margin: 10px 0 0; font-size: 16px;">You're now part of the ZOIRO Broast family</p>
+          <p style="color: #ccc; margin: 10px 0 0; font-size: 16px;">You're now part of the ZOIRO Injected Broast family</p>
         </div>
         
         <!-- Employee Info Card -->
@@ -1077,7 +1077,7 @@ export async function sendEmployeeWelcomeEmail({
         <!-- Content -->
         <div style="padding: 30px;">
           <h3 style="color: ${BRAND_DARK}; margin-top: 0;">Hello ${employeeName}! 👋</h3>
-          <p>Congratulations on joining the ZOIRO Broast team! We're excited to have you with us.</p>
+          <p>Congratulations on joining the ZOIRO Injected Broast team! We're excited to have you with us.</p>
           
           ${portalEnabled ? `
           <!-- Activation Section -->
@@ -1141,7 +1141,7 @@ export async function sendEmployeeWelcomeEmail({
             don't hesitate to reach out to your manager or HR department.
           </p>
           
-          <p>Best regards,<br><strong>The ZOIRO Broast Team</strong></p>
+          <p>Best regards,<br><strong>The ZOIRO Injected Broast Team</strong></p>
         </div>
         
         ${getEmailFooter()}
@@ -1152,7 +1152,7 @@ export async function sendEmployeeWelcomeEmail({
 
   return sendEmail({
     to,
-    subject: `🎉 Welcome to ZOIRO Broast, ${employeeName}! - Your Employee Credentials`,
+    subject: `🎉 Welcome to ZOIRO Injected Broast, ${employeeName}! - Your Employee Credentials`,
     htmlContent,
   });
 }
@@ -1241,7 +1241,7 @@ export async function sendEmployeeBlockedNotification(
           
           <p style="margin-top: 30px;">
             Regards,<br>
-            <strong>ZOIRO Broast HR Department</strong>
+            <strong>ZOIRO Injected Broast HR Department</strong>
           </p>
         </div>
         
@@ -1253,7 +1253,7 @@ export async function sendEmployeeBlockedNotification(
 
   return sendEmail({
     to: email,
-    subject: `⚠️ Account Status Update - ZOIRO Broast`,
+    subject: `⚠️ Account Status Update - ZOIRO Injected Broast`,
     htmlContent,
   });
 }
@@ -1354,7 +1354,7 @@ export async function sendEmployeeActivatedNotification(
           <p style="margin-top: 30px;">
             Welcome back to the team! We're glad to have you with us again.<br><br>
             Best regards,<br>
-            <strong>ZOIRO Broast HR Department</strong>
+            <strong>ZOIRO Injected Broast HR Department</strong>
           </p>
         </div>
         
@@ -1366,7 +1366,7 @@ export async function sendEmployeeActivatedNotification(
 
   return sendEmail({
     to: email,
-    subject: `🎉 Welcome Back! Your Account Has Been Reactivated - ZOIRO Broast`,
+    subject: `🎉 Welcome Back! Your Account Has Been Reactivated - ZOIRO Injected Broast`,
     htmlContent,
   });
 }
@@ -1453,7 +1453,7 @@ export async function sendEmployeeUnblockedNotification(
           <p style="margin-top: 30px;">
             We're glad to have you back!<br><br>
             Best regards,<br>
-            <strong>ZOIRO Broast HR Department</strong>
+            <strong>ZOIRO Injected Broast HR Department</strong>
           </p>
         </div>
         
@@ -1465,7 +1465,7 @@ export async function sendEmployeeUnblockedNotification(
 
   return sendEmail({
     to: email,
-    subject: `🎉 Portal Access Restored - ZOIRO Broast`,
+    subject: `🎉 Portal Access Restored - ZOIRO Injected Broast`,
     htmlContent,
   });
 }
@@ -1493,7 +1493,7 @@ export async function sendEmployeeDeletedNotification(
         <div style="padding: 30px;">
           <h2 style="color: ${BRAND_DARK}; margin-top: 0;">Dear ${name},</h2>
           
-          <p>This email is to inform you that your employee account at ZOIRO Broast has been terminated as of <strong>${deletionDate}</strong>.</p>
+          <p>This email is to inform you that your employee account at ZOIRO Injected Broast has been terminated as of <strong>${deletionDate}</strong>.</p>
           
           <div style="background: ${BRAND_LIGHT_BG}; padding: 20px; border-radius: 12px; margin: 20px 0;">
             <h4 style="color: ${BRAND_DARK}; margin: 0 0 10px;">📋 Account Details</h4>
@@ -1530,9 +1530,9 @@ export async function sendEmployeeDeletedNotification(
           </p>
           
           <p style="margin-top: 30px;">
-            We thank you for your time with ZOIRO Broast.<br><br>
+            We thank you for your time with ZOIRO Injected Broast.<br><br>
             Regards,<br>
-            <strong>ZOIRO Broast HR Department</strong>
+            <strong>ZOIRO Injected Broast HR Department</strong>
           </p>
         </div>
         
@@ -1544,7 +1544,7 @@ export async function sendEmployeeDeletedNotification(
 
   return sendEmail({
     to: email,
-    subject: `Account Termination Notice - ZOIRO Broast`,
+    subject: `Account Termination Notice - ZOIRO Injected Broast`,
     htmlContent,
   });
 }
@@ -1607,7 +1607,7 @@ export async function sendCustomerBannedNotification(
           <h2 style="color: ${BRAND_DARK}; margin-top: 0; text-align: center;">Dear ${name},</h2>
           
           <p style="text-align: center; color: #666;">
-            We regret to inform you that your ZOIRO Broast customer account has been suspended.
+            We regret to inform you that your ZOIRO Injected Broast customer account has been suspended.
           </p>
           
           <div style="background: #fef2f2; border-left: 4px solid ${BRAND_RED}; padding: 20px; margin: 25px 0; border-radius: 0 10px 10px 0;">
@@ -1649,7 +1649,7 @@ export async function sendCustomerBannedNotification(
 
   return sendEmail({
     to: email,
-    subject: `⚠️ Your ZOIRO Broast Account Has Been Suspended`,
+    subject: `⚠️ Your ZOIRO Injected Broast Account Has Been Suspended`,
     htmlContent,
   });
 }
@@ -1685,7 +1685,7 @@ export async function sendCustomerUnbannedNotification(
           <h2 style="color: ${BRAND_DARK}; margin-top: 0; text-align: center;">Welcome Back, ${name}!</h2>
           
           <p style="text-align: center; color: #666; font-size: 16px;">
-            Great news! Your ZOIRO Broast account has been restored and you can now access all features again.
+            Great news! Your ZOIRO Injected Broast account has been restored and you can now access all features again.
           </p>
           
           ${reason ? `
@@ -1724,7 +1724,7 @@ export async function sendCustomerUnbannedNotification(
 
   return sendEmail({
     to: email,
-    subject: `✅ Your ZOIRO Broast Account Has Been Restored`,
+    subject: `✅ Your ZOIRO Injected Broast Account Has Been Restored`,
     htmlContent,
   });
 }
@@ -1799,7 +1799,7 @@ export async function sendMaintenanceNotification(
           <p style="font-size: 16px;">Dear ${name || 'Valued Customer'},</p>
           
           <p style="color: #666; font-size: 16px;">
-            We're writing to inform you that the ZOIRO Broast website will be temporarily unavailable due to ${displayReason.toLowerCase()}.
+            We're writing to inform you that the ZOIRO Injected Broast website will be temporarily unavailable due to ${displayReason.toLowerCase()}.
           </p>
           
           <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b; padding: 20px; margin: 25px 0; border-radius: 0 12px 12px 0;">
@@ -1849,7 +1849,7 @@ export async function sendMaintenanceNotification(
 
   return sendEmail({
     to: email,
-    subject: `${reasonIcon} ZOIRO Broast - ${title}`,
+    subject: `${reasonIcon} ZOIRO Injected Broast - ${title}`,
     htmlContent,
   });
 }
@@ -1934,7 +1934,7 @@ export async function sendContactMessageReply(
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Reply from ZOIRO Broast</title>
+      <title>Reply from ZOIRO Injected Broast</title>
     </head>
     <body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f5;">
       <div style="max-width: 600px; margin: 0 auto; background: ${BRAND_WHITE};">
@@ -1976,7 +1976,7 @@ export async function sendContactMessageReply(
           </div>
           
           <p style="margin-top: 25px; font-size: 13px; color: #888;">
-            Responded by: <strong>${repliedByName}</strong> from ZOIRO Broast Team
+            Responded by: <strong>${repliedByName}</strong> from ZOIRO Injected Broast Team
           </p>
         </div>
         
@@ -1987,8 +1987,8 @@ export async function sendContactMessageReply(
   `;
 
   const subjectLine = originalSubject 
-    ? `Re: ${originalSubject} - ZOIRO Broast` 
-    : `Reply to your message - ZOIRO Broast`;
+    ? `Re: ${originalSubject} - ZOIRO Injected Broast` 
+    : `Reply to your message - ZOIRO Injected Broast`;
 
   return sendEmail({
     to: recipientEmail,
@@ -2145,7 +2145,7 @@ export async function sendPayslipNotification({
           </div>
           
           <p style="font-size: 12px; color: #aaa; text-align: center; margin-top: 20px;">
-            This is an automated salary notification from ZOIRO Broast. If you have any questions, please contact your administrator.
+            This is an automated salary notification from ZOIRO Injected Broast. If you have any questions, please contact your administrator.
           </p>
         </div>
         
@@ -2157,7 +2157,7 @@ export async function sendPayslipNotification({
 
   return sendEmail({
     to: employeeEmail,
-    subject: `Salary Slip - ${formatDate(periodStart)} to ${formatDate(periodEnd)} | ZOIRO Broast`,
+    subject: `Salary Slip - ${formatDate(periodStart)} to ${formatDate(periodEnd)} | ZOIRO Injected Broast`,
     htmlContent,
   });
 }

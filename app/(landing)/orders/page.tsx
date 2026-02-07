@@ -10,8 +10,8 @@ import { getCustomerOrdersServer, getServerCustomer } from "@/lib/server-queries
 import OrdersClient from "./OrdersClient";
 
 export const metadata: Metadata = {
-  title: "My Orders | Zoiro Broast",
-  description: "Track and manage your orders from Zoiro Broast.",
+  title: "My Orders | ZOIRO Injected Broast",
+  description: "Track and manage your orders from ZOIRO Injected Broast.",
 };
 
 export default async function OrdersPage() {

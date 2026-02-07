@@ -191,7 +191,7 @@ export default function OrderHistoryClient({ initialOrders }: OrderHistoryClient
     if (!order) return;
 
     const invoiceContent = `
-ZOIRO BROAST
+ZOIRO Injected Broast
 Invoice #${order.order_number}
 Date: ${new Date(order.created_at).toLocaleDateString()}
 

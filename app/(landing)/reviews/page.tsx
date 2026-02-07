@@ -5,11 +5,11 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Customer Reviews | ZOIRO Broast",
-  description: "Read authentic reviews from our customers. See what people are saying about ZOIRO Broast's delicious broasted chicken and exceptional service.",
+  title: "Customer Reviews | ZOIRO Injected Broast",
+  description: "Read authentic reviews from our customers. See what people are saying about ZOIRO Injected Broast's delicious broasted chicken and exceptional service.",
   openGraph: {
-    title: "Customer Reviews | ZOIRO Broast",
-    description: "Read authentic reviews from our customers. See what people are saying about ZOIRO Broast.",
+    title: "Customer Reviews | ZOIRO Injected Broast",
+    description: "Read authentic reviews from our customers. See what people are saying about ZOIRO Injected Broast.",
     type: "website",
   },
 };

@@ -556,7 +556,7 @@ export default function FeaturesPage() {
                     />
                     <Image
                       src="/assets/zoiro-logo.png"
-                      alt="ZOIRO Broast"
+                      alt="ZOIRO Injected Broast"
                       width={120}
                       height={120}
                       className="relative z-10 drop-shadow-2xl"
@@ -566,7 +566,7 @@ export default function FeaturesPage() {
                   <div className="relative inline-block rounded-full p-2" style={{ boxShadow: "0 0 40px rgba(239,68,68,0.3)" }}>
                     <Image
                       src="/assets/zoiro-logo.png"
-                      alt="ZOIRO Broast"
+                      alt="ZOIRO Injected Broast"
                       width={100}
                       height={100}
                       className="relative z-10 drop-shadow-xl"

@@ -6,11 +6,11 @@ import { Shield, FileText, Clock, Phone, Mail, MapPin } from "lucide-react";
 const termsData = [
   {
     title: "1. Acceptance of Terms",
-    content: "By accessing and using the ZOIRO Broast website and services, you agree to be bound by these Terms and Conditions. If you do not agree with any part of these terms, please do not use our services."
+    content: "By accessing and using the ZOIRO Injected Broast website and services, you agree to be bound by these Terms and Conditions. If you do not agree with any part of these terms, please do not use our services."
   },
   {
     title: "2. Services",
-    content: "ZOIRO Broast provides online food ordering and delivery services within Vehari city. We reserve the right to modify, suspend, or discontinue any service at any time without prior notice."
+    content: "ZOIRO Injected Broast provides online food ordering and delivery services within Vehari city. We reserve the right to modify, suspend, or discontinue any service at any time without prior notice."
   },
   {
     title: "3. User Accounts",
@@ -34,11 +34,11 @@ const termsData = [
   },
   {
     title: "8. Liability",
-    content: "ZOIRO Broast is not liable for any indirect, incidental, or consequential damages arising from the use of our services. Our total liability shall not exceed the value of your order."
+    content: "ZOIRO Injected Broast is not liable for any indirect, incidental, or consequential damages arising from the use of our services. Our total liability shall not exceed the value of your order."
   },
   {
     title: "9. Intellectual Property",
-    content: "All content on this website, including logos, images, and text, is the property of ZOIRO Broast and protected by copyright laws. Unauthorized use is prohibited."
+    content: "All content on this website, including logos, images, and text, is the property of ZOIRO Injected Broast and protected by copyright laws. Unauthorized use is prohibited."
   },
   {
     title: "10. Changes to Terms",

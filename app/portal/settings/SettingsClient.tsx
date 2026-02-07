@@ -575,7 +575,7 @@ function PersonalSettings({
 // Website Settings (Admin only)
 function WebsiteSettingsForm({ initialSettings }: { initialSettings: WebsiteSettings | null }) {
   const defaultSettings: WebsiteSettings = {
-    siteName: 'ZOIRO',
+    siteName: 'ZOIRO Injected Broast',
     tagline: 'Broast & Fast Food',
     phone: '+92 42 1234567',
     email: 'info@zoiro.pk',

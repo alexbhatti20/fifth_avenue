@@ -320,7 +320,7 @@ function Navbar() {
                 <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-2xl overflow-hidden shadow-xl ring-2 ring-white/20 group-hover:ring-white/40 transition-all duration-300">
                   <Image 
                     src="/assets/zoiro-logo.png" 
-                    alt="ZOIRO Broast"
+                    alt="ZOIRO Injected Broast"
                     fill
                     sizes="56px"
                     className="object-cover"

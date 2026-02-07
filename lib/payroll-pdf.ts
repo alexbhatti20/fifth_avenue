@@ -114,7 +114,7 @@ export function generatePayslipHTML(data: PayslipPDFData, logoBase64?: string): 
   // Use base64 logo or construct absolute URL
   const logoSrc = logoBase64 || `${typeof window !== 'undefined' ? window.location.origin : ''}${data.companyLogoUrl || '/assets/zoiro-logo.png'}`;
 
-  const companyName = data.companyName || 'ZOIRO Broast';
+  const companyName = data.companyName || 'ZOIRO Injected Broast';
   const slipNumber = data.payslipId ? data.payslipId.slice(0, 8).toUpperCase() : new Date().getTime().toString(36).toUpperCase();
 
   // Bank details

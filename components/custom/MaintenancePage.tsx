@@ -349,7 +349,7 @@ function MaintenancePage({
           <div className="relative inline-block">
             <Image
               src="/assets/logo.png"
-              alt="Zoiro Broast"
+              alt="ZOIRO Injected Broast"
               width={120}
               height={120}
               className="mx-auto drop-shadow-2xl"
@@ -492,7 +492,7 @@ function MaintenancePage({
         transition={{ delay: 1.2 }}
         className="absolute bottom-6 text-center text-zinc-600 text-sm"
       >
-        <p>© {new Date().getFullYear()} Zoiro Broast. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} ZOIRO Injected Broast. All rights reserved.</p>
       </motion.div>
 
       {/* Animated border gradient */}

@@ -1966,7 +1966,7 @@ export default function DashboardClient({
         <>
           <SectionHeader
             title="Dashboard"
-            description={`${greeting}, ${employee?.name?.split(' ')[0] || 'Team Member'}! Welcome to ZOIRO Staff Portal.`}
+            description={`${greeting}, ${employee?.name?.split(' ')[0] || 'Team Member'}! Welcome to ZOIRO Injected Broast Staff Portal.`}
           />
           <GenericDashboard />
         </>

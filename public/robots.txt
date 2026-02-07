@@ -1,5 +1,5 @@
 # =============================================
-# ZOIRO Broast - robots.txt
+# ZOIRO Injected Broast - robots.txt
 # Best Broast Chicken in Vehari, Pakistan
 # https://zoirobroast.me
 # =============================================

@@ -82,7 +82,7 @@ function exportToExcel(data: ExportData) {
   let csvContent = '';
   
   // Header with branding
-  csvContent += 'ZOIRO BROAST - BUSINESS REPORT\n';
+  csvContent += 'ZOIRO INJECTED BROAST - BUSINESS REPORT\n';
   csvContent += `Generated: ${new Date().toLocaleString()}\n`;
   csvContent += `Report Period: ${dateRangeLabel}\n`;
   csvContent += '\n';
@@ -173,7 +173,7 @@ function exportToPDF(data: ExportData) {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>ZOIRO Broast - Business Report</title>
+      <title>ZOIRO Injected Broast - Business Report</title>
       <style>
         @page {
           size: A4;
@@ -524,9 +524,9 @@ function exportToPDF(data: ExportData) {
       <!-- Header -->
       <div class="header">
         <div class="logo-section">
-          <img src="/assets/zoiro-logo.png" alt="ZOIRO" class="logo" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect fill=%22%23dc2626%22 width=%2240%22 height=%2240%22 rx=%228%22/><text x=%2220%22 y=%2228%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22 font-weight=%22bold%22>Z</text></svg>'"/>
+          <img src="/assets/zoiro-logo.png" alt="ZOIRO Injected Broast" class="logo" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect fill=%22%23dc2626%22 width=%2240%22 height=%2240%22 rx=%228%22/><text x=%2220%22 y=%2228%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22 font-weight=%22bold%22>Z</text></svg>'"/>
           <div>
-            <div class="brand-name">ZOIRO BROAST</div>
+            <div class="brand-name">ZOIRO INJECTED BROAST</div>
             <div class="brand-tagline">Injected Broast — Saucy. Juicy. Crispy.</div>
           </div>
         </div>
@@ -754,10 +754,10 @@ function exportToPDF(data: ExportData) {
       
       <!-- Footer -->
       <div class="footer">
-        <div class="footer-brand">ZOIRO BROAST</div>
+        <div class="footer-brand">ZOIRO INJECTED BROAST</div>
         <div style="margin: 6px 0;">Business Analytics Report — Confidential</div>
         <div>Generated automatically on ${generatedDate}</div>
-        <div style="margin-top: 8px; font-size: 8px;">© ${new Date().getFullYear()} ZOIRO Broast. All Rights Reserved.</div>
+        <div style="margin-top: 8px; font-size: 8px;">© ${new Date().getFullYear()} ZOIRO Injected Broast. All Rights Reserved.</div>
       </div>
     </body>
     </html>

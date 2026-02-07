@@ -4,8 +4,8 @@ import LoyaltyClient from "./LoyaltyClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Loyalty Program | Zoiro Broast",
-  description: "Earn points, unlock rewards, and enjoy exclusive deals with Zoiro Broast loyalty program",
+  title: "Loyalty Program | ZOIRO Injected Broast",
+  description: "Earn points, unlock rewards, and enjoy exclusive deals with ZOIRO Injected Broast loyalty program",
 };
 
 export default async function LoyaltyPage() {

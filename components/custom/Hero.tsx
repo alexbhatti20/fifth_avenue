@@ -531,7 +531,7 @@ export default function Hero() {
               <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 relative">
                 <Image 
                   src="/assets/zoiro-logo.png" 
-                  alt="ZOIRO Broast Logo"
+                  alt="ZOIRO Injected Broast Logo"
                   fill
                   sizes="112px"
                   className="object-cover"

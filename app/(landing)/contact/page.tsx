@@ -268,7 +268,7 @@ export default function ContactPage() {
                         <MapPin className="w-6 h-6 text-white" />
                       </div>
                       <div>
-                        <p className="font-bold text-zinc-900">ZOIRO Broast</p>
+                        <p className="font-bold text-zinc-900">ZOIRO Injected Broast</p>
                         <p className="text-sm text-zinc-600">{BRAND_INFO.address}</p>
                       </div>
                     </div>

@@ -23,12 +23,12 @@ export async function generateMetadata({
 
   if (!category) {
     return {
-      title: 'Menu - Zoiro Broast',
+      title: 'Menu - ZOIRO Injected Broast',
     };
   }
 
   return {
-    title: `${category.name} - Zoiro Broast Menu`,
+    title: `${category.name} - ZOIRO Injected Broast Menu`,
     description: `Browse our ${category.name} menu. Order online for delivery or pickup.`,
   };
 }

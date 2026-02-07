@@ -5,8 +5,8 @@ import { getSSRCurrentEmployee } from '@/lib/server-queries';
 import type { Employee } from '@/types/portal';
 
 export const metadata = {
-  title: 'Portal - ZOIRO Broast',
-  description: 'Staff portal for ZOIRO Broast restaurant management',
+  title: 'Portal - ZOIRO Injected Broast',
+  description: 'Staff portal for ZOIRO Injected Broast restaurant management',
 };
 
 export default async function PortalLayout({

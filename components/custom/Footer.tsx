@@ -81,7 +81,7 @@ function Footer() {
               >
                 <Image 
                   src="/assets/zoiro-logo.png" 
-                  alt="ZOIRO Broast" 
+                  alt="ZOIRO Injected Broast" 
                   fill
                   sizes="56px"
                   className="object-cover"

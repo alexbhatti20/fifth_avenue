@@ -14,7 +14,7 @@ import type { InvoiceDetails, BrandInfo } from './types';
 // ==========================================
 
 const DEFAULT_BRAND: BrandInfo = {
-  name: 'ZOIRO Broast',
+  name: 'ZOIRO Injected Broast',
   logo_url: '/assets/logo.png',
   address: 'Main GT Road, Near City Center, Rawalpindi, Pakistan',
   phone: '+92 300 1234567',
@@ -24,7 +24,7 @@ const DEFAULT_BRAND: BrandInfo = {
   ntn: '1234567-8',
   strn: '12-34-5678-901-23',
   gstn: 'PK123456789',
-  footer_text: 'Thank you for choosing ZOIRO Broast! We hope to see you again soon.',
+  footer_text: 'Thank you for choosing ZOIRO Injected Broast! We hope to see you again soon.',
   social: {
     facebook: 'ZoiroBroast',
     instagram: 'zoiro_broast',
