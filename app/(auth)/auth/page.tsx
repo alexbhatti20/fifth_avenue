@@ -72,6 +72,7 @@ export default function UnifiedAuth() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [show2FADialog, setShow2FADialog] = useState(false);
   const [twoFAData, setTwoFAData] = useState<{ employeeId: string; email: string } | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -128,9 +129,11 @@ export default function UnifiedAuth() {
     const googleRegister = searchParams.get('google_register');
     
     if (error) {
+      const decodedError = decodeURIComponent(error);
+      setAuthError(decodedError);
       toast({
         title: "Authentication Error",
-        description: decodeURIComponent(error),
+        description: decodedError,
         variant: "destructive",
       });
       // Clean up URL
@@ -1092,6 +1095,33 @@ export default function UnifiedAuth() {
                   <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                   <span className="text-sm font-medium">Back</span>
                 </motion.button>
+              )}
+
+              {/* Auth Error Banner */}
+              {authError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 backdrop-blur-sm"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="shrink-0 mt-0.5">
+                      <ShieldCheck className="h-5 w-5 text-red-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-red-300 text-sm font-medium leading-relaxed">{authError}</p>
+                    </div>
+                    <button
+                      onClick={() => setAuthError(null)}
+                      className="shrink-0 text-red-400/60 hover:text-red-300 transition-colors"
+                    >
+                      <span className="sr-only">Dismiss</span>
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </motion.div>
               )}
 
               {/* Header */}

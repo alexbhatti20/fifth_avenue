@@ -77,8 +77,8 @@ async function checkUserStatus(email: string, supabase: any): Promise<GoogleUser
 
   // Customer found
   if (user.user_type === 'customer') {
-    // Check if customer is blocked
-    const isBlocked = user.status === 'blocked' || user.is_blocked === true;
+    // Check if customer is blocked/banned (RPC returns is_banned field)
+    const isBlocked = user.status === 'blocked' || user.is_banned === true;
     
     return {
       exists: true,
@@ -86,7 +86,7 @@ async function checkUserStatus(email: string, supabase: any): Promise<GoogleUser
       isEmployee: false,
       isActive: user.status === 'active',
       isBlocked,
-      blockReason: isBlocked ? 'Your account has been suspended' : undefined,
+      blockReason: isBlocked ? (user.block_reason || 'Your account has been suspended') : undefined,
       user: {
         id: user.id,
         email: user.email,
@@ -116,16 +116,20 @@ async function createGoogleCustomer(
 ): Promise<{ success: boolean; customerId?: string; error?: string }> {
   try {
     // Use RPC to create customer (bypasses RLS)
+    // Pass null for phone to avoid unique constraint violations (multiple NULLs allowed)
     const { data, error } = await supabase.rpc('create_google_oauth_customer', {
       p_auth_user_id: authUserId,
       p_email: email.toLowerCase(),
       p_name: name || email.split('@')[0],
-      p_phone: '',
+      p_phone: null,
     });
 
     if (error) {
-      console.error('Failed to create Google customer:', error);
-      return { success: false, error: 'Failed to create account' };
+      console.error('Failed to create Google customer:', error.message, error.details, error.hint);
+      if (error.message?.includes('employee')) {
+        return { success: false, error: 'This email is registered as an employee. Please use employee login.' };
+      }
+      return { success: false, error: 'Failed to create account: ' + (error.message || 'Unknown error') };
     }
 
     return { success: true, customerId: data };
@@ -236,11 +240,21 @@ export async function GET(request: NextRequest) {
       // User exists - handle login
       if (userStatus.isEmployee) {
         // Employee trying to login with Google
-        if (!userStatus.isActive) {
+        if (userStatus.isActive === false) {
           // Employee needs to activate their account first
           await supabase.auth.signOut();
+          const status = userStatus.user?.role; // We need to get actual status
+          // Check the specific employee status from the RPC result for better messaging
+          const { data: empCheck } = await supabase.rpc('get_user_by_email', { p_email: email });
+          const empStatus = empCheck?.[0]?.status;
+          
+          if (empStatus === 'pending') {
+            return NextResponse.redirect(
+              `${baseUrl}/auth?error=${encodeURIComponent('Your employee account is not yet activated. Please activate your account using your License ID first, then you can sign in with Google.')}`
+            );
+          }
           return NextResponse.redirect(
-            `${baseUrl}/auth?error=${encodeURIComponent('Please activate your account with your license ID first')}`
+            `${baseUrl}/auth?error=${encodeURIComponent('Your employee account is not active. Please contact your administrator.')}`
           );
         }
 
@@ -310,7 +324,27 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${baseUrl}/?google_login=success`);
       }
     } else {
-      // User doesn't exist
+      // User doesn't exist in our system
+      // SECURITY: Before creating a customer, double-check this email isn't an employee
+      // (The RPC also checks, but we check here first for better error handling)
+      const { data: empExistsResult } = await supabase.rpc('check_employee_by_email', {
+        p_email: email,
+      });
+      const empExistsCheck = empExistsResult && empExistsResult.length > 0 ? empExistsResult[0] : null;
+
+      if (empExistsCheck) {
+        // This email belongs to an employee - do NOT create a customer account
+        await supabase.auth.signOut();
+        if (empExistsCheck.status === 'pending') {
+          return NextResponse.redirect(
+            `${baseUrl}/auth?error=${encodeURIComponent('This email is registered as an employee. Please activate your account using your License ID first, then you can sign in with Google.')}`
+          );
+        }
+        return NextResponse.redirect(
+          `${baseUrl}/auth?error=${encodeURIComponent('This email is registered as an employee. Please contact your administrator.')}`
+        );
+      }
+
       if (intent === 'register' || intent === 'login') {
         // Allow customer registration via Google
         const createResult = await createGoogleCustomer(authUser.id, email, name, supabase);

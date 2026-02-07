@@ -38,7 +38,7 @@ export function GlobalGoogleAuthHandler() {
         window.history.replaceState(null, '', window.location.pathname);
         setProcessing(false);
         processedRef.current = false;
-        router.push('/auth?error=' + encodeURIComponent('Sign-in timed out. Please try again.'));
+        window.location.href = '/auth?error=' + encodeURIComponent('Sign-in timed out. Please try again.');
       }, 30000); // 30 second timeout
 
       try {
@@ -70,7 +70,7 @@ export function GlobalGoogleAuthHandler() {
           window.history.replaceState(null, '', window.location.pathname);
           setProcessing(false);
           processedRef.current = false;
-          router.push('/auth?error=' + encodeURIComponent('Failed to complete Google sign-in: ' + (sessionError?.message || 'Session error')));
+          window.location.href = '/auth?error=' + encodeURIComponent('Failed to complete Google sign-in: ' + (sessionError?.message || 'Session error'));
           return;
         }
 
@@ -83,7 +83,7 @@ export function GlobalGoogleAuthHandler() {
           window.history.replaceState(null, '', window.location.pathname);
           setProcessing(false);
           processedRef.current = false;
-          router.push('/auth?error=' + encodeURIComponent('No email received from Google'));
+          window.location.href = '/auth?error=' + encodeURIComponent('No email received from Google');
           return;
         }
 
@@ -114,7 +114,7 @@ export function GlobalGoogleAuthHandler() {
           window.history.replaceState(null, '', window.location.pathname);
           setProcessing(false);
           processedRef.current = false;
-          router.push('/auth?error=' + encodeURIComponent('Server error. Please try again.'));
+          window.location.href = '/auth?error=' + encodeURIComponent('Server error. Please try again.');
           return;
         }
 
@@ -127,7 +127,8 @@ export function GlobalGoogleAuthHandler() {
           await supabase.auth.signOut();
           setProcessing(false);
           processedRef.current = false;
-          router.push('/auth?error=' + encodeURIComponent(result.error || 'Authentication failed'));
+          // Use window.location.href for full page reload so auth page shows the error
+          window.location.href = '/auth?error=' + encodeURIComponent(result.error || 'Authentication failed');
           return;
         }
 
@@ -188,7 +189,7 @@ export function GlobalGoogleAuthHandler() {
         window.history.replaceState(null, '', window.location.pathname);
         setProcessing(false);
         processedRef.current = false;
-        router.push('/auth?error=' + encodeURIComponent('An unexpected error occurred'));
+        window.location.href = '/auth?error=' + encodeURIComponent('An unexpected error occurred');
       }
     };
 

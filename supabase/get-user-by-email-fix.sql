@@ -20,7 +20,9 @@ RETURNS TABLE (
     status TEXT,
     is_2fa_enabled BOOLEAN,
     portal_enabled BOOLEAN,
-    block_reason TEXT
+    block_reason TEXT,
+    is_banned BOOLEAN,
+    auth_user_id UUID
 ) AS $$
 BEGIN
     -- Check employees first (includes admin)
@@ -38,7 +40,9 @@ BEGIN
             e.status::TEXT,
             e.is_2fa_enabled,
             COALESCE(e.portal_enabled, true) AS portal_enabled,
-            e.block_reason::TEXT
+            e.block_reason::TEXT,
+            (e.status = 'blocked')::boolean AS is_banned,
+            e.auth_user_id
         FROM employees e
         WHERE LOWER(e.email) = LOWER(p_email);
         RETURN;
@@ -57,8 +61,10 @@ BEGIN
         NULL::TEXT AS employee_id,
         CASE WHEN c.is_verified THEN 'active'::TEXT ELSE 'pending'::TEXT END AS status,
         c.is_2fa_enabled,
-        true AS portal_enabled,  -- Customers don't have portal_enabled
-        NULL::TEXT AS block_reason
+        true AS portal_enabled,
+        c.ban_reason::TEXT AS block_reason,
+        COALESCE(c.is_banned, false) AS is_banned,
+        c.auth_user_id
     FROM customers c
     WHERE LOWER(c.email) = LOWER(p_email);
 END;

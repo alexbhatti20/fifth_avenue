@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       
       if (isBlocked) {
         return NextResponse.json(
-          { error: existingUser.block_reason || 'Your account has been suspended' },
+          { error: existingUser.block_reason || 'Your account has been suspended. Please contact support.' },
           { status: 403 }
         );
       }
@@ -77,10 +77,23 @@ export async function POST(request: NextRequest) {
     if (existingUser) {
       // User exists
       if (existingUser.user_type === 'admin' || existingUser.user_type === 'employee') {
-        // Employee/Admin - check if active
+        // Employee/Admin detected - they CANNOT register as customer, only login
+        // Check if their account is active
+        if (existingUser.status === 'pending') {
+          return NextResponse.json(
+            { error: 'Your employee account is not yet activated. Please activate your account using your License ID first, then you can sign in with Google.' },
+            { status: 403 }
+          );
+        }
+        if (existingUser.status === 'inactive' || existingUser.status === 'blocked') {
+          return NextResponse.json(
+            { error: existingUser.block_reason || 'Your employee account is suspended. Please contact your administrator.' },
+            { status: 403 }
+          );
+        }
         if (existingUser.status !== 'active') {
           return NextResponse.json(
-            { error: 'Please activate your account with your license ID first' },
+            { error: 'Your employee account is not active. Please contact your administrator.' },
             { status: 403 }
           );
         }
@@ -120,6 +133,34 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // New user - create customer account
+      // SECURITY: Double-check this email isn't an employee before creating a customer
+      // (The create RPC also checks, but we check here first for better error messages)
+      const { data: empCheckResult } = await supabase.rpc('check_employee_by_email', {
+        p_email: normalizedEmail,
+      });
+      const employeeCheck = empCheckResult && empCheckResult.length > 0 ? empCheckResult[0] : null;
+
+      if (employeeCheck) {
+        // This email belongs to an employee - do NOT create a customer account
+        if (employeeCheck.status === 'pending') {
+          return NextResponse.json(
+            { error: 'This email is registered as an employee. Please activate your account using your License ID first, then you can sign in with Google.' },
+            { status: 403 }
+          );
+        }
+        if (employeeCheck.status === 'active') {
+          // Shouldn't reach here (get_user_by_email should have found them), but handle gracefully
+          return NextResponse.json(
+            { error: 'This email is registered as an employee. Please try signing in again.' },
+            { status: 403 }
+          );
+        }
+        return NextResponse.json(
+          { error: 'This email is registered as an employee. Please contact your administrator.' },
+          { status: 403 }
+        );
+      }
+
       isNewUser = true;
       userType = 'customer';
 
@@ -127,11 +168,11 @@ export async function POST(request: NextRequest) {
         p_auth_user_id: authUserId,
         p_email: normalizedEmail,
         p_name: name || email.split('@')[0],
-        p_phone: '',
+        p_phone: null,
       });
 
       if (createError) {
-        console.error('Error creating customer:', createError);
+        console.error('Error creating customer:', createError.message, createError.details, createError.hint);
         // Check if it's because email is registered as employee
         if (createError.message?.includes('employee')) {
           return NextResponse.json(
@@ -139,8 +180,15 @@ export async function POST(request: NextRequest) {
             { status: 403 }
           );
         }
+        // Check for unique constraint violations (e.g. phone or email already exists)
+        if (createError.message?.includes('unique') || createError.message?.includes('duplicate') || createError.code === '23505') {
+          return NextResponse.json(
+            { error: 'An account with this email already exists. Please try logging in instead.' },
+            { status: 409 }
+          );
+        }
         return NextResponse.json(
-          { error: 'Failed to create account' },
+          { error: 'Failed to create account: ' + (createError.message || 'Unknown error') },
           { status: 500 }
         );
       }

@@ -23,9 +23,13 @@ DECLARE
   v_customer_id uuid;
   v_existing_customer_id uuid;
   v_existing_employee_id uuid;
+  v_phone_value text;
 BEGIN
   -- Normalize email
   p_email := lower(trim(p_email));
+  
+  -- Normalize phone: treat empty/whitespace-only as NULL to avoid unique constraint violations
+  v_phone_value := NULLIF(TRIM(COALESCE(p_phone, '')), '');
   
   -- Check if email already exists as an employee (should NOT allow registration)
   SELECT id INTO v_existing_employee_id
@@ -64,24 +68,22 @@ BEGIN
     RETURN v_existing_customer_id;
   END IF;
   
-  -- Create new customer
+  -- Create new customer (phone is NULL for Google OAuth to avoid unique constraint)
   INSERT INTO customers (
     email,
     name,
     phone,
     auth_user_id,
-    status,
-    loyalty_points,
+    is_verified,
     created_at,
     updated_at
   )
   VALUES (
     p_email,
     COALESCE(NULLIF(p_name, ''), split_part(p_email, '@', 1)),
-    COALESCE(p_phone, ''),
+    v_phone_value,  -- NULL instead of '' to avoid unique constraint violation
     p_auth_user_id,
-    'active',
-    0,
+    true,  -- Google OAuth users are auto-verified
     now(),
     now()
   )
