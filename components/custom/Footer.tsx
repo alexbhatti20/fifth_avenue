@@ -206,10 +206,50 @@ function Footer() {
           <p className="text-background/50 text-xs sm:text-sm text-center md:text-left">
             © 2025 ZOIRO - Injected Broast. All rights reserved.
           </p>
+
+          {/* Developer Button */}
+          <motion.a
+            href="https://waqarx.me"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group relative inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold tracking-wider uppercase overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.4)]"
+            whileHover={shouldReduceMotion ? undefined : { scale: 1.08 }}
+            whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
+            initial={{ opacity: 0 }}
+            animate={isInView ? { opacity: 1 } : {}}
+            transition={{ delay: 0.8 }}
+            style={{
+              background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%)',
+              border: '1px solid transparent',
+              backgroundClip: 'padding-box',
+            }}
+          >
+            {/* Animated border gradient */}
+            <span className="absolute inset-0 rounded-full p-[1px] -z-10" style={{ background: 'linear-gradient(270deg, #a855f7, #ec4899, #3b82f6, #06b6d4, #a855f7)', backgroundSize: '300% 300%', animation: 'devBorderShift 4s ease infinite' }} />
+            <span className="absolute inset-[1px] rounded-full bg-zinc-950/90 -z-10" />
+            {/* Shimmer sweep */}
+            <span className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: 'linear-gradient(105deg, transparent 40%, rgba(168,85,247,0.15) 45%, rgba(236,72,153,0.1) 55%, transparent 60%)', backgroundSize: '200% 100%', animation: 'devShimmer 2s ease-in-out infinite' }} />
+            <svg className="w-3.5 h-3.5 text-purple-400 group-hover:text-purple-300 transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>
+            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">Developer</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+          </motion.a>
+
           <p className="text-background/50 text-xs sm:text-sm">
             Made with ❤️ in Vehari City
           </p>
         </div>
+
+        <style jsx global>{`
+          @keyframes devBorderShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+          @keyframes devShimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+        `}</style>
       </div>
     </footer>
   );
