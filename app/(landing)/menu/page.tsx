@@ -7,14 +7,20 @@ import { Metadata } from "next";
 import { getMenuData } from "@/lib/server-queries";
 import MenuClient from "./MenuClient";
 
-// SEO Metadata
+// SEO Metadata - Optimized for top search queries
 export const metadata: Metadata = {
-  title: "Menu | ZOIRO Injected Broast - Fresh & Delicious",
-  description: "Explore our signature broasted chicken, juicy burgers, crispy wings, and more. Made fresh with premium ingredients. Order online for delivery or pickup.",
-  keywords: ["menu", "broasted chicken", "burgers", "wings", "fast food", "ZOIRO Injected Broast", "delivery"],
+  title: "Zoiro Broast Menu - Full Menu with Prices | Broast, Burgers, Wings & Deals Vehari",
+  description: "Zoiro Broast Vehari Menu - View our complete menu with prices. Crispy broast chicken, zinger burgers, spicy wings, family buckets & deals. Order online for fast delivery in Vehari. ZOIRO Injected Broast menu.",
+  keywords: [
+    "zoiro menu", "zoiro broast menu", "zoiro vehari menu", "zoiro broast vehari menu",
+    "zoro broast menu", "zoiro broast price", "zoiro broast menu with prices",
+    "broast menu vehari", "broasted chicken", "burgers", "wings", "fast food",
+    "ZOIRO Injected Broast", "delivery", "zoiro deals", "zoiro chicken menu",
+    "zoiro broast vehari", "zoiro broast", "zoiro food menu",
+  ],
   openGraph: {
-    title: "Menu | ZOIRO Injected Broast",
-    description: "Explore our signature broasted chicken, juicy burgers, crispy wings, and more.",
+    title: "Zoiro Broast Menu - Full Menu with Prices | Vehari",
+    description: "Zoiro Broast Vehari - View our complete broast menu with prices. Crispy chicken, burgers, wings, deals & more!",
     type: "website",
   },
 };

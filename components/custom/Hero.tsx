@@ -159,7 +159,7 @@ export default function Hero() {
       >
         <img
           src={heroBroast}
-          alt="ZOIRO Injected Broast - Saucy Juicy Crispy"
+          alt="Zoiro Broast Vehari - Best Crispy Broast Chicken"
           className="w-full h-full object-cover object-center opacity-70"
           onError={(e) => {
             e.currentTarget.style.display = 'none';
@@ -643,8 +643,8 @@ export default function Hero() {
             transition={{ duration: isMobileDevice ? 0.15 : 0.6, delay: isMobileDevice ? 0.15 : 0.4 }}
             className="text-sm sm:text-base md:text-lg lg:text-xl text-primary-foreground/80 mb-6 sm:mb-8 max-w-lg leading-relaxed"
           >
-            Experience the perfect crunch. Our signature broast is marinated with
-            secret spices and cooked to golden perfection. 
+            Experience the perfect crunch. Zoiro Broast Vehari&apos;s signature chicken is marinated with
+            secret spices and cooked to golden perfection. Best broast in Vehari, delivered fast.
             {isMobileDevice || reduceMotion ? (
               <span className="text-primary font-semibold"> Taste the difference.</span>
             ) : (

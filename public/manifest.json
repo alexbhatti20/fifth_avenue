@@ -1,7 +1,7 @@
 {
-  "name": "ZOIRO Injected Broast - Best Broast Chicken",
-  "short_name": "ZOIRO Injected Broast",
-  "description": "Order delicious crispy broast chicken, spicy wings, burgers & meals from ZOIRO Injected Broast. Fast delivery in Vehari. Fresh food, amazing taste!",
+  "name": "Zoiro Broast Vehari - Best Broast Chicken & Menu",
+  "short_name": "Zoiro Broast",
+  "description": "Zoiro Broast Vehari - Order crispy broast chicken, spicy wings, burgers & meals. View menu with prices, fast delivery in Vehari. ZOIRO Injected Broast.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

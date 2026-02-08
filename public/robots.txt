@@ -1,6 +1,6 @@
 # =============================================
-# ZOIRO Injected Broast - robots.txt
-# Best Broast Chicken in Vehari, Pakistan
+# Zoiro Broast Vehari - robots.txt
+# ZOIRO Injected Broast - Best Broast Chicken in Vehari, Pakistan
 # https://zoirobroast.me
 # =============================================
 
@@ -72,12 +72,14 @@ Disallow: /*.json$
 Disallow: /*?*sort=
 Disallow: /*?*filter=
 
-# Block bad bots
+# Allow SEO tools (helps with backlink discovery & ranking)
 User-agent: AhrefsBot
-Disallow: /
+Allow: /
+Crawl-delay: 5
 
 User-agent: SemrushBot
-Disallow: /
+Allow: /
+Crawl-delay: 5
 
 User-agent: DotBot
 Disallow: /

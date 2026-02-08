@@ -30,8 +30,8 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} - Best Broast Chicken & Fast Food Delivery in Vehari`,
-    template: `%s | ${SITE_NAME}`,
+    default: `Zoiro Broast Vehari - Best Broast Chicken, Menu & Delivery | ${SITE_NAME}`,
+    template: `%s | Zoiro Broast Vehari`,
   },
   description: SITE_DESCRIPTION,
   keywords: ALL_KEYWORDS,
@@ -64,8 +64,8 @@ export const metadata: Metadata = {
     locale: 'en_US',
     alternateLocale: ['ur_PK'],
     url: SITE_URL,
-    siteName: SITE_NAME,
-    title: `${SITE_NAME} - Best Broast Chicken & Fast Food Delivery in Vehari`,
+    siteName: 'Zoiro Broast Vehari',
+    title: `Zoiro Broast Vehari - Best Broast Chicken, Menu & Fast Delivery`,
     description: SITE_DESCRIPTION,
     images: [
       {
@@ -88,8 +88,8 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     site: '@zoirobroast',
     creator: '@zoirobroast',
-    title: `${SITE_NAME} - Best Broast Chicken in Vehari`,
-    description: 'Order crispy broast chicken, burgers, wings & more. Fast delivery in Vehari!',
+    title: `Zoiro Broast Vehari - Best Broast Chicken & Menu with Prices`,
+    description: 'Zoiro Broast - Order crispy broast chicken, burgers, wings & more. View menu, deals & prices. Fast delivery in Vehari!',
     images: ['/assets/zoiro-og-image.jpg'],
   },
   robots: {

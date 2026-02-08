@@ -111,5 +111,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  return [...staticPages, ...categoryPages];
+  return [...staticPages, ...categoryPages, ...localPages];
 }

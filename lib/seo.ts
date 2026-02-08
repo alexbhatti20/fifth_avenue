@@ -3,28 +3,49 @@ import { Metadata } from 'next';
 // Site-wide constants
 export const SITE_NAME = 'ZOIRO Injected Broast';
 export const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://zoirobroast.me';
-export const SITE_DESCRIPTION = 'Order delicious crispy injected broast chicken, spicy wings, juicy burgers, and fresh meals from ZOIRO Injected Broast Vehari. Best fried chicken in Vehari with fast home delivery. Fresh food, amazing taste!';
+export const SITE_DESCRIPTION = 'Zoiro Broast Vehari - Order crispy broast chicken, spicy wings, juicy burgers & fresh meals online. ZOIRO Injected Broast is the best broast restaurant in Vehari with fast home delivery. View our full menu, deals & prices. Call +92 304 629 2822';
 
 // =============================================
 // COMPREHENSIVE KEYWORD STRATEGY FOR VEHARI
 // =============================================
 
-// Brand Keywords (High Priority)
+// Brand Keywords (High Priority - Exact match top search queries first)
 export const BRAND_KEYWORDS = [
+  // Top Google Search Console queries (exact match priority)
+  'zoiro broast',
+  'zoiro broast vehari',
+  'zoiro vehari menu',
+  'zoiro broast menu',
+  'zoiro menu',
+  'zoiro',
+  'zoiro broast vehari menu',
+  // Common misspellings users type
+  'zoro broast',
+  'zoro broast menu',
+  'zoro broast vehari',
+  'zoro menu',
+  'zoro vehari menu',
   'zoiro injected broast',
   'zoiro injected broast vehari',
   'ZOIRO Injected Broast',
   'ZOIRO Injected Broast vehari',
-  'zoro broast',
-  'zoro broast vehari',
   'zoro injected broast',
   'zoiro chicken',
+  'zoiro chicken vehari',
   'zoiro restaurant',
-  'zoiro menu',
+  'zoiro restaurant vehari',
   'zoiro delivery',
+  'zoiro food',
+  'zoiro food vehari',
   'zoiro faisal town',
+  'zoiro broast faisal town',
   'injected broast vehari',
   'injected chicken vehari',
+  'zoiro online order',
+  'zoiro broast delivery',
+  'zoiro broast online',
+  'zoiro price list',
+  'zoiro deals',
 ];
 
 // Primary Keywords (High Search Volume)
@@ -130,14 +151,26 @@ export const LOCAL_KEYWORDS = [
 export const QUESTION_KEYWORDS = [
   'where to eat in vehari',
   'best chicken in vehari',
+  'best broast in vehari',
   'which restaurant delivers in vehari',
   'what is broast chicken',
+  'what is injected broast',
   'how to order food in vehari',
+  'how to order zoiro broast online',
+  'is zoiro broast halal',
   'is ZOIRO Injected Broast halal',
   'does zoiro deliver',
+  'does zoiro broast deliver in vehari',
+  'zoiro broast menu price',
+  'zoiro broast menu with prices',
   'ZOIRO Injected Broast menu price',
+  'zoiro broast contact number',
   'ZOIRO Injected Broast contact number',
+  'zoiro broast location',
   'ZOIRO Injected Broast location',
+  'zoiro broast vehari address',
+  'zoiro broast opening hours',
+  'zoiro broast delivery time',
 ];
 
 // Seasonal/Event Keywords
@@ -167,7 +200,7 @@ export const ALL_KEYWORDS = [
 export const BUSINESS_INFO = {
   name: 'ZOIRO Injected Broast',
   legalName: 'ZOIRO Injected Broast Restaurant',
-  alternateName: ['ZOIRO Injected Broast', 'Zoro Broast', 'Zoro Injected Broast'],
+  alternateName: ['Zoiro Broast', 'ZOIRO Injected Broast', 'Zoiro Broast Vehari', 'Zoro Broast', 'Zoro Broast Vehari', 'Zoro Injected Broast', 'Zoiro Restaurant', 'Zoiro Vehari'],
   type: 'Restaurant',
   cuisine: ['Pakistani', 'Fast Food', 'Fried Chicken', 'Broast'],
   phone: '+92 304 629 2822',
@@ -240,44 +273,56 @@ export const DEFAULT_OG_IMAGE = {
 // =============================================
 export const FAQ_DATA = [
   {
-    question: 'What is ZOIRO Injected Broast?',
-    answer: 'ZOIRO Injected Broast is a premium fast food restaurant in Vehari, Punjab, Pakistan, specializing in crispy broast chicken, burgers, wings, and family meals. We are known for our fresh ingredients and authentic taste.',
+    question: 'What is Zoiro Broast?',
+    answer: 'Zoiro Broast (ZOIRO Injected Broast) is a premium fast food restaurant in Vehari, Punjab, Pakistan. We specialize in crispy injected broast chicken, zinger burgers, spicy wings, and family meals. Known as the best broast in Vehari for our fresh ingredients and authentic taste.',
   },
   {
-    question: 'Where is ZOIRO Injected Broast located in Vehari?',
-    answer: 'ZOIRO Injected Broast is located near Baba G Kulfi, Faisal Town, Vehari, Punjab, Pakistan. We are easily accessible from all major areas of Vehari city.',
+    question: 'Where is Zoiro Broast located in Vehari?',
+    answer: 'Zoiro Broast is located near Baba G Kulfi, Faisal Town, Vehari, Punjab, Pakistan (postal code 61100). We are easily accessible from all major areas of Vehari city including Model Town, Civil Lines, and College Road.',
   },
   {
-    question: 'What are ZOIRO Injected Broast opening hours?',
-    answer: 'ZOIRO Injected Broast is open daily from 11:00 AM to 11:00 PM (23:00), seven days a week including weekends and most holidays.',
+    question: 'What is on the Zoiro Broast menu?',
+    answer: 'The Zoiro Broast menu includes crispy injected broast chicken (pieces, buckets, family packs), zinger burgers, chicken burgers, spicy wings, hot wings, chicken nuggets, french fries, masala fries, loaded fries, coleslaw, soft drinks, combo meals, and daily deals. View our full menu with prices at zoirobroast.me/menu.',
   },
   {
-    question: 'Does ZOIRO Injected Broast deliver food?',
-    answer: 'Yes! ZOIRO Injected Broast offers fast home delivery throughout Vehari city. You can order online through our website or call us at 0304-6292822. Delivery typically takes 30-45 minutes.',
+    question: 'What are Zoiro Broast Vehari opening hours?',
+    answer: 'Zoiro Broast Vehari is open daily from 11:00 AM to 11:00 PM (23:00), seven days a week including weekends and most holidays.',
   },
   {
-    question: 'What payment methods does ZOIRO Injected Broast accept?',
-    answer: 'We accept Cash on Delivery (COD), Bank Transfer, JazzCash, and EasyPaisa. You can pay via your preferred method when placing your order.',
+    question: 'Does Zoiro Broast deliver food in Vehari?',
+    answer: 'Yes! Zoiro Broast offers fast home delivery throughout Vehari city within a 15km radius. Order online at zoirobroast.me or call +92 304 629 2822. Delivery typically takes 30-45 minutes.',
   },
   {
-    question: 'Is ZOIRO Injected Broast food halal?',
-    answer: 'Yes, all food at ZOIRO Injected Broast is 100% halal. We use only fresh, halal-certified chicken and ingredients in all our dishes.',
+    question: 'How can I order from Zoiro Broast online?',
+    answer: 'You can order from Zoiro Broast online through our website zoirobroast.me. Browse the menu, add items to cart, and checkout. You can also call us at +92 304 629 2822 or WhatsApp for quick orders.',
   },
   {
-    question: 'What is the minimum order for delivery?',
-    answer: 'The minimum order for delivery is PKR 500. Orders below this amount can be picked up from our restaurant.',
+    question: 'What are Zoiro Broast menu prices?',
+    answer: 'Zoiro Broast offers affordable prices with meals ranging from PKR 500 to PKR 2000. We have daily deals, combo meals, and family buckets at great prices. Check our full menu with updated prices at zoirobroast.me/menu.',
   },
   {
-    question: 'Does ZOIRO Injected Broast have deals and discounts?',
-    answer: 'Yes! We offer daily deals, family combo meals, and special discounts. Join our loyalty program to earn points on every order and get exclusive offers.',
+    question: 'What payment methods does Zoiro Broast accept?',
+    answer: 'Zoiro Broast accepts Cash on Delivery (COD), Bank Transfer, JazzCash, and EasyPaisa. Pay using your preferred method when placing your order.',
   },
   {
-    question: 'Can I order ZOIRO Injected Broast for parties and events?',
-    answer: 'Absolutely! We cater to birthday parties, corporate events, and family gatherings. Contact us for bulk orders and special party packages.',
+    question: 'Is Zoiro Broast food halal?',
+    answer: 'Yes, all food at Zoiro Broast is 100% halal. We use only fresh, halal-certified chicken and ingredients in all our dishes.',
   },
   {
-    question: 'What makes ZOIRO Injected Broast chicken special?',
-    answer: 'Our chicken is marinated for 24 hours with secret spices, pressure-cooked to perfection, making it crispy outside and juicy inside. We use only fresh, never frozen chicken.',
+    question: 'Does Zoiro Broast have deals and discounts?',
+    answer: 'Yes! Zoiro Broast offers daily deals, family combo meals, student discounts, and special seasonal offers. Join our loyalty program to earn points on every order and unlock exclusive deals.',
+  },
+  {
+    question: 'What is the Zoiro Broast contact number?',
+    answer: 'You can reach Zoiro Broast Vehari at +92 304 629 2822. Call for orders, inquiries, or party bookings. We are also available on WhatsApp at the same number.',
+  },
+  {
+    question: 'What makes Zoiro Broast chicken special?',
+    answer: 'Zoiro Broast uses a special injection technique - our chicken is marinated for 24 hours with secret spices, then pressure-cooked to perfection. This makes it crispy outside and juicy inside. We use only fresh, never frozen chicken.',
+  },
+  {
+    question: 'Can I order Zoiro Broast for parties and events?',
+    answer: 'Absolutely! Zoiro Broast caters to birthday parties, corporate events, and family gatherings in Vehari. Contact us at +92 304 629 2822 for bulk orders and special party packages.',
   },
 ];
 
@@ -286,8 +331,8 @@ export function generateBaseMetadata(overrides?: Partial<Metadata>): Metadata {
   return {
     metadataBase: new URL(SITE_URL),
     title: {
-      default: `${SITE_NAME} - Best Broast Chicken in Vehari`,
-      template: `%s | ${SITE_NAME}`,
+      default: `Zoiro Broast Vehari - Best Broast Chicken & Menu`,
+      template: `%s | Zoiro Broast Vehari`,
     },
     description: SITE_DESCRIPTION,
     keywords: ALL_KEYWORDS,
@@ -305,13 +350,13 @@ export function generateBaseMetadata(overrides?: Partial<Metadata>): Metadata {
       alternateLocale: ['ur_PK'],
       url: SITE_URL,
       siteName: SITE_NAME,
-      title: `${SITE_NAME} - Best Broast Chicken in Vehari`,
+      title: `Zoiro Broast Vehari - Best Broast Chicken & Menu`,
       description: SITE_DESCRIPTION,
       images: [DEFAULT_OG_IMAGE],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${SITE_NAME} - Best Broast Chicken in Vehari`,
+      title: `Zoiro Broast Vehari - Best Broast Chicken & Menu`,
       description: SITE_DESCRIPTION,
       images: [DEFAULT_OG_IMAGE.url],
       creator: '@zoirobroast',
@@ -346,28 +391,31 @@ export function generateBaseMetadata(overrides?: Partial<Metadata>): Metadata {
 // Page-specific metadata generators
 export const pageMetadata = {
   home: (): Metadata => generateBaseMetadata({
-    title: 'ZOIRO Injected Broast - Best Broast Chicken & Fast Food Delivery in Vehari',
-    description: 'Order crispy broast chicken, spicy wings, zinger burgers & family meals from ZOIRO Injected Broast Vehari. Fast delivery, fresh food, amazing taste! Call +92 304 629 2822',
-    keywords: [...PRIMARY_KEYWORDS, 'home delivery', 'food order online', 'vehari restaurant'],
+    title: 'Zoiro Broast Vehari - Best Broast Chicken, Menu & Fast Delivery | ZOIRO Injected Broast',
+    description: 'Zoiro Broast Vehari - Order crispy broast chicken, spicy wings, zinger burgers & family meals. View our full menu with prices. Best broast in Vehari with fast home delivery. Call +92 304 629 2822',
+    keywords: [...BRAND_KEYWORDS, ...PRIMARY_KEYWORDS, 'home delivery', 'food order online', 'vehari restaurant', 'zoiro broast vehari menu', 'zoiro menu', 'zoiro broast menu'],
     openGraph: {
-      title: 'ZOIRO Injected Broast - Best Broast Chicken & Fast Food Delivery in Vehari',
-      description: 'Order crispy broast chicken, spicy wings, zinger burgers & family meals. Fast delivery!',
+      title: 'Zoiro Broast Vehari - Best Broast Chicken, Menu & Fast Delivery',
+      description: 'Zoiro Broast - Order crispy broast chicken, spicy wings, zinger burgers & family meals. Fast delivery in Vehari!',
       url: SITE_URL,
       images: [DEFAULT_OG_IMAGE],
     },
   }),
 
   menu: (): Metadata => generateBaseMetadata({
-    title: 'Menu - Broast Chicken, Burgers, Wings & Deals',
-    description: 'Explore ZOIRO Injected Broast full menu: Crispy broast chicken, zinger burgers, spicy wings, family buckets, meal deals & more. Fresh ingredients, best prices in Vehari!',
+    title: 'Zoiro Broast Menu - Full Menu with Prices | Broast, Burgers, Wings & Deals in Vehari',
+    description: 'Zoiro Broast Vehari Menu - Explore our full menu: Crispy broast chicken, zinger burgers, spicy wings, family buckets, meal deals & more. View prices, order online for fast delivery!',
     keywords: [
-      'zoiro menu', 'broast menu', 'chicken menu', 'fast food menu',
+      'zoiro menu', 'zoiro broast menu', 'zoiro vehari menu', 'zoiro broast vehari menu',
+      'zoro broast menu', 'zoiro price list', 'broast menu vehari',
+      'broast menu', 'chicken menu', 'fast food menu vehari',
       'zinger burger', 'chicken wings', 'family bucket', 'meal deals',
       'chicken nuggets', 'french fries', 'combo meals', 'party packages',
+      'zoiro broast price', 'zoiro deals', 'zoiro chicken menu',
     ],
     openGraph: {
-      title: 'ZOIRO Injected Broast Menu - Full Food Menu with Prices',
-      description: 'View our complete menu with prices. Broast, burgers, wings, deals & more!',
+      title: 'Zoiro Broast Menu - Full Food Menu with Prices | Vehari',
+      description: 'View Zoiro Broast complete menu with prices. Broast chicken, burgers, wings, deals & more in Vehari!',
       url: `${SITE_URL}/menu`,
     },
     alternates: {
@@ -376,15 +424,16 @@ export const pageMetadata = {
   }),
 
   contact: (): Metadata => generateBaseMetadata({
-    title: 'Contact Us - Location, Phone & Hours',
-    description: 'Contact ZOIRO Injected Broast Vehari. Address: Near Baba G Kulfi, Faisal Town. Phone: +92 304 629 2822. Open Daily 11AM-11PM. Fast delivery available!',
+    title: 'Zoiro Broast Contact - Location, Phone & Hours | Vehari',
+    description: 'Contact Zoiro Broast Vehari. Address: Near Baba G Kulfi, Faisal Town. Phone: +92 304 629 2822. Open Daily 11AM-11PM. Fast broast delivery available in Vehari!',
     keywords: [
-      'zoiro contact', 'ZOIRO Injected Broast phone', 'zoiro location', 'zoiro address',
-      'vehari restaurant contact', 'food delivery vehari', 'broast phone number',
+      'zoiro broast contact', 'zoiro broast phone', 'zoiro broast location', 'zoiro broast address',
+      'zoiro broast vehari address', 'zoiro contact number', 'zoiro broast vehari',
+      'vehari restaurant contact', 'food delivery vehari', 'broast phone number vehari',
     ],
     openGraph: {
-      title: 'Contact ZOIRO Injected Broast - Location & Phone',
-      description: 'Find us at Faisal Town, Vehari. Call +92 304 629 2822 for orders!',
+      title: 'Zoiro Broast Vehari - Contact, Location & Phone',
+      description: 'Find Zoiro Broast at Faisal Town, Vehari. Call +92 304 629 2822 for orders!',
       url: `${SITE_URL}/contact`,
     },
     alternates: {
@@ -424,8 +473,8 @@ export const pageMetadata = {
   }),
 
   loyalty: (): Metadata => generateBaseMetadata({
-    title: 'Loyalty Program - Earn Points & Rewards',
-    description: 'Join ZOIRO Injected Broast loyalty program! Earn points on every order, unlock exclusive deals, get free meals & special discounts. Start saving today!',
+    title: 'Zoiro Broast Loyalty Program - Earn Points & Get Free Meals',
+    description: 'Join Zoiro Broast Vehari loyalty program! Earn points on every order, unlock exclusive deals, get free meals & special discounts. Start saving today!',
     keywords: [
       'loyalty program', 'food rewards', 'earn points', 'free food',
       'discount codes', 'promo codes', 'customer rewards', 'special offers',
@@ -441,15 +490,15 @@ export const pageMetadata = {
   }),
 
   reviews: (): Metadata => generateBaseMetadata({
-    title: 'Customer Reviews & Ratings',
-    description: 'Read genuine customer reviews of ZOIRO Injected Broast. See why we\'re rated the best broast chicken in Vehari. Share your experience!',
+    title: 'Zoiro Broast Reviews & Ratings - Customer Feedback Vehari',
+    description: 'Read genuine customer reviews of Zoiro Broast Vehari. See why we are rated the best broast chicken restaurant in Vehari. Share your Zoiro Broast experience!',
     keywords: [
-      'zoiro reviews', 'broast reviews', 'customer ratings', 'food reviews',
-      'vehari restaurant reviews', 'best rated restaurant', 'customer feedback',
+      'zoiro broast reviews', 'zoiro reviews', 'broast reviews vehari', 'customer ratings',
+      'zoiro broast rating', 'vehari restaurant reviews', 'best rated restaurant vehari', 'zoiro broast feedback',
     ],
     openGraph: {
-      title: 'ZOIRO Injected Broast Reviews - Customer Feedback',
-      description: 'See what our customers say about us. Rated best in Vehari!',
+      title: 'Zoiro Broast Reviews - Customer Feedback | Vehari',
+      description: 'See what customers say about Zoiro Broast. Rated best broast in Vehari!',
       url: `${SITE_URL}/reviews`,
     },
     alternates: {
@@ -664,7 +713,7 @@ export function generateWebsiteSchema() {
     '@id': `${SITE_URL}/#website`,
     url: SITE_URL,
     name: SITE_NAME,
-    alternateName: ['ZOIRO Injected Broast', 'Zoro Broast', 'Zoro Injected Broast', 'ZOIRO', 'Zoiro Restaurant', 'Injected Broast Vehari'],
+    alternateName: ['Zoiro Broast', 'Zoiro Broast Vehari', 'ZOIRO Injected Broast', 'Zoro Broast', 'Zoro Broast Vehari', 'Zoro Broast Menu', 'Zoro Injected Broast', 'ZOIRO', 'Zoiro Restaurant', 'Zoiro Vehari', 'Zoiro Menu', 'Injected Broast Vehari'],
     description: SITE_DESCRIPTION,
     publisher: {
       '@id': `${SITE_URL}/#organization`,
@@ -944,8 +993,8 @@ export function generateServiceSchema() {
   return {
     '@context': 'https://schema.org',
     '@type': 'FoodService',
-    name: 'ZOIRO Injected Broast Food Delivery',
-    description: 'Fast food delivery service in Vehari. Order broast chicken, burgers, and more delivered to your doorstep.',
+    name: 'Zoiro Broast Food Delivery Vehari',
+    description: 'Zoiro Broast fast food delivery service in Vehari. Order broast chicken, burgers, wings and more delivered to your doorstep. Best broast delivery in Vehari city.',
     provider: {
       '@id': `${SITE_URL}/#restaurant`,
     },

@@ -97,8 +97,8 @@ function Footer() {
               </motion.h3>
             </div>
             <p className="text-background/70 text-sm sm:text-base mb-4 sm:mb-6 leading-relaxed">
-              Injected Broast - Premium fast food experience in Vehari City. 
-              Crispy, juicy, and unforgettable taste.
+              Zoiro Broast - Premium injected broast chicken in Vehari City. 
+              Crispy, juicy, and unforgettable taste. Best broast in Vehari with fast home delivery.
             </p>
             <div className="flex gap-3 sm:gap-4">
               {[Facebook, Instagram, Twitter].map((Icon, index) => (
@@ -124,9 +124,10 @@ function Footer() {
             <ul className="space-y-2 sm:space-y-3">
               {[
                 { href: "/", label: "Home" },
-                { href: "/menu", label: "Our Menu" },
+                { href: "/menu", label: "Zoiro Broast Menu" },
                 { href: "/contact", label: "Contact Us" },
-                { href: "/cart", label: "My Cart" },
+                { href: "/cart", label: "Order Online" },
+                { href: "/reviews", label: "Customer Reviews" },
                 { href: "/terms", label: "Terms & Conditions" },
                 { href: "/privacy", label: "Privacy Policy" },
               ].map((link, index) => (
@@ -204,7 +205,7 @@ function Footer() {
           className="border-t border-background/20 mt-8 sm:mt-12 pt-6 sm:pt-8 flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4"
         >
           <p className="text-background/50 text-xs sm:text-sm text-center md:text-left">
-            © 2025 ZOIRO - Injected Broast. All rights reserved.
+            © 2025 Zoiro Broast (ZOIRO Injected Broast) Vehari. All rights reserved.
           </p>
 
           {/* Developer Button */}
@@ -235,7 +236,7 @@ function Footer() {
           </motion.a>
 
           <p className="text-background/50 text-xs sm:text-sm">
-            Made with ❤️ in Vehari City
+            Made with ❤️ in Vehari City | Best Broast Chicken in Vehari
           </p>
         </div>
 

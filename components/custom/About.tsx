@@ -169,10 +169,11 @@ export default function About() {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: shouldReduceMotion ? 0.1 : 0.4, duration: animationDuration }}
             >
-              At ZOIRO, we believe in serving more than just food – we serve
+              At Zoiro Broast, we believe in serving more than just food – we serve
               experiences. Our signature Injected Broast is made with a secret
               blend of spices, perfected over years, and pressure-cooked to
-              achieve that perfect crispy exterior and juicy interior.
+              achieve that perfect crispy exterior and juicy interior. ZOIRO Injected 
+              Broast Vehari is your home for the best broast chicken in the city.
             </motion.p>
             <motion.p
               className="text-muted-foreground mb-8"
