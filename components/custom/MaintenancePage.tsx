@@ -458,11 +458,11 @@ function MaintenancePage({
             </div>
             <div className="flex items-center gap-4">
               <a 
-                href="tel:+923001234567" 
+                href="tel:+923046292822" 
                 className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
               >
                 <Phone className="w-4 h-4" />
-                <span className="font-medium">+92 300 1234567</span>
+                <span className="font-medium">+92 304 629 2822</span>
               </a>
             </div>
           </div>
