@@ -163,10 +163,10 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json(responseData);
 
-    // Set secure HTTP-only cookie
+    // auth_token is NOT httpOnly so the client can refresh it on token rotation
     const isSecure = process.env.NEXT_PUBLIC_APP_URL?.startsWith('https') || process.env.NODE_ENV === 'production';
     response.cookies.set('auth_token', token, {
-      httpOnly: true,
+      httpOnly: false,
       secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days

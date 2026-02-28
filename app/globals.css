@@ -435,6 +435,23 @@
   }
 }
 
+@keyframes zoiroSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.zoiro-btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0%, #d4163c 30%, #8b0e26 65%, #141414 85%, transparent 100%);
+  animation: zoiroSpin 0.8s linear infinite;
+  -webkit-mask-image: radial-gradient(circle, transparent 40%, black 42%);
+  mask-image: radial-gradient(circle, transparent 40%, black 42%);
+  flex-shrink: 0;
+}
+
 @keyframes fade-in-up {
   from {
     opacity: 0;

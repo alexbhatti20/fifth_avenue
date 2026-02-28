@@ -236,7 +236,7 @@ export default function ContactPage() {
         </section>
 
         {/* Main Content */}
-        <section className="py-16 overflow-hidden relative" ref={containerRef}>
+        <section className="py-16 overflow-hidden relative" style={{ position: 'relative' }} ref={containerRef}>
           <div className="container mx-auto px-4 relative z-10" ref={ref}>
             <div className="grid lg:grid-cols-2 gap-12 items-start">
               {/* Contact Info & Map */}

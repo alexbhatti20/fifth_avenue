@@ -67,7 +67,7 @@ async function validateAndCalculateItems(items: OrderItem[]): Promise<{
       // Check menu item (public read)
       const { data: menuItem, error } = await publicClient
         .from('menu_items')
-        .select('id, name, price, is_available')
+        .select('id, name, price, is_available, images')
         .eq('id', item.menu_item_id)
         .single();
 
@@ -85,7 +85,8 @@ async function validateAndCalculateItems(items: OrderItem[]): Promise<{
         price: menuItem.price,
         quantity: item.quantity,
         special_instructions: item.special_instructions || null,
-        item_total: menuItem.price * item.quantity
+        item_total: menuItem.price * item.quantity,
+        image_url: (menuItem as any).images?.[0] || null
       });
 
       subtotal += menuItem.price * item.quantity;
@@ -94,7 +95,7 @@ async function validateAndCalculateItems(items: OrderItem[]): Promise<{
       // Check meal (public read)
       const { data: meal, error } = await publicClient
         .from('meals')
-        .select('id, name, price, is_available')
+        .select('id, name, price, is_available, images')
         .eq('id', item.meal_id)
         .single();
 
@@ -112,7 +113,8 @@ async function validateAndCalculateItems(items: OrderItem[]): Promise<{
         price: meal.price,
         quantity: item.quantity,
         special_instructions: item.special_instructions || null,
-        item_total: meal.price * item.quantity
+        item_total: meal.price * item.quantity,
+        image_url: (meal as any).images?.[0] || null
       });
 
       subtotal += meal.price * item.quantity;
@@ -121,7 +123,7 @@ async function validateAndCalculateItems(items: OrderItem[]): Promise<{
       // Check deal (public read)
       const { data: deal, error } = await publicClient
         .from('deals')
-        .select('id, name, discounted_price, is_active, valid_from, valid_until')
+        .select('id, name, discounted_price, is_active, valid_from, valid_until, image_url')
         .eq('id', item.deal_id)
         .single();
 
@@ -143,7 +145,8 @@ async function validateAndCalculateItems(items: OrderItem[]): Promise<{
         price: deal.discounted_price,
         quantity: item.quantity,
         special_instructions: item.special_instructions || null,
-        item_total: deal.discounted_price * item.quantity
+        item_total: deal.discounted_price * item.quantity,
+        image_url: (deal as any).image_url || null
       });
 
       subtotal += deal.discounted_price * item.quantity;

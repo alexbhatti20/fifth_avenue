@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient as createSupabaseClient, SupabaseClient } from "@supabase/supabase-js";
+import { supabase as supabaseSingleton } from "@/lib/supabase";
 import * as speakeasy from "speakeasy";
 import * as QRCode from "qrcode";
 
@@ -16,86 +17,81 @@ interface AuthResult {
   client: SupabaseClient | null;
 }
 
-// Helper to get authenticated employee using Supabase Auth
-async function getAuthenticatedEmployee(request?: NextRequest): Promise<AuthResult> {
-  const cookieStore = await cookies();
-  let token = cookieStore.get('auth_token')?.value || cookieStore.get('sb-access-token')?.value;
-  
-  // If no cookie token, check Authorization header
-  if (!token && request) {
+// Token priority: Authorization header (fresh) > cookies (may be stale)
+async function getToken(request?: NextRequest): Promise<string | null> {
+  // 1. Authorization header — always the freshest token (sent by client from localStorage)
+  if (request) {
     const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    }
+    if (authHeader?.startsWith('Bearer ')) return authHeader.substring(7);
   }
-  
-  if (!token) {
-    console.error('No auth token found in cookies or headers');
-    return { employee: null, client: null };
-  }
+  // 2. Cookies — httpOnly, may be stale after token refresh
+  const cookieStore = await cookies();
+  return (
+    cookieStore.get('sb-access-token')?.value ||
+    cookieStore.get('auth_token')?.value ||
+    null
+  );
+}
 
+async function getAuthenticatedEmployee(request?: NextRequest): Promise<AuthResult> {
+  const token = await getToken(request);
+  if (!token) return { employee: null, client: null };
 
+  // Validate JWT expiry locally before network call
   try {
-    // Create a Supabase client with the user's token
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-    
-    
-    const authClient = createSupabaseClient(supabaseUrl, supabaseKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    });
-    
-    // Verify token with Supabase Auth
-    const { data: { user }, error } = await authClient.auth.getUser(token);
-    
-    
-    if (error || !user) {
-      console.error('Supabase auth error:', error);
-      return { employee: null, client: null };
+    const parts = token.split('.');
+    if (parts.length === 3) {
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+      if (payload.exp * 1000 < Date.now()) return { employee: null, client: null };
     }
+  } catch { /* ignore */ }
 
-    // Use the authenticated client (with user's token) for RLS-protected queries
-    // This ensures auth.uid() returns the correct user ID for RLS policies
-    let { data: employeeList, error: empError } = await authClient
+  // Use the SINGLETON supabase client with explicit token — avoids new GoTrueClient instances
+  const { data: { user }, error: authError } = await supabaseSingleton.auth.getUser(token);
+  if (authError || !user) return { employee: null, client: null };
+
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+  // CRITICAL: Use service key if available, otherwise use an AUTHENTICATED client
+  // with the user's token. The singleton has no session on the server, so RLS blocks queries.
+  const fetchClient = serviceKey
+    ? createSupabaseClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
+    : createSupabaseClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+
+  let employee = null;
+
+  const { data: byId } = await fetchClient
+    .from('employees')
+    .select('id, email, name, is_2fa_enabled, two_fa_secret, role')
+    .eq('auth_user_id', user.id)
+    .maybeSingle();
+  if (byId) employee = byId;
+
+  if (!employee && user.email) {
+    const { data: byEmail } = await fetchClient
       .from('employees')
       .select('id, email, name, is_2fa_enabled, two_fa_secret, role')
-      .eq('auth_user_id', user.id);
-
-    
-    let employee = employeeList?.[0] || null;
-
-    // Fallback: Try to find employee by email if auth_user_id not linked
-    if (!employee && user.email) {
-      const { data: employeeByEmailList, error: emailError } = await authClient
-        .from('employees')
-        .select('id, email, name, is_2fa_enabled, two_fa_secret, role')
-        .ilike('email', user.email);
-      
-      
-      const employeeByEmail = employeeByEmailList?.[0] || null;
-      
-      if (employeeByEmail) {
-        // Link the auth_user_id for future requests
-        await authClient
-          .from('employees')
-          .update({ auth_user_id: user.id })
-          .eq('id', employeeByEmail.id);
-        
-        employee = employeeByEmail;
-      }
+      .ilike('email', user.email)
+      .maybeSingle();
+    if (byEmail) {
+      employee = byEmail;
+      // Back-fill auth_user_id using the same authenticated client
+      await fetchClient.from('employees').update({ auth_user_id: user.id }).eq('id', byEmail.id);
     }
-
-
-    return { employee, client: authClient };
-  } catch (error) {
-    console.error('Auth verification error:', error);
-    return { employee: null, client: null };
   }
+
+  if (!employee) return { employee: null, client: null };
+
+  // Client for mutations (update 2FA) — reuse the authenticated fetchClient
+  return { employee, client: fetchClient };
 }
+
+const getAuthticatedEmployee = getAuthenticatedEmployee;
 
 // GET /api/portal/security/2fa - Get 2FA status and generate secret
 export async function GET(request: NextRequest) {

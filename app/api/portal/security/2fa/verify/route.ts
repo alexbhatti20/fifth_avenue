@@ -50,33 +50,12 @@ export async function POST(request: NextRequest) {
       }, { status: 403 });
     }
 
-    // Debug: Log verification attempt details
-    console.log('2FA Verification attempt:', {
-      employee_id: employee.id,
-      has_secret: !!employee.two_fa_secret,
-      secret_length: employee.two_fa_secret?.length,
-      token_received: token,
-      token_length: token?.length,
-    });
-
     // Verify the 2FA token
     const verified = speakeasy.totp.verify({
       secret: employee.two_fa_secret,
       encoding: 'base32',
       token: token.toString().trim(), // Ensure token is string and trimmed
       window: 6, // Increased window for clock drift (3 minutes each direction)
-    });
-
-    // Debug: Also generate current token to compare
-    const currentToken = speakeasy.totp({
-      secret: employee.two_fa_secret,
-      encoding: 'base32',
-    });
-    console.log('2FA Debug:', {
-      verified,
-      token_received: token,
-      current_expected_token: currentToken,
-      server_time: new Date().toISOString(),
     });
 
     if (!verified) {
@@ -124,10 +103,10 @@ export async function POST(request: NextRequest) {
       token: accessToken, // Include token for client-side storage
     });
 
-    // Set auth_token cookie - this is what middleware checks
+    // Set auth_token cookie - NOT httpOnly so client can refresh on token rotation
     if (accessToken) {
       response.cookies.set('auth_token', accessToken, {
-        httpOnly: true,
+        httpOnly: false,
         secure: isSecure,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7, // 7 days
@@ -135,7 +114,7 @@ export async function POST(request: NextRequest) {
       });
 
       response.cookies.set('sb-access-token', accessToken, {
-        httpOnly: true,
+        httpOnly: false,
         secure: isSecure,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7,

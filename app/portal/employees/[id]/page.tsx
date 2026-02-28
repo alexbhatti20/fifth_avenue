@@ -25,8 +25,6 @@ async function getEmployeeData(employeeId: string) {
       return null;
     }
 
-    console.log('[SSR] RPC returned:', JSON.stringify(data, null, 2));
-
     // RPC returns {success: true/false, data: {...}} or {error: string}
     if (data && data.success === true && data.data) {
       return data.data;

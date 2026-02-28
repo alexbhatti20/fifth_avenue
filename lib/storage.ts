@@ -99,6 +99,77 @@ export function isImageFile(file: File): boolean {
 }
 
 /**
+ * Extract the storage path (relative to the bucket) from a Supabase public URL.
+ * Works for both the avatars and images buckets.
+ *
+ * Example:
+ *   https://<project>.supabase.co/storage/v1/object/public/avatars/employees/abc/employee-profile-abc-17091.webp
+ *   → { bucket: 'avatars', path: 'employees/abc/employee-profile-abc-17091.webp' }
+ *
+ * Returns null when the URL is not a recognisable Supabase storage URL.
+ */
+export function extractStoragePath(
+  publicUrl: string
+): { bucket: StorageBucket; path: string } | null {
+  try {
+    // Strip optional cache-busting query string before parsing
+    const clean = publicUrl.split('?')[0];
+    const marker = '/object/public/';
+    const idx = clean.indexOf(marker);
+    if (idx === -1) return null;
+
+    const afterMarker = clean.slice(idx + marker.length);
+    const slashIdx = afterMarker.indexOf('/');
+    if (slashIdx === -1) return null;
+
+    const bucket = afterMarker.slice(0, slashIdx) as StorageBucket;
+    const path = afterMarker.slice(slashIdx + 1);
+
+    if (!bucket || !path) return null;
+    return { bucket, path };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Delete any file from Supabase Storage using its public URL.
+ * Works for avatars, images, reviews, documents buckets.
+ * Calls the authenticated DELETE /api/upload/image route so RLS is satisfied.
+ * Designed to be called non-blocking (fire-and-forget) — fails silently.
+ */
+export async function deleteStorageFile(
+  publicUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!publicUrl) return { success: false, error: 'No URL provided' };
+
+    const parsed = extractStoragePath(publicUrl);
+    if (!parsed) return { success: false, error: 'Could not parse storage URL' };
+
+    const token = getAuthToken();
+    if (!token) return { success: false, error: 'Not authenticated' };
+
+    const params = new URLSearchParams({ path: parsed.path, bucket: parsed.bucket });
+    const response = await fetch(`/api/upload/image?${params.toString()}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      return { success: false, error: result.error || 'Delete failed' };
+    }
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Delete failed' };
+  }
+}
+
+/** @deprecated Use deleteStorageFile instead */
+export const deleteAvatarFile = deleteStorageFile;
+
+/**
  * Get the public URL for a storage file
  */
 export function getPublicUrl(bucket: StorageBucket, path: string): string {
@@ -124,46 +195,46 @@ export function generateFileName(originalName: string): string {
  * @param compressionOptions - Custom compression options
  * @returns Upload result with public URL
  */
+/**
+ * Upload an image to the images bucket via the API route (server-side Sharp processing).
+ * All images are converted to WebP and compressed before storage.
+ * @param file   - File to upload
+ * @param folder - Folder within images bucket: 'menu' | 'deals' | 'categories' | 'site'
+ * @returns Upload result with public URL
+ */
 export async function uploadImage(
   file: File,
   folder: ImageFolder,
-  compress: boolean = true,
-  compressionOptions?: CompressionOptions
+  // kept for backward-compat but ignored — Sharp handles everything server-side
+  _compress?: boolean,
+  _compressionOptions?: CompressionOptions
 ): Promise<UploadResult> {
   try {
-    let uploadFile: Blob | File = file;
-    let extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    
-    // Compress image if it's an image file and compression is enabled
-    if (compress && isImageFile(file)) {
-      try {
-        const options = { ...DEFAULT_COMPRESSION, ...compressionOptions };
-        uploadFile = await compressImage(file, options);
-        extension = options.format || 'webp';
-      } catch (compressError) {
-        // Continue with original file if compression fails
-      }
-    }
-    
-    const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substring(2, 8);
-    const fileName = `${timestamp}_${randomStr}.${extension}`;
-    const filePath = `${folder}/${fileName}`;
-
-    const { data, error } = await supabase.storage
-      .from('images')
-      .upload(filePath, uploadFile, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: `image/${extension}`,
-      });
-
-    if (error) {
-      return { success: false, error: error.message };
+    const token = getAuthToken();
+    if (!token) {
+      return { success: false, error: 'No authentication token. Please log in again.' };
     }
 
-    const url = getPublicUrl('images', data.path);
-    return { success: true, url, path: data.path };
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucket', 'images');
+    formData.append('folder', folder);
+
+    const response = await withTimeout(
+      fetch('/api/upload/image', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      }),
+      30000,
+      'Upload timed out. Please try again.'
+    );
+
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      return { success: false, error: result.error || 'Failed to upload image' };
+    }
+    return { success: true, url: result.url, path: result.path };
   } catch (error: any) {
     return { success: false, error: error.message || 'Upload failed' };
   }

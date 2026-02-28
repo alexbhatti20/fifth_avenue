@@ -1,8 +1,21 @@
 ﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
+import {
+  updatePerksSettingAction,
+  deactivatePromoAction,
+  activatePromoAction,
+  deletePromoAction,
+  bulkActivatePromosAction,
+  bulkDeactivatePromosAction,
+  bulkDeletePromosAction,
+  cleanupExpiredPromosAction,
+  fetchPerksSettingsAction,
+  fetchPerksCustomersAction,
+  fetchPerksPromosAction,
+  fetchAllPerksDataAction,
+} from "@/lib/actions";
 import { usePortalAuth } from "@/hooks/usePortal";
-import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,40 +132,20 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
   const fetchSettings = useCallback(async (forceRefresh = false) => {
     // Check cache first
     if (!forceRefresh && perksSettingsCache && Date.now() - cacheTimestamp < CACHE_DURATION) {
-      // Use cached data
       parseSettingsFromCache(perksSettingsCache);
       return;
     }
 
     try {
-      const { data, error } = await supabase.rpc("get_all_perks_settings");
-      if (error) {
-        // If RPC doesn't exist, use default settings
-        if (error.code === 'PGRST202' || error.message?.includes('not find')) {
-          
-          const defaultSettings = {
-            loyalty_points_per_order: { enabled: true, min_order_amount: 500, points_per_100: 10, bonus_on_first_order: 50 },
-            promo_expiry_days: { default: 30, reward_codes: 60 },
-            dine_in_bonus: { enabled: true, bonus_points: 5, min_order_amount: 300 },
-            online_order_bonus: { enabled: true, bonus_points: 10, min_order_amount: 500 },
-            loyalty_thresholds: [],
-            order_amount_bonuses: [],
-          };
-          parseSettingsFromCache(defaultSettings);
-          return;
-        }
-        throw error;
-      }
-      
+      const { success, data, error } = await fetchPerksSettingsAction();
+      if (!success || error) throw new Error(error ?? 'Failed to fetch settings');
+
       if (data) {
-        // The RPC returns a JSON object keyed by setting_key
-        // Each value is {value: <actual_value>, description, is_active, updated_at}
         perksSettingsCache = data;
         cacheTimestamp = Date.now();
         parseSettingsFromCache(data);
       }
-    } catch (error: any) {
-      
+    } catch {
       // Use defaults on error
       const defaultSettings = {
         loyalty_points_per_order: { enabled: true, min_order_amount: 500, points_per_100: 10, bonus_on_first_order: 50 },
@@ -239,43 +232,9 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
 
   const fetchCustomers = useCallback(async () => {
     try {
-      const { data, error } = await supabase.rpc("get_all_customers_loyalty", { p_limit: 100 });
-      if (error) {
-        // If RPC doesn't exist, fall back to simple customers query
-        if (error.code === 'PGRST202' || error.message?.includes('not find')) {
-          
-          const { data: customersData, error: customersError } = await supabase
-            .from("customers")
-            .select("id, name, email, phone, created_at")
-            .limit(100);
-          
-          if (!customersError && customersData) {
-            setCustomers(customersData.map(c => ({
-              customer_id: c.id,
-              customer_name: c.name,
-              customer_email: c.email,
-              customer_phone: c.phone,
-              total_points_earned: 0,
-              total_points_redeemed: 0,
-              current_balance: 0,
-              total_transactions: 0,
-              first_transaction: null,
-              last_transaction: null,
-              active_promos: 0,
-              total_points: 0,
-              tier: 'bronze',
-              member_since: c.created_at,
-            })));
-          } else {
-            setCustomers([]);
-          }
-          return;
-        }
-        throw error;
-      }
-      // Handle case where data might be an object with customers array
-      const customersArray = Array.isArray(data) ? data : (data?.customers || []);
-      // Map the data to ensure all fields are properly named
+      const { success, data, error } = await fetchPerksCustomersAction(100);
+      if (!success || error) throw new Error(error ?? 'Failed to fetch customers');
+      const customersArray = Array.isArray(data) ? data : [];
       const mappedCustomers = customersArray.map((c: any) => ({
         customer_id: c.customer_id,
         customer_name: c.customer_name,
@@ -293,41 +252,17 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
         member_since: c.member_since || null,
       }));
       setCustomers(mappedCustomers);
-    } catch (error: any) {
-      
+    } catch {
       setCustomers([]);
     }
   }, []);
 
   const fetchPromos = useCallback(async () => {
     try {
-      // Use RPC with SECURITY DEFINER to bypass RLS
-      const { data, error } = await supabase.rpc("get_all_customer_promo_codes_admin", {
-        p_limit: 100,
-        p_offset: 0,
-        p_filter: "all",
-        p_search: null,
-      });
-      
-      if (error) {
-        
-        setPromos([]);
-        return;
-      }
-      
-      if (data?.success && data?.promos) {
-        const formattedPromos = data.promos.map((p: any) => ({
-          ...p,
-          customer_name: p.customer_name || "Unknown",
-          customer_email: p.customer_email || "",
-          awarded_reason: p.name || "Loyalty Reward",
-        }));
-        setPromos(formattedPromos);
-      } else {
-        setPromos([]);
-      }
-    } catch (error: any) {
-      
+      const { success, data, error } = await fetchPerksPromosAction(100, 0);
+      if (!success || error) throw new Error(error ?? 'Failed to fetch promos');
+      setPromos(Array.isArray(data) ? data : []);
+    } catch {
       setPromos([]);
     }
   }, []);
@@ -342,22 +277,51 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
   }, [initialSettings]);
 
   useEffect(() => {
-    // Skip initial fetch if we have SSR data
-    if (initialSettings && initialCustomers && initialPromos) {
+    // Skip ALL client fetches when SSR already provided data (this is the refresh path)
+    // Use !== undefined so empty arrays/null-settings still count as "provided"
+    if (initialSettings !== undefined && initialCustomers !== undefined && initialPromos !== undefined) {
       return;
     }
-    
+
+    // No SSR data — load everything in ONE server action call
     const loadData = async () => {
       setLoading(true);
-      const promises = [];
-      if (!initialSettings) promises.push(fetchSettings());
-      if (!initialCustomers) promises.push(fetchCustomers());
-      if (!initialPromos) promises.push(fetchPromos());
-      await Promise.all(promises);
-      setLoading(false);
+      try {
+        const result = await fetchAllPerksDataAction();
+        if (result.success) {
+          if (result.settings) {
+            perksSettingsCache = result.settings;
+            cacheTimestamp = Date.now();
+            parseSettingsFromCache(result.settings);
+          }
+          if (result.customers) {
+            const mappedCustomers = result.customers.map((c: any) => ({
+              customer_id: c.customer_id,
+              customer_name: c.customer_name,
+              customer_email: c.customer_email,
+              customer_phone: c.customer_phone,
+              total_points_earned: c.total_points_earned || 0,
+              total_points_redeemed: c.total_points_redeemed || 0,
+              current_balance: c.current_balance || 0,
+              total_transactions: c.total_transactions || 0,
+              first_transaction: c.first_transaction || c.member_since || null,
+              last_transaction: c.last_transaction || null,
+              active_promos: c.active_promos || 0,
+              total_points: c.total_points || c.current_balance || 0,
+              tier: c.tier || 'bronze',
+              member_since: c.member_since || null,
+            }));
+            setCustomers(mappedCustomers);
+          }
+          if (result.promos) setPromos(result.promos);
+        }
+      } finally {
+        setLoading(false);
+      }
     };
     loadData();
-  }, [fetchSettings, fetchCustomers, fetchPromos, initialSettings, initialCustomers, initialPromos]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const updateSetting = async (key: string, value: string) => {
     try {
@@ -366,25 +330,19 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
       try {
         jsonValue = JSON.parse(value);
       } catch {
-        // If not valid JSON, wrap as string value
         jsonValue = value;
       }
-      
-      const { data, error } = await supabase.rpc("update_perks_setting", {
-        p_setting_key: key,
-        p_setting_value: jsonValue,
-      });
-      
-      if (error) throw error;
-      
-      if (data?.success) {
-        // Invalidate cache
-        perksSettingsCache = null;
-        toast({ title: "Success", description: "Setting updated successfully" });
-        await fetchSettings(true);
-      } else {
-        throw new Error(data?.error || "Failed to update");
+
+      const result = await updatePerksSettingAction(key, jsonValue);
+      if (result.error) throw new Error(result.error);
+
+      // Apply fresh settings returned by the server action — no extra round-trip
+      if (result.freshSettings) {
+        perksSettingsCache = result.freshSettings;
+        cacheTimestamp = Date.now();
+        parseSettingsFromCache(result.freshSettings);
       }
+      toast({ title: "Success", description: "Setting updated successfully" });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -460,21 +418,10 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
 
   const deactivatePromo = async (promoId: string) => {
     try {
-      // Use RPC with SECURITY DEFINER to bypass RLS
-      const { data, error } = await supabase.rpc("deactivate_customer_promo_admin", {
-        p_promo_id: promoId,
-      });
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      if (!data?.success) {
-        throw new Error(data?.error || "Failed to deactivate");
-      }
-      
+      const result = await deactivatePromoAction(promoId);
+      if (result.error) throw new Error(result.error);
+      if (result.freshPromos) setPromos(result.freshPromos);
       toast({ title: "Success", description: "Promo code deactivated" });
-      fetchPromos();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -482,15 +429,10 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
 
   const activatePromo = async (promoId: string) => {
     try {
-      const { data, error } = await supabase.rpc("activate_customer_promo_admin", {
-        p_promo_id: promoId,
-      });
-      
-      if (error) throw new Error(error.message);
-      if (!data?.success) throw new Error(data?.error || "Failed to activate");
-      
+      const result = await activatePromoAction(promoId);
+      if (result.error) throw new Error(result.error);
+      if (result.freshPromos) setPromos(result.freshPromos);
       toast({ title: "Success", description: "Promo code activated" });
-      fetchPromos();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -498,15 +440,10 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
 
   const deletePromo = async (promoId: string) => {
     try {
-      const { data, error } = await supabase.rpc("delete_customer_promo_admin", {
-        p_promo_id: promoId,
-      });
-      
-      if (error) throw new Error(error.message);
-      if (!data?.success) throw new Error(data?.error || "Failed to delete");
-      
+      const result = await deletePromoAction(promoId);
+      if (result.error) throw new Error(result.error);
+      if (result.freshPromos) setPromos(result.freshPromos);
       toast({ title: "Success", description: "Promo code deleted" });
-      fetchPromos();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -518,15 +455,11 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
       return;
     }
     try {
-      const { data, error } = await supabase.rpc("bulk_activate_promo_codes_admin", {
-        p_promo_ids: Array.from(selectedPromos),
-      });
-      
-      if (error) throw new Error(error.message);
-      
-      toast({ title: "Success", description: data?.message || `${selectedPromos.size} promo codes activated` });
+      const result = await bulkActivatePromosAction(Array.from(selectedPromos));
+      if (result.error) throw new Error(result.error);
+      if (result.freshPromos) setPromos(result.freshPromos);
+      toast({ title: "Success", description: result.message || `${selectedPromos.size} promo codes activated` });
       setSelectedPromos(new Set());
-      fetchPromos();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -538,15 +471,11 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
       return;
     }
     try {
-      const { data, error } = await supabase.rpc("bulk_deactivate_promo_codes_admin", {
-        p_promo_ids: Array.from(selectedPromos),
-      });
-      
-      if (error) throw new Error(error.message);
-      
-      toast({ title: "Success", description: data?.message || `${selectedPromos.size} promo codes deactivated` });
+      const result = await bulkDeactivatePromosAction(Array.from(selectedPromos));
+      if (result.error) throw new Error(result.error);
+      if (result.freshPromos) setPromos(result.freshPromos);
+      toast({ title: "Success", description: result.message || `${selectedPromos.size} promo codes deactivated` });
       setSelectedPromos(new Set());
-      fetchPromos();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -558,15 +487,11 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
       return;
     }
     try {
-      const { data, error } = await supabase.rpc("bulk_delete_promo_codes_admin", {
-        p_promo_ids: Array.from(selectedPromos),
-      });
-      
-      if (error) throw new Error(error.message);
-      
-      toast({ title: "Success", description: data?.message || `${selectedPromos.size} promo codes deleted` });
+      const result = await bulkDeletePromosAction(Array.from(selectedPromos));
+      if (result.error) throw new Error(result.error);
+      if (result.freshPromos) setPromos(result.freshPromos);
+      toast({ title: "Success", description: result.message || `${selectedPromos.size} promo codes deleted` });
       setSelectedPromos(new Set());
-      fetchPromos();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -592,15 +517,10 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
 
   const cleanupExpiredPromos = async () => {
     try {
-      // Use RPC to cleanup expired promos
-      const { data, error } = await supabase.rpc("cleanup_expired_customer_promos");
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      toast({ title: "Cleanup Complete", description: `Deactivated ${data?.deactivated_count || 0} expired promo codes` });
-      fetchPromos();
+      const result = await cleanupExpiredPromosAction();
+      if (result.error) throw new Error(result.error);
+      if (result.freshPromos) setPromos(result.freshPromos);
+      toast({ title: "Cleanup Complete", description: `Deactivated ${result.deactivated_count ?? 0} expired promo codes` });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -678,9 +598,38 @@ export default function PerksClient({ initialSettings, initialCustomers, initial
         </div>
         <Button onClick={async () => {
           setLoading(true);
-          await Promise.all([fetchSettings(true), fetchCustomers(), fetchPromos()]);
-          setLoading(false);
-          toast({ title: "Refreshed", description: "All data updated successfully" });
+          try {
+            const result = await fetchAllPerksDataAction();
+            if (result.success) {
+              if (result.settings) {
+                perksSettingsCache = result.settings;
+                cacheTimestamp = Date.now();
+                parseSettingsFromCache(result.settings);
+              }
+              if (result.customers) {
+                setCustomers(result.customers.map((c: any) => ({
+                  customer_id: c.customer_id,
+                  customer_name: c.customer_name,
+                  customer_email: c.customer_email,
+                  customer_phone: c.customer_phone,
+                  total_points_earned: c.total_points_earned || 0,
+                  total_points_redeemed: c.total_points_redeemed || 0,
+                  current_balance: c.current_balance || 0,
+                  total_transactions: c.total_transactions || 0,
+                  first_transaction: c.first_transaction || c.member_since || null,
+                  last_transaction: c.last_transaction || null,
+                  active_promos: c.active_promos || 0,
+                  total_points: c.total_points || c.current_balance || 0,
+                  tier: c.tier || 'bronze',
+                  member_since: c.member_since || null,
+                })));
+              }
+              if (result.promos) setPromos(result.promos);
+              toast({ title: "Refreshed", description: "All data updated successfully" });
+            }
+          } finally {
+            setLoading(false);
+          }
         }} variant="outline" size="sm" className="h-8 sm:h-9 w-full sm:w-auto">
           <RefreshCw className="h-4 w-4 sm:mr-2" />
           <span className="sm:hidden">Refresh Data</span>

@@ -46,7 +46,6 @@ export async function createMenuItemAdvanced(data: {
 
     await invalidateMenuCache(data.category_id);
     revalidatePath('/menu');
-    revalidatePath('/portal/menu');
 
     return { success: true, data: result };
   } catch (error: any) {
@@ -88,7 +87,6 @@ export async function updateMenuItemAdvanced(data: {
 
     await invalidateMenuCache();
     revalidatePath('/menu');
-    revalidatePath('/portal/menu');
 
     return { success: true, data: result };
   } catch (error: any) {
@@ -99,20 +97,48 @@ export async function updateMenuItemAdvanced(data: {
 // Delete menu item (hidden from Network tab)
 export async function deleteMenuItemServer(itemId: string) {
   try {
-    const { error } = await supabase
-      .from('menu_items')
-      .delete()
-      .eq('id', itemId);
-
+    const { data, error } = await (await getAuthenticatedClient()).rpc('delete_menu_item', {
+      p_item_id: itemId,
+    });
     if (error) throw error;
 
+    // Flush Redis cache for all menu-related keys
     await invalidateMenuCache();
+    // Only revalidate the customer-facing page — portal updates via client fetchData()
     revalidatePath('/menu');
-    revalidatePath('/portal/menu');
 
-    return { success: true };
+    // Return image URLs so caller can clean up storage
+    const images: string[] = Array.isArray(data?.images) ? data.images : [];
+    return { success: true, images };
   } catch (error: any) {
-    return { success: false, error: error.message || 'Failed to delete menu item' };
+    return { success: false, images: [], error: error.message || 'Failed to delete menu item' };
+  }
+}
+
+// Batch-delete multiple menu items in ONE DB call (hidden from Network tab)
+export async function deleteMenuItemsBatchServer(itemIds: string[]) {
+  try {
+    if (!itemIds.length) return { success: true, deleted_count: 0, failed_count: 0, images: [] };
+
+    const { data, error } = await (await getAuthenticatedClient()).rpc('delete_menu_items_batch', {
+      p_item_ids: itemIds,
+    });
+    if (error) throw error;
+
+    // Flush Redis cache for all menu-related keys
+    await invalidateMenuCache();
+    // Only revalidate the customer-facing page — portal updates via client fetchData()
+    revalidatePath('/menu');
+
+    const images: string[] = Array.isArray(data?.images) ? data.images : [];
+    return {
+      success: true,
+      deleted_count: data?.deleted_count ?? itemIds.length,
+      failed_count: data?.failed_count ?? 0,
+      images,
+    };
+  } catch (error: any) {
+    return { success: false, deleted_count: 0, failed_count: itemIds.length, images: [], error: error.message || 'Failed to batch delete menu items' };
   }
 }
 
@@ -128,7 +154,6 @@ export async function toggleMenuItemAvailability(itemId: string, isAvailable: bo
 
     await invalidateMenuCache();
     revalidatePath('/menu');
-    revalidatePath('/portal/menu');
 
     return { success: true };
   } catch (error: any) {
@@ -163,7 +188,6 @@ export async function manageMenuCategory(data: {
 
     await invalidateMenuCache();
     revalidatePath('/menu');
-    revalidatePath('/portal/menu');
 
     return { success: true, data: result };
   } catch (error: any) {
@@ -376,6 +400,26 @@ export async function deleteDealServer(dealId: string) {
   }
 }
 
+// Batch delete deals — single DB round-trip (hidden from Network tab)
+export async function deleteDealsBatchServer(dealIds: string[]) {
+  try {
+    const { data: result, error } = await (await getAuthenticatedClient()).rpc('delete_deals_batch', {
+      p_deal_ids: dealIds,
+    });
+
+    if (error) throw error;
+
+    await invalidateDealsCache();
+    revalidatePath('/');
+    revalidatePath('/menu');
+    revalidatePath('/portal/deals');
+
+    return result || { success: true, deleted_count: dealIds.length, failed_count: 0 };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to delete deals', deleted_count: 0, failed_count: dealIds.length };
+  }
+}
+
 // Get all deals with items (hidden from Network tab)
 export async function getDealsServer() {
   try {
@@ -452,6 +496,39 @@ export async function updateDeal(id: string, formData: FormData) {
 // =============================================
 // ORDER MANAGEMENT SERVER ACTIONS
 // =============================================
+
+// Search customer for order creation (hidden from Network tab, server-side only)
+export async function searchCustomerForOrderServer(searchTerm: string) {
+  try {
+    const trimmed = searchTerm.trim().toLowerCase();
+    if (trimmed.length < 2) return { success: false, customers: [] };
+
+    const { data, error } = await (await getAuthenticatedClient()).rpc('search_customer_for_order', {
+      p_search: trimmed,
+    });
+
+    if (error) throw error;
+
+    if (data?.success) {
+      const customers = (data.customers || []).map((c: any) => ({
+        id: c.id,
+        name: c.name || '',
+        phone: c.phone || '',
+        email: c.email || null,
+        address: c.address || null,
+        loyalty_points: c.loyalty_points || 0,
+        loyalty_tier: (c.loyalty_tier || 'bronze') as 'bronze' | 'silver' | 'gold' | 'platinum',
+        total_orders: c.total_orders || 0,
+        total_spent: 0,
+      }));
+      return { success: true, customers };
+    }
+
+    return { success: true, customers: [] };
+  } catch (error: any) {
+    return { success: false, customers: [], error: error.message };
+  }
+}
 
 // Quick order status update (optimized for realtime, hidden from Network tab)
 export async function updateOrderStatusQuickServer(
@@ -672,24 +749,152 @@ export async function updateSiteContent(section: string, formData: FormData) {
 
 // =============================================
 // REVIEW MANAGEMENT SERVER ACTIONS
+// All review operations use authenticated RPC calls for security
 // =============================================
 
-export async function toggleReviewVisibility(reviewId: string, isVisible: boolean) {
+export async function updateReviewVisibilityAction(
+  reviewId: string,
+  isVisible: boolean,
+  employeeId?: string
+) {
+  'use server';
   try {
-    const { error } = await supabase
-      .from('reviews')
-      .update({ is_visible: isVisible })
-      .eq('id', reviewId);
+    const client = await getAuthenticatedClient();
+    
+    // Use the employee-specific RPC if employeeId is provided for audit trails
+    if (employeeId) {
+      const { data, error } = await client.rpc('update_review_visibility_by_employee', {
+        p_review_id: reviewId,
+        p_is_visible: isVisible,
+        p_employee_id: employeeId,
+      });
+      
+      if (error) throw error;
+      
+      revalidatePath('/portal/reviews');
+      revalidatePath('/');
+      
+      return { success: true, data };
+    }
+    
+    // Fallback to basic version without employee tracking
+    const { data, error } = await client.rpc('update_review_visibility', {
+      p_review_id: reviewId,
+      p_is_visible: isVisible,
+    });
 
     if (error) throw error;
 
+    revalidatePath('/portal/reviews');
     revalidatePath('/');
-    revalidatePath('/reviews');
 
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Failed to toggle review visibility' };
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('[Review Action] Update visibility failed:', error);
+    return { success: false, error: error?.message || 'Failed to update review visibility' };
   }
+}
+
+export async function replyToReviewAction(
+  reviewId: string,
+  reply: string,
+  employeeId?: string
+) {
+  'use server';
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('reply_to_review_advanced', {
+      p_review_id: reviewId,
+      p_reply: reply,
+      p_employee_id: employeeId || null,
+    });
+
+    if (error) throw error;
+
+    revalidatePath('/portal/reviews');
+    revalidatePath('/');
+
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('[Review Action] Reply failed:', error);
+    return { success: false, error: error?.message || 'Failed to reply to review' };
+  }
+}
+
+export async function deleteReviewAction(
+  reviewId: string,
+  employeeId?: string
+) {
+  'use server';
+  try {
+    const client = await getAuthenticatedClient();
+    
+    // Use the employee-specific RPC if employeeId is provided
+    const rpcName = employeeId ? 'delete_review_by_employee' : 'delete_review_advanced';
+    const params = employeeId 
+      ? { p_review_id: reviewId, p_employee_id: employeeId }
+      : { p_review_id: reviewId };
+    
+    const { data, error } = await client.rpc(rpcName as any, params);
+
+    if (error) throw error;
+
+    revalidatePath('/portal/reviews');
+    revalidatePath('/');
+
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('[Review Action] Delete failed:', error);
+    return { success: false, error: error?.message || 'Failed to delete review' };
+  }
+}
+
+export async function bulkUpdateReviewVisibilityAction(
+  reviewIds: string[],
+  isVisible: boolean,
+  employeeId?: string
+) {
+  'use server';
+  try {
+    const client = await getAuthenticatedClient();
+    
+    // Use the employee-specific RPC if employeeId is provided for audit trails
+    if (employeeId) {
+      const { data, error } = await client.rpc('bulk_update_review_visibility_by_employee', {
+        p_review_ids: reviewIds,
+        p_is_visible: isVisible,
+        p_employee_id: employeeId,
+      });
+      
+      if (error) throw error;
+
+      revalidatePath('/portal/reviews');
+      revalidatePath('/');
+
+      return { success: true, data };
+    }
+    
+    // Fallback to basic version without employee tracking
+    const { data, error } = await client.rpc('bulk_update_review_visibility', {
+      p_review_ids: reviewIds,
+      p_is_visible: isVisible,
+    });
+
+    if (error) throw error;
+
+    revalidatePath('/portal/reviews');
+    revalidatePath('/');
+
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('[Review Action] Bulk update failed:', error);
+    return { success: false, error: error?.message || 'Failed to bulk update reviews' };
+  }
+}
+
+// Legacy function for backwards compatibility
+export async function toggleReviewVisibility(reviewId: string, isVisible: boolean) {
+  return updateReviewVisibilityAction(reviewId, isVisible);
 }
 
 // =============================================
@@ -2511,5 +2716,243 @@ export async function bulkUpdateContactStatusAction(
   } catch (error: any) {
     console.error('bulkUpdateContactStatusAction error:', error);
     return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+// =============================================
+// PERKS MANAGEMENT SERVER ACTIONS (hidden from Network tab)
+// All operations use authenticated RPC calls (SECURITY DEFINER)
+// Mutations return fresh promo/settings data to avoid a second round-trip
+// =============================================
+
+// ── Internal helper: fetch fresh promos from DB ────────────────────────────
+async function _fetchFreshPromos(limit = 100, offset = 0) {
+  const client = await getAuthenticatedClient();
+  const { data, error } = await client.rpc('get_all_customer_promo_codes_admin', {
+    p_limit: limit,
+    p_offset: offset,
+  });
+  if (error) return [];
+  const promoArray = data?.promos ?? (Array.isArray(data) ? data : []);
+  return promoArray.map((p: any) => ({
+    ...p,
+    customer_name: p.customer_name || 'Unknown',
+    customer_email: p.customer_email || '',
+    awarded_reason: p.name || 'Loyalty Reward',
+  }));
+}
+
+// ── Internal helper: fetch fresh settings from DB ─────────────────────────
+async function _fetchFreshPerksSettings() {
+  const client = await getAuthenticatedClient();
+  const { data, error } = await client.rpc('get_all_perks_settings');
+  if (error) return null;
+  return data;
+}
+
+// Fetch perks settings (hidden from Network tab)
+export async function fetchPerksSettingsAction(): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const data = await _fetchFreshPerksSettings();
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to fetch perks settings' };
+  }
+}
+
+// Fetch customers loyalty data (hidden from Network tab)
+export async function fetchPerksCustomersAction(limit = 100): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('get_all_customers_loyalty', { p_limit: limit });
+    if (error) throw error;
+    const customers = data?.customers ?? (Array.isArray(data) ? data : []);
+    return { success: true, data: customers };
+  } catch (error: any) {
+    return { success: false, data: [], error: error.message || 'Failed to fetch customers' };
+  }
+}
+
+// Fetch promo codes (hidden from Network tab)
+export async function fetchPerksPromosAction(limit = 100, offset = 0): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  try {
+    const promos = await _fetchFreshPromos(limit, offset);
+    return { success: true, data: promos };
+  } catch (error: any) {
+    return { success: false, data: [], error: error.message || 'Failed to fetch promo codes' };
+  }
+}
+
+// Fetch ALL perks data in ONE server round-trip (hidden from Network tab)
+// Use this for the initial page hydration to avoid 3 separate action calls.
+export async function fetchAllPerksDataAction(customersLimit = 100, promosLimit = 100): Promise<{
+  success: boolean;
+  settings?: any;
+  customers?: any[];
+  promos?: any[];
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const [settingsResult, customersResult, promosResult] = await Promise.all([
+      client.rpc('get_all_perks_settings'),
+      client.rpc('get_all_customers_loyalty', { p_limit: customersLimit }),
+      client.rpc('get_all_customer_promo_codes_admin', { p_limit: promosLimit, p_offset: 0 }),
+    ]);
+
+    const settings = settingsResult.data ?? null;
+    const customersRaw = customersResult.data?.customers ?? (Array.isArray(customersResult.data) ? customersResult.data : []);
+    const promosRaw = promosResult.data?.promos ?? (Array.isArray(promosResult.data) ? promosResult.data : []);
+
+    const customers = customersRaw;
+    const promos = promosRaw.map((p: any) => ({
+      ...p,
+      customer_name: p.customer_name || 'Unknown',
+      customer_email: p.customer_email || '',
+      awarded_reason: p.name || 'Loyalty Reward',
+    }));
+
+    return { success: true, settings, customers, promos };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to fetch perks data' };
+  }
+}
+
+// Update a perks setting — returns fresh settings so client avoids a second round-trip
+export async function updatePerksSettingAction(
+  key: string,
+  value: unknown
+): Promise<{ success: boolean; freshSettings?: any; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('update_perks_setting', {
+      p_setting_key: key,
+      p_setting_value: value,
+    });
+    if (error) throw error;
+    if (data && !data.success) throw new Error(data.error || 'Failed to update setting');
+    const freshSettings = await _fetchFreshPerksSettings();
+    revalidatePath('/portal/perks');
+    return { success: true, freshSettings };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to update perks setting' };
+  }
+}
+
+// Deactivate a single promo — returns fresh promos list
+export async function deactivatePromoAction(
+  promoId: string
+): Promise<{ success: boolean; freshPromos?: any[]; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('deactivate_customer_promo_admin', { p_promo_id: promoId });
+    if (error) throw error;
+    if (data && !data.success) throw new Error(data.error || 'Failed to deactivate promo');
+    const freshPromos = await _fetchFreshPromos();
+    revalidatePath('/portal/perks');
+    return { success: true, freshPromos };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to deactivate promo' };
+  }
+}
+
+// Activate a single promo — returns fresh promos list
+export async function activatePromoAction(
+  promoId: string
+): Promise<{ success: boolean; freshPromos?: any[]; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('activate_customer_promo_admin', { p_promo_id: promoId });
+    if (error) throw error;
+    if (data && !data.success) throw new Error(data.error || 'Failed to activate promo');
+    const freshPromos = await _fetchFreshPromos();
+    revalidatePath('/portal/perks');
+    return { success: true, freshPromos };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to activate promo' };
+  }
+}
+
+// Delete a single promo — returns fresh promos list
+export async function deletePromoAction(
+  promoId: string
+): Promise<{ success: boolean; freshPromos?: any[]; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('delete_customer_promo_admin', { p_promo_id: promoId });
+    if (error) throw error;
+    if (data && !data.success) throw new Error(data.error || 'Failed to delete promo');
+    const freshPromos = await _fetchFreshPromos();
+    revalidatePath('/portal/perks');
+    return { success: true, freshPromos };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to delete promo' };
+  }
+}
+
+// Bulk activate promos — returns fresh promos list
+export async function bulkActivatePromosAction(
+  promoIds: string[]
+): Promise<{ success: boolean; message?: string; freshPromos?: any[]; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('bulk_activate_promo_codes_admin', { p_promo_ids: promoIds });
+    if (error) throw error;
+    const freshPromos = await _fetchFreshPromos();
+    revalidatePath('/portal/perks');
+    return { success: true, message: (data as any)?.message, freshPromos };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to bulk activate promos' };
+  }
+}
+
+// Bulk deactivate promos — returns fresh promos list
+export async function bulkDeactivatePromosAction(
+  promoIds: string[]
+): Promise<{ success: boolean; message?: string; freshPromos?: any[]; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('bulk_deactivate_promo_codes_admin', { p_promo_ids: promoIds });
+    if (error) throw error;
+    const freshPromos = await _fetchFreshPromos();
+    revalidatePath('/portal/perks');
+    return { success: true, message: (data as any)?.message, freshPromos };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to bulk deactivate promos' };
+  }
+}
+
+// Bulk delete promos — returns fresh promos list
+export async function bulkDeletePromosAction(
+  promoIds: string[]
+): Promise<{ success: boolean; message?: string; freshPromos?: any[]; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('bulk_delete_promo_codes_admin', { p_promo_ids: promoIds });
+    if (error) throw error;
+    const freshPromos = await _fetchFreshPromos();
+    revalidatePath('/portal/perks');
+    return { success: true, message: (data as any)?.message, freshPromos };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to bulk delete promos' };
+  }
+}
+
+// Cleanup expired promos — returns fresh promos list
+export async function cleanupExpiredPromosAction(): Promise<{
+  success: boolean;
+  deactivated_count?: number;
+  freshPromos?: any[];
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('cleanup_expired_customer_promos');
+    if (error) throw error;
+    const freshPromos = await _fetchFreshPromos();
+    revalidatePath('/portal/perks');
+    return { success: true, deactivated_count: (data as any)?.deactivated_count ?? 0, freshPromos };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to cleanup expired promos' };
   }
 }

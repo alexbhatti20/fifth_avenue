@@ -562,15 +562,29 @@ export function useAuth(): UseAuthReturn {
     globalAuthCache.authUser = null;
     globalAuthCache.isFetched = false;
     globalAuthCache.fetchPromise = null;
+    hasFetchedRef.current = false;
     // Clear request deduplication cache
     clearRequestCache();
-    clearAuthToken();
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('user_type');
-    localStorage.removeItem('zoiro-cart');
-    localStorage.removeItem('zoiro_guest_favorites');
-    // Clear user_type cookie for SSR
-    document.cookie = 'user_type=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    clearAuthToken(); // clears auth_token cookie + auth_token/sb_access_token localStorage
+
+    // Clear ALL auth-related localStorage keys including Supabase native session
+    [
+      'user_data', 'user_type', 'auth_token', 'sb_access_token', 'sb_refresh_token',
+      'zoiro-cart', 'zoiro_guest_favorites', 'portal_sidebar_collapsed',
+    ].forEach(k => localStorage.removeItem(k));
+    // Remove Supabase's own session JSON (sb-<ref>-auth-token)
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-') || key.includes('supabase')) localStorage.removeItem(key);
+    });
+
+    // Clear ALL auth cookies (must use same flags as when they were set)
+    const expires = 'expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = `auth_token=; path=/; ${expires}; SameSite=Lax`;
+    document.cookie = `sb-access-token=; path=/; ${expires}; SameSite=Lax`;
+    document.cookie = `sb-refresh-token=; path=/; ${expires}; SameSite=Lax`;
+    document.cookie = `user_type=; path=/; ${expires}; SameSite=Lax`;
+    document.cookie = `employee_data=; path=/; ${expires}; SameSite=Lax`;
+
     sessionStorage.clear();
     // Dispatch event for other components
     dispatchAuthChange(null);
@@ -592,19 +606,29 @@ export function useAuth(): UseAuthReturn {
     globalAuthCache.authUser = null;
     globalAuthCache.isFetched = false;
     globalAuthCache.fetchPromise = null;
+    hasFetchedRef.current = false;
     
     // Clear request deduplication cache
     clearRequestCache();
     
-    // Clear all storage (localStorage AND cookies)
+    // Clear ALL auth-related localStorage keys
     clearAuthToken();
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('user_type');
-    localStorage.removeItem('sb_access_token');
-    localStorage.removeItem('zoiro-cart');
-    localStorage.removeItem('zoiro_guest_favorites');
-    // Clear user_type cookie for SSR
-    document.cookie = 'user_type=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    [
+      'user_data', 'user_type', 'auth_token', 'sb_access_token', 'sb_refresh_token',
+      'zoiro-cart', 'zoiro_guest_favorites', 'portal_sidebar_collapsed',
+    ].forEach(k => localStorage.removeItem(k));
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-') || key.includes('supabase')) localStorage.removeItem(key);
+    });
+
+    // Clear ALL auth cookies
+    const expires = 'expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = `auth_token=; path=/; ${expires}; SameSite=Lax`;
+    document.cookie = `sb-access-token=; path=/; ${expires}; SameSite=Lax`;
+    document.cookie = `sb-refresh-token=; path=/; ${expires}; SameSite=Lax`;
+    document.cookie = `user_type=; path=/; ${expires}; SameSite=Lax`;
+    document.cookie = `employee_data=; path=/; ${expires}; SameSite=Lax`;
+
     sessionStorage.clear();
     
     // Dispatch event for other components
@@ -612,6 +636,7 @@ export function useAuth(): UseAuthReturn {
     
     // Sign out from Supabase in background
     supabase.auth.signOut().catch(() => {});
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     
     // Redirect to home
     if (typeof window !== 'undefined') {

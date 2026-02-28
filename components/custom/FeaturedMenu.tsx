@@ -115,7 +115,7 @@ export default function FeaturedMenu({ menuItems }: FeaturedMenuProps) {
   const staggerDelay = shouldReduceMotion ? 0.02 : 0.1;
 
   return (
-    <section className="section-padding bg-secondary overflow-hidden relative" ref={containerRef}>
+    <section className="section-padding bg-secondary overflow-hidden relative" style={{ position: 'relative' }} ref={containerRef}>
       {/* Parallax Background Elements - Hidden on mobile for performance */}
       {!shouldReduceMotion && (
         <motion.div 

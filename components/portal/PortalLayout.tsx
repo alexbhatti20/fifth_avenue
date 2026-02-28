@@ -32,6 +32,7 @@ import {
   Home,
   MoreHorizontal,
   MessageSquare,
+  HardDriveDownload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -87,6 +88,7 @@ const iconMap: Record<string, any> = {
   Gift,
   Star,
   MessageSquare,
+  HardDriveDownload,
 };
 
 // Navigation items with role-based visibility
@@ -194,6 +196,12 @@ const navItems: NavItem[] = [
     path: '/portal/messages', 
     icon: 'MessageSquare',
     pageKey: 'messages',
+  },
+  { 
+    label: 'DB Backup', 
+    path: '/portal/backup', 
+    icon: 'HardDriveDownload',
+    pageKey: 'backup',
   },
   { 
     label: 'Settings', 
@@ -614,6 +622,7 @@ interface MobileSidebarProps {
 
 export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: MobileSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { employee, role, fastLogout, isBlocked, blockReason } = usePortalAuth();
   const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false);
   const shouldReduceMotion = useReducedMotion();
@@ -626,6 +635,16 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
     onClose();
     setLogoutDialogOpen(true);
   }, [onClose]);
+
+  // Enhanced navigation handler that ensures drawer closes
+  const handleNavigate = useCallback((path: string) => {
+    // Close drawer immediately
+    onClose();
+    // Navigate after brief delay to ensure smooth close animation
+    setTimeout(() => {
+      router.push(path);
+    }, 150);
+  }, [onClose, router]);
 
   // Get user permissions (from cache or build new)
   const permissions: UserPermissions | null = React.useMemo(() => {
@@ -662,8 +681,6 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
         side="left" 
         className="w-[300px] sm:w-[320px] p-0 bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 text-white border-zinc-800/50 overflow-hidden"
         showCloseButton
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
       >
         <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
         
@@ -724,7 +741,19 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
                   (item.path !== '/portal' && pathname.startsWith(item.path));
 
                 return (
-                  <Link key={item.path} href={item.path} onClick={onClose} prefetch={false}>
+                  <div
+                    key={item.path}
+                    onClick={() => handleNavigate(item.path)}
+                    className="cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleNavigate(item.path);
+                      }
+                    }}
+                  >
                     <div
                       className={cn(
                         'flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200',
@@ -753,7 +782,7 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
                         <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                       )}
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
@@ -770,7 +799,19 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
                     (item.path !== '/portal' && pathname.startsWith(item.path));
 
                   return (
-                    <Link key={item.path} href={item.path} onClick={onClose} prefetch={false}>
+                    <div
+                      key={item.path}
+                      onClick={() => handleNavigate(item.path)}
+                      className="cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleNavigate(item.path);
+                        }
+                      }}
+                    >
                       <div
                         className={cn(
                           'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
@@ -788,7 +829,7 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
                           </Badge>
                         )}
                       </div>
-                    </Link>
+                    </div>
                   );
                 })}
               </div>

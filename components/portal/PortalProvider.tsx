@@ -3,18 +3,22 @@
 import { useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
+import Image from 'next/image';
 import { PortalSidebar, PortalAppbar, MobileSidebar, MobileBottomNav } from './PortalLayout';
 import { BlockedUserDialog } from './BlockedUserDialog';
+import PageLoader from '@/components/custom/PageLoader';
 import { ErrorBoundary, SectionErrorBoundary } from '@/components/ui/error-boundary';
 import { QueryProvider } from '@/lib/query-provider';
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
 import { supabase, isSupabaseConfigured, restoreSupabaseSession, setSupabaseSession } from '@/lib/supabase';
 import { realtimeManager, CHANNEL_NAMES } from '@/lib/realtime-manager';
 import { getCurrentEmployee, getMyNotifications, markNotificationsRead, getAuthenticatedClient, clearRequestCache } from '@/lib/portal-queries';
 import { clearPermissionsCache } from '@/lib/permissions';
 import { clearAuthToken, getAuthToken } from '@/lib/cookies';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { Label } from '@/components/custom/ui/label';
 import type { Employee, EmployeeRole, Notification } from '@/types/portal';
 import { hasPermission as checkPermission } from '@/types/portal';
 
@@ -47,6 +51,8 @@ interface PortalAuthContextType {
   markNotificationAsRead: (ids: string[]) => Promise<void>;
   markAllNotificationsAsRead: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
+  // Content-area CRUD loader (overlays main only, not sidebar)
+  setContentLoading: (v: boolean) => void;
 }
 
 const PortalAuthContext = createContext<PortalAuthContextType | null>(null);
@@ -71,8 +77,7 @@ export function usePortalAuthContext(): PortalAuthContextType {
       unreadCount: 0,
       markNotificationAsRead: async () => {},
       markAllNotificationsAsRead: async () => {},
-      refreshNotifications: async () => {},
-    };
+      refreshNotifications: async () => {},      setContentLoading: () => {},    };
   }
   return context;
 }
@@ -82,19 +87,9 @@ interface PortalProviderProps {
   initialEmployee?: Employee | null;
 }
 
-// Loading spinner component
+// Loading spinner — uses the branded Zoiro PageLoader
 function LoadingSpinner() {
-  return (
-    <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
-      <div className="text-center">
-        <div className="w-16 h-16 rounded-xl bg-primary flex items-center justify-center mb-4 mx-auto animate-pulse">
-          <span className="text-3xl font-bebas text-white">Z</span>
-        </div>
-        <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
-        <p className="text-sm text-muted-foreground mt-2">Loading portal...</p>
-      </div>
-    </div>
-  );
+  return <PageLoader />;
 }
 
 export function PortalProvider({ children, initialEmployee }: PortalProviderProps) {
@@ -116,9 +111,33 @@ export function PortalProvider({ children, initialEmployee }: PortalProviderProp
   // Notifications state - shared to prevent duplicate API calls
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const notificationsLoadedRef = useRef(false);
+
+  // Content-area CRUD loader
+  const [contentLoading, setContentLoadingRaw] = useState(false);
+  const [contentFading, setContentFading]       = useState(false);
+  const contentFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const setContentLoading = useCallback((v: boolean) => {
+    if (v) {
+      // Cancel any in-progress fade-out and show immediately
+      if (contentFadeTimer.current) clearTimeout(contentFadeTimer.current);
+      setContentFading(false);
+      setContentLoadingRaw(true);
+    } else {
+      // Fade out over 250 ms, then unmount
+      setContentFading(true);
+      contentFadeTimer.current = setTimeout(() => {
+        setContentLoadingRaw(false);
+        setContentFading(false);
+      }, 250);
+    }
+  }, []);
   
   const router = useRouter();
   const pathname = usePathname();
+
+  // Enable global keyboard shortcuts
+  useKeyboardShortcuts();
 
   // Clean up URL query params (like ?google_login=success) after portal loads
   useEffect(() => {
@@ -425,81 +444,48 @@ export function PortalProvider({ children, initialEmployee }: PortalProviderProp
     }
   }, []);
 
-  // Fast logout
-  const fastLogout = useCallback(() => {
-    // Clear request deduplication cache
+  // Shared nuke helper — wipes every token/session artifact
+  const nukeAllAuth = useCallback(() => {
     clearRequestCache();
-    
-    // Clear all auth-related localStorage items
     clearAuthToken();
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('user_type');
-    localStorage.removeItem('portal_sidebar_collapsed');
-    localStorage.removeItem('sb_access_token');
-    localStorage.removeItem('sb_refresh_token');
-    localStorage.removeItem('auth_token');
-    // Clear any Supabase auth storage keys
+    [
+      'user_data', 'user_type', 'auth_token', 'sb_access_token', 'sb_refresh_token',
+      'portal_sidebar_collapsed', 'zoiro-cart', 'zoiro_guest_favorites',
+    ].forEach(k => localStorage.removeItem(k));
     Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('sb-') || key.includes('supabase')) {
-        localStorage.removeItem(key);
-      }
+      if (key.startsWith('sb-') || key.includes('supabase')) localStorage.removeItem(key);
     });
-    
-    // Clear all auth cookies
-    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    document.cookie = 'user_type=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    
+    const expires = 'expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = `auth_token=; path=/; ${expires}; SameSite=Lax`;
+    document.cookie = `sb-access-token=; path=/; ${expires}; SameSite=Lax`;
+    document.cookie = `sb-refresh-token=; path=/; ${expires}; SameSite=Lax`;
+    document.cookie = `user_type=; path=/; ${expires}; SameSite=Lax`;
+    document.cookie = `employee_data=; path=/; ${expires}; SameSite=Lax`;
     clearPermissionsCache();
     sessionStorage.clear();
     setEmployee(null);
     hasLoadedRef.current = false;
+  }, []);
+
+  // Fast logout
+  const fastLogout = useCallback(() => {
+    nukeAllAuth();
     supabase.auth.signOut().catch(() => {});
     fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     window.location.href = '/auth';
-  }, []);
+  }, [nukeAllAuth]);
 
   // Async logout
   const logout = useCallback(async () => {
-    // Clear request deduplication cache
-    clearRequestCache();
-    
-    // Clear all auth-related localStorage items
-    clearAuthToken();
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('user_type');
-    localStorage.removeItem('portal_sidebar_collapsed');
-    localStorage.removeItem('sb_access_token');
-    localStorage.removeItem('sb_refresh_token');
-    localStorage.removeItem('auth_token');
-    // Clear any Supabase auth storage keys
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('sb-') || key.includes('supabase')) {
-        localStorage.removeItem(key);
-      }
-    });
-    
-    // Clear all auth cookies
-    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    document.cookie = 'user_type=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    
-    clearPermissionsCache();
-    sessionStorage.clear();
-    setEmployee(null);
-    hasLoadedRef.current = false;
-    router.push('/auth');
+    nukeAllAuth();
     try {
       await Promise.all([
         supabase.auth.signOut(),
-        fetch('/api/auth/logout', { method: 'POST' })
+        fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }),
       ]);
-    } catch (e) {
-      // Silent fail
-    }
-  }, [router]);
+    } catch { /* silent fail */ }
+    router.push('/auth');
+  }, [nukeAllAuth, router]);
 
   // Has permission check
   const hasPermission = useCallback((permission: string): boolean => {
@@ -653,6 +639,7 @@ export function PortalProvider({ children, initialEmployee }: PortalProviderProp
     markNotificationAsRead,
     markAllNotificationsAsRead,
     refreshNotifications,
+    setContentLoading,
   };
 
   useEffect(() => {
@@ -842,7 +829,7 @@ export function PortalProvider({ children, initialEmployee }: PortalProviderProp
       {/* Main Content - Mobile optimized with Error Boundary */}
       <main
         className={cn(
-          'pt-14 sm:pt-16 transition-all duration-300',
+          'relative pt-14 sm:pt-16 transition-all duration-300',
           sidebarCollapsed ? 'md:ml-20' : 'md:ml-[280px]',
           // Add padding for mobile bottom nav - ensure content isn't cut off
           'pb-24 md:pb-6',
@@ -850,6 +837,111 @@ export function PortalProvider({ children, initialEmployee }: PortalProviderProp
           'min-h-[calc(100vh-3.5rem)] sm:min-h-[calc(100vh-4rem)]'
         )}
       >
+        {/* CRUD action loader — absolute so it never covers sidebar */}
+        {(contentLoading || contentFading) && (
+          <div
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-auto"
+            style={{
+              background: 'rgba(255, 229, 229, 0.85)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+              opacity: contentFading ? 0 : 1,
+              transition: 'opacity 250ms ease',
+            }}
+          >
+            <style>{`
+              @keyframes portalZoiroSpin {
+                0%   { transform: rotateY(0deg); }
+                100% { transform: rotateY(360deg); }
+              }
+              @keyframes portalCircleRotate {
+                0%   { transform: rotate(-90deg); }
+                100% { transform: rotate(270deg); }
+              }
+              @keyframes portalProgressDash {
+                0%   { stroke-dasharray: 1, 400; stroke-dashoffset: 0; }
+                50%  { stroke-dasharray: 300, 400; stroke-dashoffset: -100; }
+                100% { stroke-dasharray: 300, 400; stroke-dashoffset: -400; }
+              }
+              .portal-letter {
+                display: inline-block;
+                background: linear-gradient(
+                  135deg,
+                  #dc2626 0%,
+                  #ff6b6b 50%,
+                  #dc2626 100%
+                );
+                background-size: 200% auto;
+                -webkit-background-clip: text;
+                background-clip: text;
+                -webkit-text-fill-color: transparent;
+                animation: portalZoiroSpin 2s ease-in-out infinite;
+                transform-origin: center;
+              }
+              .portal-letter:nth-child(1) { animation-delay: 0s;   }
+              .portal-letter:nth-child(2) { animation-delay: 0.2s; }
+              .portal-letter:nth-child(3) { animation-delay: 0.4s; }
+              .portal-letter:nth-child(4) { animation-delay: 0.6s; }
+              .portal-letter:nth-child(5) { animation-delay: 0.8s; }
+              .portal-loading-circle { animation: portalCircleRotate 1.5s linear infinite; }
+              .portal-loading-circle circle { animation: portalProgressDash 1.5s ease-in-out infinite; }
+            `}</style>
+            {/* Logo with circular progress around it */}
+            <div style={{ position: 'relative', marginBottom: 32 }}>
+              {/* Circular Progress Bar */}
+              <svg 
+                className="portal-loading-circle" 
+                width="180" 
+                height="180" 
+                viewBox="0 0 180 180"
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                }}
+              >
+                <circle
+                  cx="90"
+                  cy="90"
+                  r="85"
+                  fill="none"
+                  stroke="#dc2626"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                />
+              </svg>
+              
+              {/* Logo in center */}
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <Image
+                  src="/assets/zoiro-logo.png"
+                  alt="Zoiro"
+                  width={140}
+                  height={140}
+                  priority
+                  style={{ borderRadius: '50%', boxShadow: '0 8px 32px rgba(220,38,38,0.5)' }}
+                />
+              </div>
+            </div>
+            {/* Spinning Letters */}
+            <div
+              style={{
+                fontFamily: 'var(--font-bebas, "Bebas Neue", sans-serif)',
+                fontSize: 'clamp(2.5rem, 7vw, 4.5rem)',
+                letterSpacing: '0.22em',
+                lineHeight: 1,
+              }}
+            >
+              {'ZOIRO'.split('').map((letter, index) => (
+                <span key={index} className="portal-letter">
+                  {letter}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="p-2.5 xs:p-3 sm:p-4 md:p-6">
           <ErrorBoundary>
             {children}
@@ -970,7 +1062,14 @@ export function SectionHeader({ title, description, action, icon }: SectionHeade
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           {icon && <span className="flex-shrink-0 text-primary">{icon}</span>}
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-wide text-foreground truncate">{title}</h2>
+          <Label 
+            variant="gradientSubtle" 
+            size="2xl" 
+            spacing="wider"
+            className="text-lg sm:text-xl md:text-2xl font-bold truncate"
+          >
+            {title}
+          </Label>
         </div>
         {description && (
           <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 sm:mt-1 line-clamp-2 sm:truncate">{description}</p>

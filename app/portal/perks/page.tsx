@@ -1,8 +1,28 @@
-﻿import { getPerksSettingsServer, getCustomersLoyaltyServer, getCustomerPromoCodesServer } from '@/lib/server-queries';
+﻿import { getPerksSettingsServer, getCustomersLoyaltyServer, getCustomerPromoCodesServer, getSSRCurrentEmployee } from '@/lib/server-queries';
 import PerksClient from './PerksClient';
+import { redirect } from 'next/navigation';
+import type { Employee } from '@/types/portal';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+export const metadata = {
+  title: 'Perks & Loyalty – ZOIRO Portal',
+  description: 'Manage loyalty program settings, customer points and promo codes',
+};
 
 // Server Component - Fetches data on the server (hidden from Network tab)
 export default async function PerksPage() {
+  // SSR auth guard – admin and manager only
+  const employee = (await getSSRCurrentEmployee()) as Employee | null;
+
+  if (!employee) {
+    redirect('/portal/login');
+  }
+  if (!['admin', 'manager'].includes((employee as Employee).role)) {
+    redirect('/portal');
+  }
+
   // Fetch all perks data on the server
   const [settings, customers, promos] = await Promise.all([
     getPerksSettingsServer(),

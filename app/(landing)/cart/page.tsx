@@ -647,7 +647,7 @@ export default function CartPage() {
                   <AnimatePresence mode="popLayout">
                     {items.map((item) => (
                       <motion.div
-                        key={item.id}
+                        key={item.cartItemId || item.id}
                         variants={itemVariants}
                         layout
                         exit="exit"
@@ -674,7 +674,7 @@ export default function CartPage() {
                                 size="icon"
                                 variant="ghost"
                                 className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 flex-shrink-0 -mt-1 -mr-1"
-                                onClick={() => removeFromCart(item.id)}
+                                onClick={() => removeFromCart(item.cartItemId || item.id)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -688,7 +688,7 @@ export default function CartPage() {
                                   size="icon"
                                   variant="outline"
                                   className="h-8 w-8 sm:h-9 sm:w-9 rounded-full"
-                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                  onClick={() => updateQuantity(item.cartItemId || item.id, item.quantity - 1)}
                                 >
                                   <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
                                 </Button>
@@ -696,7 +696,7 @@ export default function CartPage() {
                                 <Button
                                   size="icon"
                                   className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary hover:bg-primary/90"
-                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                  onClick={() => updateQuantity(item.cartItemId || item.id, item.quantity + 1)}
                                 >
                                   <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                                 </Button>

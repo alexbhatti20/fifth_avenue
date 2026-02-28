@@ -44,17 +44,8 @@ export async function getAuthenticatedClient() {
     const authToken = cookieStore.get('auth_token')?.value;
     const accessToken = sbToken || authToken;
     
-    // Debug: Always log cookie state for troubleshooting
-    const allCookies = cookieStore.getAll();
-    console.log('[SSR Auth] Cookie check:', {
-      hasSbToken: !!sbToken,
-      hasAuthToken: !!authToken,
-      tokenLength: accessToken?.length || 0,
-      availableCookies: allCookies.map(c => c.name)
-    });
-    
     if (!accessToken) {
-      console.log('[SSR Auth] No access token found - using anonymous client');
+      console.warn('[SSR Auth] No access token found in cookies');
       return supabase;
     }
     
@@ -67,12 +58,18 @@ export async function getAuthenticatedClient() {
         const now = Date.now();
         
         if (expiresAt < now) {
-          console.log('[SSR Auth] Token expired at:', new Date(expiresAt).toISOString());
+          console.warn('[SSR Auth] Access token expired');
           return supabase;
+        }
+        
+        // Log successful auth (in dev only)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[SSR Auth] Authenticated client created for user:', payload.sub);
         }
       }
     } catch (e) {
       // If we can't decode, still try to use the token
+      console.warn('[SSR Auth] Could not decode token, attempting to use anyway');
     }
     
     return createAuthenticatedClient(accessToken);
@@ -81,6 +78,7 @@ export async function getAuthenticatedClient() {
   }
   
   // Fall back to anonymous client
+  console.warn('[SSR Auth] Falling back to anonymous client');
   return supabase;
 }
 
@@ -1914,35 +1912,50 @@ export interface DeliveryOrderServer {
   status: string;
   total: number;
   subtotal: number;
-  tax_amount: number;
+  tax?: number;
   items: any[];
   delivery_rider_id?: string;
   created_at: string;
   updated_at: string;
 }
 
-// Get Delivery Orders (Ready/Delivering) - Server-Side
-export const getDeliveryOrdersServer = unstable_cache(
-  async (): Promise<DeliveryOrderServer[]> => {
-    if (!isSupabaseConfigured) return [];
+// Get Delivery Orders (Ready/Delivering) - Server-Side via RPC (no direct table access)
+// NOTE: unstable_cache blocks cookies(), so we use getAuthenticatedClient() directly
+// and rely on Next.js per-request caching (no stale data between users).
+export async function getDeliveryOrdersServer(): Promise<DeliveryOrderServer[]> {
+  if (!isSupabaseConfigured) return [];
 
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('order_type', 'online')
-      .in('status', ['ready', 'delivering'])
-      .order('created_at', { ascending: false });
+  try {
+    // Must use an authenticated client – the RPC calls get_employee_id() internally
+    // and the anon client has no permission to execute it.
+    const client = await getAuthenticatedClient();
+
+    const { data, error } = await client.rpc('get_delivery_orders');
 
     if (error) {
-      console.error('Error fetching delivery orders:', error);
+      // PostgrestError properties are non-enumerable – spread them explicitly
+      console.error('[delivery SSR] RPC error:', {
+        message: (error as any)?.message,
+        code: (error as any)?.code,
+        details: (error as any)?.details,
+        hint: (error as any)?.hint,
+      });
       return [];
     }
 
-    return (data || []) as DeliveryOrderServer[];
-  },
-  ['portal-delivery-orders'],
-  { revalidate: 10, tags: ['portal-delivery'] }
-);
+    // RPC returns a JSON array directly (COALESCE to [])
+    if (Array.isArray(data)) {
+      return data as DeliveryOrderServer[];
+    }
+
+    // RPC may return { success, data: [...] } shape from newer versions
+    const result = data as { success?: boolean; data?: DeliveryOrderServer[] } | null;
+    return (result?.data ?? []) as DeliveryOrderServer[];
+  } catch (err: any) {
+    console.error('[delivery SSR] Unexpected error:', err?.message ?? err);
+    return [];
+  }
+}
 
 // =============================================
 // PORTAL ATTENDANCE QUERIES (Server-Side)

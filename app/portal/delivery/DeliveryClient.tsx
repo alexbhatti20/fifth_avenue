@@ -72,8 +72,6 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { SectionHeader, StatsCard, DataTableWrapper } from '@/components/portal/PortalProvider';
 import { usePortalAuth } from '@/hooks/usePortal';
-import { supabase } from '@/lib/supabase';
-import { getAuthenticatedClient } from '@/lib/portal-queries';
 import { subscribeToRiderAssignments } from '@/lib/realtime';
 import { realtimeManager, CHANNEL_NAMES } from '@/lib/realtime-manager';
 import {
@@ -925,19 +923,26 @@ function DeliveryHistory({ riderId }: { riderId: string }) {
     if (isFirstRender.current && !loadMore) {
       isFirstRender.current = false;
     }
-    
+
     try {
       setIsLoading(true);
-      
-      // Use the fast RPC - pass rider ID explicitly to avoid auth issues
-      const { data, error } = await getAuthenticatedClient().rpc('get_rider_delivery_history', {
-        p_rider_id: riderId,  // Pass rider ID explicitly
-        p_status: 'delivered',
-        p_limit: 20,
-        p_offset: loadMore ? offset : 0,
+
+      // Use authenticated API route — avoids client-side RPC permission issues
+      const res = await fetch('/api/portal/delivery', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'history',
+          riderId,
+          status: 'delivered',
+          limit: 20,
+          offset: loadMore ? offset : 0,
+        }),
       });
 
-      if (error) throw error;
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
 
       if (data?.success) {
         const historyData = data.history || [];
@@ -952,53 +957,6 @@ function DeliveryHistory({ riderId }: { riderId: string }) {
       }
     } catch (error) {
       console.error('Error fetching delivery history:', error);
-      // Fallback to direct query if RPC not available
-      try {
-        const { data, error: fallbackError } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('delivery_rider_id', riderId)
-          .eq('status', 'delivered')
-          .order('updated_at', { ascending: false })
-          .limit(50);
-
-        if (!fallbackError && data) {
-          const mapped = data.map((d) => ({
-            id: d.id,
-            order_id: d.id,
-            order_number: d.order_number,
-            customer_name: d.customer_name,
-            customer_phone: d.customer_phone,
-            customer_address: d.customer_address,
-            items: d.items || [],
-            total_items: d.items?.length || 0,
-            total: d.total,
-            payment_method: d.payment_method,
-            delivery_status: 'delivered',
-            accepted_at: d.created_at,
-            delivered_at: d.updated_at,
-          }));
-          setDeliveries(mapped);
-          
-          // Calculate basic stats
-          const todayStart = new Date();
-          todayStart.setHours(0, 0, 0, 0);
-          const weekStart = new Date();
-          weekStart.setDate(weekStart.getDate() - 7);
-          
-          setStats({
-            total_deliveries: data.length,
-            total_today: data.filter((d) => new Date(d.updated_at) >= todayStart).length,
-            total_this_week: data.filter((d) => new Date(d.updated_at) >= weekStart).length,
-            total_this_month: data.length,
-            total_earnings: data.reduce((sum, d) => sum + (d.total || 0), 0),
-            cancelled_count: 0,
-            active_deliveries: 0,
-          });
-        }
-      } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
-      }
     } finally {
       setIsLoading(false);
     }
@@ -1222,28 +1180,24 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
     return () => document.removeEventListener('click', initAudio);
   }, []);
 
-  // Fetch orders
+  // Fetch orders via authenticated API route (no direct DB access)
   const fetchOrders = useCallback(async () => {
     if (!riderId) return;
 
     setIsLoading(true);
     try {
-      // Fetch orders assigned to this rider OR ready for pickup (online/delivery orders)
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('order_type', 'online')
-        .in('status', ['ready', 'delivering'])
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const res = await fetch('/api/portal/delivery', {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const result = await res.json();
+      const orders = result?.data || [];
 
       // Store known orders
-      (data || []).forEach((o) => knownOrdersRef.current.add(o.id));
-      setOrders(data || []);
+      orders.forEach((o: { id: string }) => knownOrdersRef.current.add(o.id));
+      setOrders(orders);
       setLastUpdate(new Date());
     } catch (error) {
-      
       toast.error('Failed to fetch orders');
     } finally {
       setIsLoading(false);
@@ -1360,19 +1314,18 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
     }
   };
 
-  // Accept/Start delivery using fast RPC
+  // Accept/Start delivery via authenticated API route
   const handleAcceptOrder = async (orderId: string) => {
     try {
-      // Use the fast RPC that handles everything atomically
-      // Pass rider ID explicitly to avoid auth issues
-      const { data, error } = await getAuthenticatedClient().rpc('accept_delivery_order', {
-        p_order_id: orderId,
-        p_rider_id: riderId,
+      const res = await fetch('/api/portal/delivery', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'accept', orderId, riderId }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
 
-      if (error) throw error;
-
-      // Check RPC response
       if (!data?.success) {
         throw new Error(data?.error || 'Failed to accept order');
       }
@@ -1400,17 +1353,17 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
     }
   };
 
-  // Complete delivery using fast RPC
+  // Complete delivery via authenticated API route
   const handleDeliverOrder = async (orderId: string, notes?: string) => {
     try {
-      // Use the fast RPC - pass rider ID explicitly to avoid auth issues
-      const { data, error } = await getAuthenticatedClient().rpc('complete_delivery_order', {
-        p_order_id: orderId,
-        p_notes: notes || null,
-        p_rider_id: riderId,
+      const res = await fetch('/api/portal/delivery', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'complete', orderId, notes: notes || null, riderId }),
       });
-
-      if (error) throw error;
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
 
       if (!data?.success) {
         throw new Error(data?.error || 'Failed to complete delivery');
@@ -1431,17 +1384,17 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
     }
   };
 
-  // Cancel delivery
+  // Cancel delivery via authenticated API route
   const handleCancelDelivery = async (orderId: string, reason: string) => {
     try {
-      // Pass rider ID explicitly to avoid auth issues
-      const { data, error } = await getAuthenticatedClient().rpc('cancel_delivery_order', {
-        p_order_id: orderId,
-        p_reason: reason,
-        p_rider_id: riderId,
+      const res = await fetch('/api/portal/delivery', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel', orderId, reason, riderId }),
       });
-
-      if (error) throw error;
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
 
       if (!data?.success) {
         throw new Error(data?.error || 'Failed to cancel delivery');

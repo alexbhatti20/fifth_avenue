@@ -43,6 +43,7 @@ import {
   Send,
   AlertCircle,
   Calendar,
+  Keyboard,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -74,6 +75,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SectionHeader, usePortalAuthContext } from '@/components/portal/PortalProvider';
 import { cn } from '@/lib/utils';
+import KeyboardShortcutsSettings from '@/components/portal/KeyboardShortcutsSettings';
 import { toast } from 'sonner';
 import { 
   updateEmployeeProfileServer,
@@ -87,7 +89,7 @@ import {
   updateWebsiteSettingsServer,
   getEmployeeProfileServerAction,
 } from '@/lib/actions';
-import { uploadEmployeeAvatar } from '@/lib/storage';
+import { uploadEmployeeAvatar, deleteStorageFile } from '@/lib/storage';
 
 // Types
 export interface Employee {
@@ -196,6 +198,7 @@ function PersonalSettings({
     getCacheBustedUrl(initialProfile?.avatar_url)
   );
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
 
   // Fetch fresh employee data from database via SSR server action
   const fetchFreshData = useCallback(async () => {
@@ -291,6 +294,46 @@ function PersonalSettings({
     }
   };
 
+  // Remove profile photo: delete from storage + clear DB avatar_url
+  const handleRemovePhoto = async () => {
+    const oldUrl = employeeData?.avatar_url;
+    // Clear preview and staged file immediately for instant UI feedback
+    if (photoPreview?.startsWith('blob:')) URL.revokeObjectURL(photoPreview);
+    setPhotoPreview(null);
+    setPhotoFile(null);
+
+    if (!employeeId) return;
+    setIsRemovingPhoto(true);
+    try {
+      // 1. Clear avatar_url in DB
+      const result = await updateEmployeeProfileServer(employeeId, {
+        name: employeeData?.name || '',
+        phone: employeeData?.phone || '',
+        address: employeeData?.address || '',
+        emergency_contact: employeeData?.emergency_contact || '',
+        avatar_url: '',
+      });
+      if (result.success) {
+        setEmployeeData((prev: any) => ({ ...prev, avatar_url: '' }));
+        // 2. Delete old file from storage — await so we know if it succeeded
+        if (oldUrl) {
+          const deleteResult = await deleteStorageFile(oldUrl);
+          if (!deleteResult.success) {
+            console.warn('Storage delete failed (DB already cleared):', deleteResult.error);
+          }
+        }
+        toast.success('Profile photo removed');
+        setTimeout(() => { refreshEmployee().catch(() => {}); }, 100);
+      } else {
+        toast.error(result.error || 'Failed to remove photo');
+      }
+    } catch {
+      toast.error('Failed to remove photo');
+    } finally {
+      setIsRemovingPhoto(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!employeeId) {
       toast.error('Employee ID not found. Please refresh the page.');
@@ -312,6 +355,7 @@ function PersonalSettings({
       
       // Upload new avatar if selected
       if (photoFile) {
+        const oldAvatarUrl = employeeData?.avatar_url || '';
         toast.loading('Uploading profile photo...', { id: 'save-profile' });
         try {
           const uploadResult = await uploadEmployeeAvatar(photoFile, employeeId);
@@ -322,6 +366,10 @@ function PersonalSettings({
           }
           
           avatarUrl = uploadResult.url;
+          // Delete old image from storage after new one is confirmed uploaded
+          if (oldAvatarUrl && oldAvatarUrl !== avatarUrl) {
+            deleteStorageFile(oldAvatarUrl).catch(() => {}); // non-blocking, silent fail
+          }
         } catch (uploadError: any) {
           throw new Error(uploadError.message || 'Failed to upload profile photo');
         }
@@ -480,13 +528,15 @@ function PersonalSettings({
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => {
-                    setPhotoPreview(null);
-                    setPhotoFile(null);
-                  }}
+                  onClick={handleRemovePhoto}
+                  disabled={isRemovingPhoto}
                   className="mt-2"
                 >
-                  <Trash2 className="h-3 w-3 mr-1" /> Remove Photo
+                  {isRemovingPhoto ? (
+                    <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Removing...</>
+                  ) : (
+                    <><Trash2 className="h-3 w-3 mr-1" /> Remove Photo</>
+                  )}
                 </Button>
               )}
             </div>
@@ -1216,6 +1266,57 @@ function SecuritySettings({
   const [isDisabling, setIsDisabling] = useState(false);
   const [showDisableDialog, setShowDisableDialog] = useState(false);
 
+  // ── Password Reset State ─────────────────────────────────────────────────
+  const [pwdStep, setPwdStep] = useState<'idle' | 'sending' | 'otp' | 'verifying' | 'new-password' | 'resetting' | 'done'>('idle');
+  const [pwdOTP, setPwdOTP] = useState('');
+  const [pwdNewPass, setPwdNewPass] = useState('');
+  const [pwdConfirmPass, setPwdConfirmPass] = useState('');
+  const [pwdShowNew, setPwdShowNew] = useState(false);
+  const [pwdShowConfirm, setPwdShowConfirm] = useState(false);
+  const [pwdVerifiedToken, setPwdVerifiedToken] = useState('');
+  const [pwdMaskedEmail, setPwdMaskedEmail] = useState('');
+  const [pwdResendCountdown, setPwdResendCountdown] = useState(0);
+  const [pwdExpiresCountdown, setPwdExpiresCountdown] = useState(0);
+  const [pwdAttemptsLeft, setPwdAttemptsLeft] = useState(3);
+  const pwdResendTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pwdExpiryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Helper: always attach the freshest token so server auth works even when
+  // httpOnly cookies are stale (tokens are refreshed in localStorage by PortalProvider).
+  const getAuthHeaders = (): Record<string, string> => {
+    if (typeof window === 'undefined') return {};
+
+    // 1. Our custom localStorage keys (set by employeeLogin + TOKEN_REFRESHED)
+    let token =
+      localStorage.getItem('sb_access_token') ||
+      localStorage.getItem('auth_token');
+
+    // 2. Supabase's own native session JSON — reliable when user logged in but page reloaded
+    if (!token) {
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            const stored = JSON.parse(localStorage.getItem(key) || '{}');
+            if (stored?.access_token) { token = stored.access_token; break; }
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    // 3. Cookie fallback — reads non-httpOnly cookies we set at login
+    if (!token) {
+      try {
+        const m1 = document.cookie.match(/(^| )sb-access-token=([^;]+)/);
+        const m2 = document.cookie.match(/(^| )auth_token=([^;]+)/);
+        token = (m1 ? decodeURIComponent(m1[2]) : null) ||
+                (m2 ? decodeURIComponent(m2[2]) : null);
+      } catch { /* ignore */ }
+    }
+
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   // Load 2FA status only if no SSR data
   useEffect(() => {
     if (hasSSRData.current || hasFetched.current) {
@@ -1230,7 +1331,8 @@ function SecuritySettings({
       setIsLoading(true);
       
       const response = await fetch('/api/portal/security/2fa', {
-        credentials: 'include', // Send cookies with request
+        credentials: 'include',
+        headers: getAuthHeaders(),
       });
 
       if (response.ok) {
@@ -1249,7 +1351,8 @@ function SecuritySettings({
       setIsEnabling(true);
       
       const response = await fetch('/api/portal/security/2fa', {
-        credentials: 'include', // Send cookies with request
+        credentials: 'include',
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) throw new Error('Failed to generate 2FA');
@@ -1279,8 +1382,9 @@ function SecuritySettings({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
         },
-        credentials: 'include', // Send cookies with request
+        credentials: 'include',
         body: JSON.stringify({
           secret,
           token: verificationCode,
@@ -1317,8 +1421,9 @@ function SecuritySettings({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
         },
-        credentials: 'include', // Send cookies with request
+        credentials: 'include',
         body: JSON.stringify({
           enabled: false,
           token: disableCode,
@@ -1345,6 +1450,162 @@ function SecuritySettings({
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard');
+  };
+
+  // ── Password Reset Helpers ────────────────────────────────────────────────
+  const pwdStartResendTimer = (seconds: number) => {
+    setPwdResendCountdown(seconds);
+    if (pwdResendTimerRef.current) clearInterval(pwdResendTimerRef.current);
+    pwdResendTimerRef.current = setInterval(() => {
+      setPwdResendCountdown((prev) => {
+        if (prev <= 1) { clearInterval(pwdResendTimerRef.current!); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const pwdStartExpiryTimer = (seconds: number) => {
+    setPwdExpiresCountdown(seconds);
+    if (pwdExpiryTimerRef.current) clearInterval(pwdExpiryTimerRef.current);
+    pwdExpiryTimerRef.current = setInterval(() => {
+      setPwdExpiresCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(pwdExpiryTimerRef.current!);
+          // OTP expired — go back to idle
+          setPwdStep('idle');
+          toast.error('OTP expired. Please request a new code.');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const pwdReset = () => {
+    setPwdStep('idle');
+    setPwdOTP('');
+    setPwdNewPass('');
+    setPwdConfirmPass('');
+    setPwdVerifiedToken('');
+    setPwdMaskedEmail('');
+    setPwdAttemptsLeft(3);
+    if (pwdResendTimerRef.current) clearInterval(pwdResendTimerRef.current);
+    if (pwdExpiryTimerRef.current) clearInterval(pwdExpiryTimerRef.current);
+  };
+
+  const handlePwdSendOTP = async () => {
+    try {
+      setPwdStep('sending');
+      const res = await fetch('/api/portal/security/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'send-otp' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+      setPwdMaskedEmail(data.maskedEmail || '');
+      setPwdStep('otp');
+      pwdStartExpiryTimer(data.expiresIn || 120);
+      pwdStartResendTimer(data.resendIn || 60);
+      toast.success('Verification code sent to your email');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send OTP');
+      setPwdStep('idle');
+    }
+  };
+
+  const handlePwdResendOTP = async () => {
+    try {
+      setPwdStep('sending');
+      const res = await fetch('/api/portal/security/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'send-otp' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to resend OTP');
+      setPwdOTP('');
+      setPwdAttemptsLeft(3);
+      setPwdStep('otp');
+      pwdStartExpiryTimer(data.expiresIn || 120);
+      pwdStartResendTimer(data.resendIn || 60);
+      toast.success('New verification code sent');
+    } catch (err: any) {
+      toast.error(err.message);
+      setPwdStep('otp');
+    }
+  };
+
+  const handlePwdVerifyOTP = async () => {
+    if (pwdOTP.length !== 6) { toast.error('Enter the 6-digit code'); return; }
+    try {
+      setPwdStep('verifying');
+      const res = await fetch('/api/portal/security/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'verify-otp', otp: pwdOTP }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.attemptsRemaining !== undefined) setPwdAttemptsLeft(data.attemptsRemaining);
+        throw new Error(data.error || 'Invalid code');
+      }
+      if (pwdExpiryTimerRef.current) clearInterval(pwdExpiryTimerRef.current);
+      setPwdVerifiedToken(data.token);
+      setPwdStep('new-password');
+      toast.success('Code verified! Set your new password.');
+    } catch (err: any) {
+      toast.error(err.message);
+      setPwdStep('otp');
+    }
+  };
+
+  const handlePwdResetPassword = async () => {
+    if (pwdNewPass.length < 8) { toast.error('Password must be at least 8 characters'); return; }
+    if (pwdNewPass !== pwdConfirmPass) { toast.error('Passwords do not match'); return; }
+    if (!/[A-Z]/.test(pwdNewPass) || !/[a-z]/.test(pwdNewPass) || !/[0-9]/.test(pwdNewPass)) {
+      toast.error('Password needs uppercase, lowercase, and a number');
+      return;
+    }
+    try {
+      setPwdStep('resetting');
+      const res = await fetch('/api/portal/security/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'reset-password',
+          token: pwdVerifiedToken,
+          newPassword: pwdNewPass,
+          confirmPassword: pwdConfirmPass,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update password');
+      setPwdStep('done');
+      toast.success('Password updated successfully!');
+    } catch (err: any) {
+      toast.error(err.message);
+      setPwdStep('new-password');
+    }
+  };
+
+  // Strength scorer for password
+  const getPwdStrength = (p: string): { score: number; label: string; color: string } => {
+    let score = 0;
+    if (p.length >= 8) score++;
+    if (p.length >= 12) score++;
+    if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score++;
+    if (/[0-9]/.test(p)) score++;
+    if (/[^A-Za-z0-9]/.test(p)) score++;
+    if (score <= 1) return { score, label: 'Very Weak', color: 'bg-red-500' };
+    if (score === 2) return { score, label: 'Weak', color: 'bg-orange-500' };
+    if (score === 3) return { score, label: 'Fair', color: 'bg-yellow-500' };
+    if (score === 4) return { score, label: 'Strong', color: 'bg-blue-500' };
+    return { score, label: 'Very Strong', color: 'bg-green-500' };
   };
 
   if (isLoading) {
@@ -1547,6 +1808,278 @@ function SecuritySettings({
         </CardContent>
       </Card>
 
+      {/* ── Password Reset Card ──────────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5 text-primary" />
+                Change Password
+              </CardTitle>
+              <CardDescription className="mt-2">
+                Secure your account with a new password. An OTP will be sent to your registered email to verify your identity first.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+
+          {/* ── idle ── */}
+          {pwdStep === 'idle' && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm">
+                <div className="flex items-start gap-3">
+                  <Shield className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                  <p className="text-muted-foreground">
+                    For your security, we'll verify your identity with a one-time code sent to your email before allowing a password change.
+                  </p>
+                </div>
+              </div>
+              <Button onClick={handlePwdSendOTP} className="w-full sm:w-auto">
+                <Send className="h-4 w-4 mr-2" />
+                Send Verification Code
+              </Button>
+            </div>
+          )}
+
+          {/* ── sending ── */}
+          {pwdStep === 'sending' && (
+            <div className="flex items-center gap-3 py-4 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Sending verification code…</span>
+            </div>
+          )}
+
+          {/* ── otp entry ── */}
+          {(pwdStep === 'otp' || pwdStep === 'verifying') && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <Alert>
+                <Mail className="h-4 w-4" />
+                <AlertDescription>
+                  A 6-digit code was sent to{' '}
+                  <span className="font-semibold">{pwdMaskedEmail || 'your email'}</span>.
+                  It expires in{' '}
+                  <span className={cn('font-semibold', pwdExpiresCountdown <= 30 ? 'text-destructive' : '')}>
+                    {Math.floor(pwdExpiresCountdown / 60)}:{String(pwdExpiresCountdown % 60).padStart(2, '0')}
+                  </span>
+                </AlertDescription>
+              </Alert>
+
+              {pwdAttemptsLeft < 3 && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Incorrect code — {pwdAttemptsLeft} attempt{pwdAttemptsLeft !== 1 ? 's' : ''} remaining.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="pwd-otp">Verification Code</Label>
+                <Input
+                  id="pwd-otp"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={pwdOTP}
+                  onChange={(e) => setPwdOTP(e.target.value.replace(/\D/g, ''))}
+                  className="text-center text-2xl tracking-widest font-mono max-w-[200px]"
+                  disabled={pwdStep === 'verifying'}
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={handlePwdVerifyOTP}
+                  disabled={pwdStep === 'verifying' || pwdOTP.length !== 6}
+                  className="flex-1 sm:flex-none"
+                >
+                  {pwdStep === 'verifying' ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Verifying…</>
+                  ) : (
+                    <><CheckCircle className="h-4 w-4 mr-2" /> Verify Code</>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handlePwdResendOTP}
+                  disabled={pwdResendCountdown > 0 || pwdStep === 'verifying'}
+                >
+                  <RotateCw className="h-4 w-4 mr-2" />
+                  {pwdResendCountdown > 0 ? `Resend in ${pwdResendCountdown}s` : 'Resend Code'}
+                </Button>
+                <Button variant="ghost" onClick={pwdReset} disabled={pwdStep === 'verifying'}>
+                  Cancel
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── new password form ── */}
+          {(pwdStep === 'new-password' || pwdStep === 'resetting') && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-5"
+            >
+              <Alert>
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <AlertDescription className="text-green-700 dark:text-green-300">
+                  Identity verified! You have 5 minutes to set your new password.
+                </AlertDescription>
+              </Alert>
+
+              {/* New Password */}
+              <div className="space-y-2">
+                <Label htmlFor="pwd-new">New Password</Label>
+                <div className="relative">
+                  <Input
+                    id="pwd-new"
+                    type={pwdShowNew ? 'text' : 'password'}
+                    placeholder="Enter new password"
+                    value={pwdNewPass}
+                    onChange={(e) => setPwdNewPass(e.target.value)}
+                    disabled={pwdStep === 'resetting'}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPwdShowNew(!pwdShowNew)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {pwdShowNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+
+                {/* Strength bar */}
+                {pwdNewPass && (() => {
+                  const { score, label, color } = getPwdStrength(pwdNewPass);
+                  return (
+                    <div className="space-y-1">
+                      <div className="flex gap-1 h-1.5">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div
+                            key={i}
+                            className={cn('flex-1 rounded-full transition-all duration-300', i <= score ? color : 'bg-muted')}
+                          />
+                        ))}
+                      </div>
+                      <p className={cn('text-xs font-medium', score <= 2 ? 'text-red-500' : score === 3 ? 'text-yellow-600' : 'text-green-600')}>
+                        {label}
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                <ul className="text-xs text-muted-foreground space-y-0.5 mt-1">
+                  <li className={cn('flex items-center gap-1', pwdNewPass.length >= 8 ? 'text-green-600' : '')}>
+                    <CheckCircle className={cn('h-3 w-3', pwdNewPass.length >= 8 ? 'text-green-500' : 'text-muted-foreground/40')} />
+                    Minimum 8 characters
+                  </li>
+                  <li className={cn('flex items-center gap-1', /[A-Z]/.test(pwdNewPass) ? 'text-green-600' : '')}>
+                    <CheckCircle className={cn('h-3 w-3', /[A-Z]/.test(pwdNewPass) ? 'text-green-500' : 'text-muted-foreground/40')} />
+                    Uppercase letter
+                  </li>
+                  <li className={cn('flex items-center gap-1', /[a-z]/.test(pwdNewPass) ? 'text-green-600' : '')}>
+                    <CheckCircle className={cn('h-3 w-3', /[a-z]/.test(pwdNewPass) ? 'text-green-500' : 'text-muted-foreground/40')} />
+                    Lowercase letter
+                  </li>
+                  <li className={cn('flex items-center gap-1', /[0-9]/.test(pwdNewPass) ? 'text-green-600' : '')}>
+                    <CheckCircle className={cn('h-3 w-3', /[0-9]/.test(pwdNewPass) ? 'text-green-500' : 'text-muted-foreground/40')} />
+                    At least one number
+                  </li>
+                </ul>
+              </div>
+
+              {/* Confirm Password */}
+              <div className="space-y-2">
+                <Label htmlFor="pwd-confirm">Confirm Password</Label>
+                <div className="relative">
+                  <Input
+                    id="pwd-confirm"
+                    type={pwdShowConfirm ? 'text' : 'password'}
+                    placeholder="Confirm new password"
+                    value={pwdConfirmPass}
+                    onChange={(e) => setPwdConfirmPass(e.target.value)}
+                    disabled={pwdStep === 'resetting'}
+                    className={cn('pr-10', pwdConfirmPass && pwdNewPass !== pwdConfirmPass ? 'border-destructive focus-visible:ring-destructive' : '')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPwdShowConfirm(!pwdShowConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {pwdShowConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {pwdConfirmPass && pwdNewPass !== pwdConfirmPass && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> Passwords do not match
+                  </p>
+                )}
+                {pwdConfirmPass && pwdNewPass === pwdConfirmPass && (
+                  <p className="text-xs text-green-600 flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" /> Passwords match
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={handlePwdResetPassword}
+                  disabled={
+                    pwdStep === 'resetting' ||
+                    pwdNewPass.length < 8 ||
+                    pwdNewPass !== pwdConfirmPass ||
+                    !/[A-Z]/.test(pwdNewPass) ||
+                    !/[a-z]/.test(pwdNewPass) ||
+                    !/[0-9]/.test(pwdNewPass)
+                  }
+                  className="flex-1 sm:flex-none"
+                >
+                  {pwdStep === 'resetting' ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Updating…</>
+                  ) : (
+                    <><Lock className="h-4 w-4 mr-2" /> Update Password</>
+                  )}
+                </Button>
+                <Button variant="outline" onClick={pwdReset} disabled={pwdStep === 'resetting'}>
+                  Cancel
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── success ── */}
+          {pwdStep === 'done' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="space-y-4"
+            >
+              <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-5 text-center">
+                <CheckCircle className="h-10 w-10 text-green-500 mx-auto mb-3" />
+                <p className="font-semibold text-green-700 dark:text-green-300 text-lg">Password Updated!</p>
+                <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                  Your password has been changed successfully. Use your new password next time you log in.
+                </p>
+              </div>
+              <Button variant="outline" onClick={pwdReset} className="w-full sm:w-auto">
+                <RotateCw className="h-4 w-4 mr-2" />
+                Change Password Again
+              </Button>
+            </motion.div>
+          )}
+
+        </CardContent>
+      </Card>
+
       {/* Security Tips */}
       <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
         <CardHeader>
@@ -1745,8 +2278,6 @@ function MaintenanceModeSettings({
     });
 
     try {
-      console.log('[Maintenance Emails] Starting request...');
-      
       const response = await fetch('/api/maintenance/send-notifications-stream', {
         method: 'POST',
         headers: {
@@ -1766,9 +2297,6 @@ function MaintenanceModeSettings({
         }),
       });
 
-      console.log('[Maintenance Emails] Response status:', response.status);
-      console.log('[Maintenance Emails] Response headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[Maintenance Emails] Error response:', errorText);
@@ -1783,18 +2311,14 @@ function MaintenanceModeSettings({
       const decoder = new TextDecoder();
       let buffer = '';
 
-      console.log('[Maintenance Emails] Starting to read stream...');
-
       while (true) {
         const { done, value } = await reader.read();
         
         if (done) {
-          console.log('[Maintenance Emails] Stream complete');
           break;
         }
 
         buffer += decoder.decode(value, { stream: true });
-        console.log('[Maintenance Emails] Buffer:', buffer);
         
         const lines = buffer.split('\n\n');
         buffer = lines.pop() || '';
@@ -1802,7 +2326,6 @@ function MaintenanceModeSettings({
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const jsonData = line.slice(6);
-            console.log('[Maintenance Emails] Received data:', jsonData);
             
             try {
               const data = JSON.parse(jsonData);
@@ -1815,10 +2338,8 @@ function MaintenanceModeSettings({
               }
 
               if (data.status === 'fetching') {
-                console.log('[Maintenance Emails] Fetching users...');
                 toast.loading('Fetching user list...', { id: toastId });
               } else if (data.status === 'sending') {
-                console.log('[Maintenance Emails] Sending progress:', data);
                 setEmailProgress({
                   sent: data.sent || 0,
                   total: data.total || 0,
@@ -1830,7 +2351,6 @@ function MaintenanceModeSettings({
                   { id: toastId }
                 );
               } else if (data.status === 'complete') {
-                console.log('[Maintenance Emails] Complete:', data);
                 setEmailProgress({
                   sent: data.sent || 0,
                   total: data.total || 0,
@@ -2273,6 +2793,9 @@ export default function SettingsClient({
           <TabsTrigger value="security" className="gap-1 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
             <Shield className="h-3 w-3 sm:h-4 sm:w-4" /> Security
           </TabsTrigger>
+          <TabsTrigger value="keyboard" className="gap-1 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
+            <Keyboard className="h-3 w-3 sm:h-4 sm:w-4" /> Shortcuts
+          </TabsTrigger>
           {isAdmin && (
             <>
               <TabsTrigger value="payment-methods" className="gap-1 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
@@ -2302,6 +2825,10 @@ export default function SettingsClient({
               initial2FAEnabled={initial2FAStatus}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="keyboard">
+          <KeyboardShortcutsSettings />
         </TabsContent>
 
         {isAdmin && (

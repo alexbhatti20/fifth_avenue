@@ -312,14 +312,14 @@ export async function POST(request: NextRequest) {
       // Pre-set the cookies - they'll be active after 2FA verification
       if (sessionToken) {
         response.cookies.set('auth_token', sessionToken, {
-          httpOnly: true,
+          httpOnly: false,
           secure: isSecure,
           sameSite: 'lax',
           maxAge: 60 * 60 * 24 * 7,
           path: '/',
         });
         response.cookies.set('sb-access-token', sessionToken, {
-          httpOnly: true,
+          httpOnly: false,
           secure: isSecure,
           sameSite: 'lax',
           maxAge: 60 * 60 * 24 * 7,

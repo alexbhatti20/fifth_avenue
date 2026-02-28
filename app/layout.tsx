@@ -9,6 +9,7 @@ import CookieConsent from '@/components/custom/CookieConsent'
 import JsonLd from '@/components/seo/JsonLd'
 import GlobalGoogleAuthHandler from '@/components/auth/GlobalGoogleAuthHandler'
 import { ALL_KEYWORDS, SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/lib/seo'
+import PageLoader from '@/components/custom/PageLoader'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const bebasNeue = Bebas_Neue({ 
@@ -152,10 +153,8 @@ export default function RootLayout({
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
       <body className={`${inter.variable} ${bebasNeue.variable}`}>
-        {/* JSON-LD Structured Data for SEO - Comprehensive schema markup */}
+        <PageLoader />
         <JsonLd type="home" />
-        
-        {/* Global Google OAuth Handler for implicit flow */}
         <GlobalGoogleAuthHandler />
         
         <CartProvider>

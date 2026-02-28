@@ -90,9 +90,17 @@ export const createAdminClient = () => supabase;
 // Re-export createClient for components that need to create their own client
 export const createClient = () => supabase;
 
-// Create an authenticated server-side client using a verified token
-// This allows server-side API routes to call RPCs as 'authenticated' role
+// Create an authenticated SERVER-SIDE client using a verified token.
+// Intended ONLY for API route handlers (runs in Node.js, not in the browser).
+// Using this in browser context will spawn a second GoTrueClient sharing the same
+// localStorage storage key → "Multiple GoTrueClient instances" warning.
+// Browser components should use the `supabase` singleton instead.
 export function createAuthenticatedClient(accessToken: string): SupabaseClient {
+  if (typeof window !== 'undefined') {
+    // Called in browser — return singleton to avoid duplicate GoTrueClient
+    console.warn('[supabase] createAuthenticatedClient called in browser context. Returning singleton to prevent multiple GoTrueClient instances.');
+    return supabase;
+  }
   return createSupabaseClient(supabaseUrl, supabaseKey, {
     global: {
       headers: {

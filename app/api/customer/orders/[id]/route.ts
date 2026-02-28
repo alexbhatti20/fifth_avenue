@@ -32,7 +32,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    
+    const customer = await getAuthenticatedCustomer();
+
     const { data: order, error } = await supabase
       .from('orders')
       .select(`
@@ -57,6 +58,8 @@ export async function GET(
         created_at,
         delivered_at,
         transaction_id,
+        online_payment_method_id,
+        online_payment_details,
         employees:assigned_to (name, phone)
       `)
       .eq('id', id)
@@ -69,13 +72,21 @@ export async function GET(
     if (!order) {
       return NextResponse.json({ data: null, error: 'Order not found' });
     }
-    
+
+    // Fetch status history separately
+    const { data: statusHistory } = await supabase
+      .from('order_status_history')
+      .select('status, notes, created_at')
+      .eq('order_id', id)
+      .order('created_at', { ascending: true });
+
     // Format the response
     const employee = Array.isArray(order.employees) ? order.employees[0] : order.employees;
     const formattedOrder = {
       ...order,
       assigned_to_name: employee?.name || null,
       assigned_to_phone: employee?.phone || null,
+      status_history: statusHistory || [],
     };
     delete (formattedOrder as any).employees;
     

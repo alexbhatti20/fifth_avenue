@@ -93,13 +93,11 @@ async function getAuthenticatedAdminClient() {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('[Maintenance Stream API] POST request received');
   const encoder = new TextEncoder();
   
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        console.log('[Maintenance Stream API] Starting stream...');
         const body = await request.json();
         const { settings } = body;
 
@@ -111,7 +109,6 @@ export async function POST(request: NextRequest) {
         }
 
         // Verify authentication and admin access
-        console.log('[Maintenance Stream API] Verifying authentication...');
         const authResult = await getAuthenticatedAdminClient();
         if (authResult.error || !authResult.client) {
           console.error('[Maintenance Stream API] Auth failed:', authResult.error);
@@ -121,17 +118,12 @@ export async function POST(request: NextRequest) {
         }
 
         const client = authResult.client;
-        console.log('[Maintenance Stream API] Authentication successful');
         
         // Send initial status
-        console.log('[Maintenance Stream API] Sending initial status');
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'fetching', progress: 0 })}\n\n`));
 
         // Get all users for email
-        console.log('[Maintenance Stream API] Calling RPC to get users...');
         const { data: usersData, error: usersError } = await client.rpc('get_all_users_for_maintenance_email');
-
-        console.log('[Maintenance Stream API] RPC response:', { usersData, usersError });
 
         if (usersError) {
           console.error('[Maintenance Stream API] RPC error:', usersError);
@@ -141,7 +133,6 @@ export async function POST(request: NextRequest) {
         }
 
         const result = usersData as any;
-        console.log('[Maintenance Stream API] Result success:', result?.success);
         
         if (!result?.success) {
           console.error('[Maintenance Stream API] RPC returned error:', result?.error);
@@ -154,20 +145,7 @@ export async function POST(request: NextRequest) {
         const employees: Array<{email: string; name: string}> = Array.isArray(result.employees) ? result.employees : [];
         const allRecipients = [...customers, ...employees].filter(r => r && r.email);
 
-        console.log('[Maintenance Stream API] Recipients:', {
-          customers: customers.length,
-          employees: employees.length,
-          total: allRecipients.length,
-        });
-
-        console.log('[Maintenance Stream API] Recipients:', {
-          customers: customers.length,
-          employees: employees.length,
-          total: allRecipients.length,
-        });
-
         if (allRecipients.length === 0) {
-          console.log('[Maintenance Stream API] No recipients, sending complete status');
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
             status: 'complete',
             progress: 100,
@@ -181,7 +159,6 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        console.log('[Maintenance Stream API] Starting to send emails to', allRecipients.length, 'recipients');
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
           status: 'sending',
           progress: 5,
@@ -198,7 +175,6 @@ export async function POST(request: NextRequest) {
 
         for (let i = 0; i < allRecipients.length; i++) {
           const recipient = allRecipients[i];
-          console.log(`[Maintenance Stream API] Sending to ${i + 1}/${allRecipients.length}: ${recipient.email}`);
           
           try {
             await sendMaintenanceNotification(
@@ -213,7 +189,6 @@ export async function POST(request: NextRequest) {
               }
             );
             sent++;
-            console.log(`[Maintenance Stream API] Successfully sent to ${recipient.email}`);
           } catch (error) {
             console.error(`[Maintenance Stream API] Failed to send to ${recipient.email}:`, error);
             failed++;
@@ -229,7 +204,6 @@ export async function POST(request: NextRequest) {
             total: allRecipients.length,
             current: i + 1,
           };
-          console.log('[Maintenance Stream API] Sending progress:', progressData);
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(progressData)}\n\n`));
 
           // Small delay to prevent rate limiting
@@ -238,13 +212,9 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        console.log('[Maintenance Stream API] All emails sent. Total:', sent, 'Failed:', failed);
-
         // Update database count
         try {
-          console.log('[Maintenance Stream API] Updating database with count:', sent);
           await client.rpc('update_maintenance_email_sent', { p_count: sent });
-          console.log('[Maintenance Stream API] Database updated successfully');
         } catch (e) {
           console.error('[Maintenance Stream API] Failed to update email count:', e);
         }
@@ -259,10 +229,8 @@ export async function POST(request: NextRequest) {
           customerCount: customers.length,
           employeeCount: employees.length,
         };
-        console.log('[Maintenance Stream API] Sending complete status:', completeData);
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(completeData)}\n\n`));
 
-        console.log('[Maintenance Stream API] Closing stream');
         controller.close();
       } catch (error: any) {
         console.error('[Maintenance Stream API] Stream error:', error);

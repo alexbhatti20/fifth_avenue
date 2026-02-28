@@ -317,7 +317,7 @@ function MaintenancePage({
   const displayReason = reasonType === 'custom' && customReason ? customReason : config.label;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-3 sm:p-4 md:p-6 relative overflow-hidden">
       {/* Floating particles background */}
       <FloatingParticles />
       
@@ -337,22 +337,22 @@ function MaintenancePage({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="relative z-10 text-center max-w-2xl mx-auto"
+        className="relative z-10 text-center max-w-2xl mx-auto w-full px-2"
       >
         {/* Logo */}
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', delay: 0.2 }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
           <div className="relative inline-block">
             <Image
               src="/assets/logo.png"
               alt="ZOIRO Injected Broast"
-              width={120}
-              height={120}
-              className="mx-auto drop-shadow-2xl"
+              width={100}
+              height={100}
+              className="mx-auto drop-shadow-2xl sm:w-[120px] sm:h-[120px]"
               priority
             />
             <motion.div
@@ -368,10 +368,10 @@ function MaintenancePage({
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: 'spring', delay: 0.3 }}
-          className="mb-6"
+          className="mb-4 sm:mb-6"
         >
-          <div className={`inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br ${config.gradient} shadow-2xl`}>
-            <Icon className="w-10 h-10 text-white" />
+          <div className={`inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-gradient-to-br ${config.gradient} shadow-2xl`}>
+            <Icon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
           </div>
         </motion.div>
 
@@ -380,10 +380,10 @@ function MaintenancePage({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="mb-4"
+          className="mb-3 sm:mb-4"
         >
-          <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-800/80 border border-zinc-700 text-sm font-medium ${config.color}`}>
-            <Wrench className="w-4 h-4" />
+          <span className={`inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-zinc-800/80 border border-zinc-700 text-xs sm:text-sm font-medium ${config.color}`}>
+            <Wrench className="w-3 h-3 sm:w-4 sm:h-4" />
             {displayReason}
           </span>
         </motion.div>
@@ -393,7 +393,7 @@ function MaintenancePage({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4"
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3 sm:mb-4 px-2 leading-tight"
         >
           {title}
         </motion.h1>
@@ -403,7 +403,7 @@ function MaintenancePage({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="text-lg sm:text-xl text-zinc-400 mb-8 max-w-lg mx-auto"
+          className="text-base sm:text-lg md:text-xl text-zinc-400 mb-6 sm:mb-8 max-w-lg mx-auto px-4 leading-relaxed"
         >
           {message}
         </motion.p>
@@ -414,10 +414,10 @@ function MaintenancePage({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.7 }}
-            className="mb-8"
+            className="mb-6 sm:mb-8"
           >
-            <div className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-4">
-              <Clock className="w-4 h-4" />
+            <div className="inline-flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
+              <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
               <span>Estimated time to completion</span>
             </div>
             <div className="flex justify-center">
@@ -438,7 +438,7 @@ function MaintenancePage({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
-            className="mb-8 flex justify-center"
+            className="mb-6 sm:mb-8 flex justify-center px-4"
           >
             <ProgressBar startTime={enabledAt} endTime={estimatedRestoreTime} />
           </motion.div>
@@ -449,20 +449,20 @@ function MaintenancePage({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9 }}
-          className="mb-8"
+          className="mb-6 sm:mb-8 px-2"
         >
-          <div className="inline-flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-zinc-800/50 border border-zinc-700/50 backdrop-blur-sm">
+          <div className="inline-flex flex-col sm:flex-row items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-800/50 border border-zinc-700/50 backdrop-blur-sm max-w-full">
             <div className="flex items-center gap-2 text-zinc-400">
-              <Coffee className="w-4 h-4" />
-              <span className="text-sm">Need to order?</span>
+              <Coffee className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="text-xs sm:text-sm">Need to order?</span>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <a 
                 href="tel:+923046292822" 
                 className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
               >
-                <Phone className="w-4 h-4" />
-                <span className="font-medium">+92 304 629 2822</span>
+                <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="font-medium text-xs sm:text-base">+92 304 629 2822</span>
               </a>
             </div>
           </div>
@@ -477,9 +477,10 @@ function MaintenancePage({
           <Button
             onClick={() => window.location.reload()}
             variant="outline"
-            className="rounded-xl border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600 transition-all"
+            size="sm"
+            className="rounded-lg sm:rounded-xl border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600 transition-all text-xs sm:text-sm px-4 sm:px-6 py-2 sm:py-3 h-auto"
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
+            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Refresh Page
           </Button>
         </motion.div>
@@ -493,9 +494,9 @@ function MaintenancePage({
         initial={{ opacity: 0, y: -30, scale: 0.8 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', delay: 1, stiffness: 120, damping: 14 }}
-        whileHover={{ scale: 1.1, boxShadow: '0 0 40px rgba(168,85,247,0.5), 0 0 80px rgba(236,72,153,0.2)' }}
+        whileHover={{ scale: 1.05, boxShadow: '0 0 40px rgba(168,85,247,0.5), 0 0 80px rgba(236,72,153,0.2)' }}
         whileTap={{ scale: 0.95 }}
-        className="fixed top-5 right-5 z-50 group flex items-center gap-3 px-6 py-3 rounded-2xl text-sm font-bold tracking-wide uppercase cursor-pointer overflow-hidden transition-all duration-300"
+        className="fixed top-3 right-3 sm:top-5 sm:right-5 z-50 group flex items-center gap-2 sm:gap-3 px-3 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold tracking-wide uppercase cursor-pointer overflow-hidden transition-all duration-300"
         style={{
           background: 'linear-gradient(135deg, #0d0d1a 0%, #1a1a2e 50%, #0d0d1a 100%)',
         }}
@@ -507,13 +508,14 @@ function MaintenancePage({
         {/* Shimmer sweep */}
         <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" style={{ background: 'linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0.03) 55%, transparent 65%)', backgroundSize: '250% 100%', animation: 'devShimmer 2.5s ease-in-out infinite' }} />
         {/* Code icon */}
-        <svg className="relative w-5 h-5 text-purple-400 group-hover:text-purple-300 transition-colors duration-300" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>
+        <svg className="relative w-4 h-4 sm:w-5 sm:h-5 text-purple-400 group-hover:text-purple-300 transition-colors duration-300" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>
         {/* Text */}
-        <span className="relative bg-gradient-to-r from-purple-300 via-pink-300 to-cyan-300 bg-clip-text text-transparent font-extrabold">Developer</span>
+        <span className="relative bg-gradient-to-r from-purple-300 via-pink-300 to-cyan-300 bg-clip-text text-transparent font-extrabold hidden sm:inline">Developer</span>
+        <span className="relative bg-gradient-to-r from-purple-300 via-pink-300 to-cyan-300 bg-clip-text text-transparent font-extrabold sm:hidden">Dev</span>
         {/* Live dot */}
-        <span className="relative flex h-2.5 w-2.5">
+        <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+          <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
         </span>
       </motion.a>
 
@@ -522,9 +524,9 @@ function MaintenancePage({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.2 }}
-        className="absolute bottom-6 text-center"
+        className="absolute bottom-4 sm:bottom-6 text-center px-4"
       >
-        <p className="text-zinc-600 text-sm">© {new Date().getFullYear()} ZOIRO Injected Broast. All rights reserved.</p>
+        <p className="text-zinc-600 text-xs sm:text-sm">© {new Date().getFullYear()} ZOIRO Injected Broast. All rights reserved.</p>
       </motion.div>
 
       <style jsx global>{`

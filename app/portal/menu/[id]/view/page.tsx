@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
+import { deleteStorageFile } from '@/lib/storage';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -159,14 +160,7 @@ export default function ViewMenuItemPage({ params }: { params: Promise<{ id: str
       // Delete images from storage
       if (data?.images && Array.isArray(data.images)) {
         for (const imageUrl of data.images) {
-          try {
-            // Extract path from URL: https://...storage.../images/menu/filename.jpg
-            const urlParts = imageUrl.split('/images/');
-            if (urlParts.length === 2) {
-              await supabase.storage.from('images').remove([urlParts[1]]);
-            }
-          } catch (imgError) {
-            }
+          deleteStorageFile(imageUrl).catch(() => {}); // non-blocking, silent fail
         }
       }
 

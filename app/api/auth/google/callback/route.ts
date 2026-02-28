@@ -178,8 +178,6 @@ export async function GET(request: NextRequest) {
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const baseUrl = `${protocol}://${host}`;
 
-  console.log('Google OAuth callback - baseUrl:', baseUrl);
-
   // Handle OAuth errors
   if (error) {
     console.error('Google OAuth error:', error, errorDescription);

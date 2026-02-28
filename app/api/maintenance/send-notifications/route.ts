@@ -119,8 +119,6 @@ export async function POST(request: NextRequest) {
     // Get all users for email
     const { data: usersData, error: usersError } = await client.rpc('get_all_users_for_maintenance_email');
 
-    console.log('[Maintenance Email API] RPC Response:', JSON.stringify(usersData, null, 2));
-
     if (usersError) {
       console.error('[Maintenance Email API] RPC error:', usersError);
       return NextResponse.json({
@@ -151,12 +149,6 @@ export async function POST(request: NextRequest) {
     const employees: Array<{email: string; name: string}> = Array.isArray(result.employees) ? result.employees : [];
     const allRecipients = [...customers, ...employees].filter(r => r && r.email);
 
-    console.log('[Maintenance Email API] Recipients:', {
-      customerCount: customers.length,
-      employeeCount: employees.length,
-      totalRecipients: allRecipients.length,
-    });
-
     if (allRecipients.length === 0) {
       return NextResponse.json({
         success: true,
@@ -176,8 +168,6 @@ export async function POST(request: NextRequest) {
       message: settings.message,
       estimatedRestoreTime: settings.estimated_restore_time,
     }).then(async (emailResult) => {
-      console.log('[Maintenance Email API] Send completed:', emailResult);
-      
       // Update email sent count in database using authenticated client
       try {
         await client.rpc('update_maintenance_email_sent', {

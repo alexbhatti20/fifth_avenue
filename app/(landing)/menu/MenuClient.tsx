@@ -4,7 +4,7 @@ import { useState, useRef, useMemo } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { Plus, Minus, Star, Search, X, Sparkles, Flame, Gift, Tag, Clock, Package, Percent, LogIn, UserPlus, MessageSquare, Send, Loader2, Heart } from "lucide-react";
+import { Plus, Minus, Star, Search, X, Sparkles, Flame, Gift, Tag, Clock, Package, Percent, LogIn, UserPlus, MessageSquare, Send, Loader2, Heart, ChevronLeft, ChevronRight, Utensils, BadgeCheck, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +66,252 @@ interface MenuClientProps {
   initialMenuItems: MenuItem[];
   initialDeals: Deal[];
 }
+
+// ─── Advanced Menu Item Card with image carousel ───────────────────────────
+interface MenuItemCardProps {
+  item: MenuItem;
+  quantity: number;
+  isItemFavorite: boolean;
+  isToggling: boolean;
+  categoryName?: string;
+  onOpen: () => void;
+  onToggleFavorite: (e: React.MouseEvent) => void;
+  onAddToCart: () => void;
+  onIncrement: () => void;
+  onDecrement: () => void;
+}
+
+function MenuItemCard({
+  item,
+  quantity,
+  isItemFavorite,
+  isToggling,
+  categoryName,
+  onOpen,
+  onToggleFavorite,
+  onAddToCart,
+  onIncrement,
+  onDecrement,
+}: MenuItemCardProps) {
+  const [imgIdx, setImgIdx] = useState(0);
+  const images = item.images?.length ? item.images : ["https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&h=600&fit=crop&q=80"];
+  const multipleImages = images.length > 1;
+
+  const prevImg = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setImgIdx((i) => (i - 1 + images.length) % images.length);
+  };
+  const nextImg = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setImgIdx((i) => (i + 1) % images.length);
+  };
+
+  const minPrice = item.has_variants && item.size_variants?.length
+    ? Math.min(...item.size_variants.map((v) => v.price))
+    : item.price;
+
+  const filledStars = item.rating ? Math.round(item.rating) : 0;
+
+  return (
+    <motion.div
+      variants={cardVariants}
+      layout
+      className="group relative bg-card rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer border border-border/50 hover:border-primary/40"
+      onClick={onOpen}
+      style={{ transformStyle: "preserve-3d" }}
+    >
+      {/* ── Image area ── */}
+      <div className="relative h-52 bg-muted overflow-hidden">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={imgIdx}
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.25 }}
+            className="absolute inset-0"
+          >
+            <Image
+              src={images[imgIdx]}
+              alt={`${item.name} ${imgIdx + 1}`}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Dark gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />
+
+        {/* Carousel arrows */}
+        {multipleImages && (
+          <>
+            <button
+              onClick={prevImg}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={nextImg}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            {/* Dot indicators */}
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => { e.stopPropagation(); setImgIdx(i); }}
+                  className={`rounded-full transition-all duration-200 ${
+                    i === imgIdx ? "w-4 h-2 bg-white" : "w-2 h-2 bg-white/50"
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Top-left badges */}
+        <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
+          {item.is_featured && (
+            <span className="flex items-center gap-1 bg-primary text-primary-foreground text-xs font-bold px-2.5 py-1 rounded-full shadow">
+              <Flame className="w-3 h-3" /> Popular
+            </span>
+          )}
+          {categoryName && (
+            <span className="flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full">
+              <Utensils className="w-3 h-3" /> {categoryName}
+            </span>
+          )}
+        </div>
+
+        {/* Heart */}
+        <motion.button
+          onClick={onToggleFavorite}
+          disabled={isToggling}
+          className={`absolute top-3 right-3 z-10 w-9 h-9 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg transition-all ${
+            isItemFavorite ? "bg-red-500 text-white" : "bg-white/90 text-gray-600 hover:bg-red-50 hover:text-red-500"
+          }`}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <Heart className={`h-5 w-5 transition-all ${isItemFavorite ? "fill-current" : ""} ${isToggling ? "animate-pulse" : ""}`} />
+        </motion.button>
+
+        {/* Bottom-left: variants pill */}
+        {item.has_variants && item.size_variants && item.size_variants.length > 0 && (
+          <span className="absolute bottom-3 left-3 z-10 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+            <Info className="w-3 h-3" /> {item.size_variants.length} sizes
+          </span>
+        )}
+
+        {/* Bottom-right: rating */}
+        <span className="absolute bottom-3 right-3 z-10 bg-black/60 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+          {item.rating ? item.rating.toFixed(1) : "New"}
+          {(item.total_reviews ?? 0) > 0 && (
+            <span className="text-white/70">({item.total_reviews})</span>
+          )}
+        </span>
+
+        {/* Multi-image counter */}
+        {multipleImages && (
+          <span className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
+            {imgIdx + 1}/{images.length}
+          </span>
+        )}
+      </div>
+
+      {/* ── Body ── */}
+      <div className="p-4">
+        {/* Name + star row */}
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <h3 className="text-lg font-bebas leading-tight group-hover:text-primary transition-colors line-clamp-2 flex-1">
+            {item.name}
+          </h3>
+          {/* Star row */}
+          <div className="flex items-center gap-0.5 flex-shrink-0 mt-0.5">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star
+                key={s}
+                className={`w-3 h-3 ${s <= filledStars ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Description */}
+        <p className="text-muted-foreground text-xs mb-3 line-clamp-2 leading-relaxed">{item.description}</p>
+
+        {/* Meta chips */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          <span className="flex items-center gap-1 text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+            <Clock className="w-3 h-3 text-primary" />
+            {item.preparation_time || 15} min
+          </span>
+          {item.tags?.slice(0, 2).map((tag) => (
+            <span key={tag} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full capitalize">
+              #{tag}
+            </span>
+          ))}
+          {(item.total_reviews ?? 0) > 0 && (
+            <span className="flex items-center gap-1 text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+              <MessageSquare className="w-3 h-3" /> {item.total_reviews} reviews
+            </span>
+          )}
+        </div>
+
+        {/* Price + CTA */}
+        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+          <div>
+            {item.has_variants && item.size_variants && item.size_variants.length > 0 ? (
+              <div className="flex flex-col leading-tight">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wide">From</span>
+                <span className="text-xl font-extrabold text-primary">Rs.&nbsp;{minPrice}</span>
+              </div>
+            ) : (
+              <span className="text-xl font-extrabold text-primary">Rs.&nbsp;{item.price}</span>
+            )}
+          </div>
+
+          {item.has_variants && item.size_variants && item.size_variants.length > 0 ? (
+            <Button
+              size="sm"
+              className="rounded-full bg-primary hover:bg-primary/90 text-xs font-semibold"
+              onClick={(e) => { e.stopPropagation(); onOpen(); }}
+            >
+              Select Size
+            </Button>
+          ) : quantity > 0 ? (
+            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={onDecrement}>
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="font-bold w-6 text-center text-sm">{quantity}</span>
+              <Button size="icon" className="h-8 w-8 rounded-full bg-primary hover:bg-primary/90" onClick={onIncrement}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={(e) => e.stopPropagation()}>
+              <Button
+                size="sm"
+                className="rounded-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 shadow-md"
+                onClick={onAddToCart}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add
+              </Button>
+            </motion.div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+// ──────────────────────────────────────────────────────────────────────────────
 
 export default function MenuClient({ 
   initialCategories, 
@@ -148,6 +394,7 @@ export default function MenuClient({
     toast({
       title: "Added to cart!",
       description: `${item.name} has been added to your cart.`,
+      duration: 2000,
     });
   };
 
@@ -166,6 +413,7 @@ export default function MenuClient({
     toast({
       title: "Deal added to cart!",
       description: `${deal.name} has been added to your cart.`,
+      duration: 2000,
     });
   };
 
@@ -756,102 +1004,21 @@ export default function MenuClient({
                     const quantity = getCartQuantity(item.id);
                     const isItemFavorite = isFavorite(item.id, 'menu_item');
                     const isToggling = togglingFavorites.has(item.id);
+                    const categoryName = categories.find((c) => c.id === item.category_id)?.name;
                     return (
-                      <motion.div
+                      <MenuItemCard
                         key={item.id}
-                        variants={cardVariants}
-                        layout
-                        className="group bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-                        onClick={() => openItemDetail(item)}
-                      >
-                        <div className="relative h-48 bg-muted overflow-hidden">
-                          <Image
-                            src={item.images?.[0] || "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&h=600&fit=crop&q=80"}
-                            alt={item.name}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            className="object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-                          {item.is_featured && (
-                            <span className="absolute top-3 left-3 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full z-10">
-                              Popular
-                            </span>
-                          )}
-                          <motion.button
-                            onClick={(e) => handleToggleFavorite(e, item.id, 'menu_item', item.name)}
-                            disabled={isToggling}
-                            className={`absolute top-3 right-3 w-9 h-9 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg transition-all z-10 ${
-                              isItemFavorite 
-                                ? 'bg-red-500 text-white' 
-                                : 'bg-white/90 text-gray-600 hover:bg-red-50 hover:text-red-500'
-                            }`}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                          >
-                            <Heart 
-                              className={`h-5 w-5 transition-all ${
-                                isItemFavorite ? 'fill-current' : ''
-                              } ${isToggling ? 'animate-pulse' : ''}`} 
-                            />
-                          </motion.button>
-                          {item.has_variants && item.size_variants && item.size_variants.length > 0 && (
-                            <span className="absolute bottom-3 left-3 bg-orange-500/90 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1 z-10">
-                              {item.size_variants.length} sizes
-                            </span>
-                          )}
-                          <span className="absolute bottom-3 right-3 bg-background/90 text-foreground text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1 z-10">
-                            <Star className="w-3 h-3 text-accent fill-accent" />
-                            {item.rating ? item.rating.toFixed(1) : 'New'}
-                            {(item.total_reviews ?? 0) > 0 && <span className="text-muted-foreground">({item.total_reviews})</span>}
-                          </span>
-                        </div>
-                        <div className="p-5">
-                          <h3 className="text-lg font-bebas group-hover:text-primary transition-colors line-clamp-1">
-                            {item.name}
-                          </h3>
-                          <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{item.description}</p>
-                          <div className="flex items-center justify-between">
-                            {item.has_variants && item.size_variants && item.size_variants.length > 0 ? (
-                              <div className="flex flex-col">
-                                <span className="text-xs text-muted-foreground">Starting from</span>
-                                <span className="text-xl font-bold text-primary">
-                                  Rs. {Math.min(...item.size_variants.map(v => v.price))}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-xl font-bold text-primary">Rs. {item.price}</span>
-                            )}
-                            {item.has_variants && item.size_variants && item.size_variants.length > 0 ? (
-                              <Button 
-                                size="sm" 
-                                className="rounded-full bg-primary hover:bg-primary/90"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openItemDetail(item);
-                                }}
-                              >
-                                Select Size
-                              </Button>
-                            ) : quantity > 0 ? (
-                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(item.id, quantity - 1)}>
-                                  <Minus className="h-4 w-4" />
-                                </Button>
-                                <span className="font-semibold w-6 text-center">{quantity}</span>
-                                <Button size="icon" className="h-8 w-8 rounded-full bg-primary hover:bg-primary/90" onClick={() => updateQuantity(item.id, quantity + 1)}>
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={(e) => e.stopPropagation()}>
-                                <Button size="icon" className="rounded-full bg-primary hover:bg-primary/90" onClick={() => handleAddToCart(item)}>
-                                  <Plus className="h-5 w-5" />
-                                </Button>
-                              </motion.div>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
+                        item={item}
+                        quantity={quantity}
+                        isItemFavorite={isItemFavorite}
+                        isToggling={isToggling}
+                        categoryName={categoryName}
+                        onOpen={() => openItemDetail(item)}
+                        onToggleFavorite={(e) => handleToggleFavorite(e, item.id, 'menu_item', item.name)}
+                        onAddToCart={() => handleAddToCart(item)}
+                        onIncrement={() => updateQuantity(item.id, quantity + 1)}
+                        onDecrement={() => updateQuantity(item.id, quantity - 1)}
+                      />
                     );
                   })}
                 </AnimatePresence>
@@ -1029,6 +1196,7 @@ export default function MenuClient({
                           toast({
                             title: "Added to cart!",
                             description: `${selectedItem.name}${selectedSize ? ` (${selectedSize})` : ''} has been added.`,
+                            duration: 2000,
                           });
                           closeDetailModal(); 
                         }}

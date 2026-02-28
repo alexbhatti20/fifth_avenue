@@ -26,7 +26,14 @@ import {
   Copy,
   Archive,
   Ruler,
+  CheckSquare,
+  Square,
+  ChevronLeft,
+  ChevronRight,
+  Images,
+  TrendingDown,
 } from 'lucide-react';
+import { PortalLoader } from '@/components/portal/PortalLoader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,8 +82,8 @@ import { supabase } from '@/lib/supabase';
 import { getAuthenticatedClient } from '@/lib/portal-queries';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { uploadMenuImage } from '@/lib/storage';
-import { manageMenuCategory, toggleMenuItemAvailability, deleteMenuItemServer, toggleDealStatusServer, deleteDealServer } from '@/lib/actions';
+import { uploadMenuImage, deleteStorageFile } from '@/lib/storage';
+import { manageMenuCategory, toggleMenuItemAvailability, deleteMenuItemServer, deleteMenuItemsBatchServer, toggleDealStatusServer, deleteDealServer, deleteDealsBatchServer } from '@/lib/actions';
 import type { MenuItemAdmin, CategoryAdmin, MenuManagementData, Deal } from '@/lib/server-queries';
 
 // Helper to get auth token from various sources
@@ -170,148 +177,251 @@ function MenuItemCard({
   onDelete,
   onToggleAvailability,
   onToggleFeatured,
+  isSelectMode = false,
+  isSelected = false,
+  onToggleSelect,
 }: {
   item: MenuItem;
   onEdit: (item: MenuItem) => void;
   onDelete: (id: string) => void;
   onToggleAvailability: (id: string, value: boolean) => void;
   onToggleFeatured: (id: string, value: boolean) => void;
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }) {
+  const [imgIdx, setImgIdx] = useState(0);
+  const imgs = item.images && item.images.length > 0 ? item.images : [];
+  const hasMultiple = imgs.length > 1;
+
+  const prevImg = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setImgIdx(i => (i - 1 + imgs.length) % imgs.length);
+  };
+  const nextImg = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setImgIdx(i => (i + 1) % imgs.length);
+  };
+
+  const savePct = item.sale_price && item.price > 0
+    ? Math.round(((item.price - item.sale_price) / item.price) * 100)
+    : null;
+
   return (
-    <div>
+    <div
+      onClick={isSelectMode ? () => onToggleSelect?.(item.id) : undefined}
+      className={cn(isSelectMode && 'cursor-pointer')}
+    >
       <Card className={cn(
-        'overflow-hidden transition-shadow duration-200 hover:shadow-md',
-        !item.is_available && 'opacity-60'
+        'overflow-hidden transition-all duration-200 hover:shadow-lg group',
+        !item.is_available && 'opacity-60',
+        isSelected && 'ring-2 ring-primary ring-offset-2'
       )}>
-        <div className="aspect-video relative bg-zinc-100 dark:bg-zinc-800">
-          {item.images && item.images.length > 0 ? (
-            <img
-              src={item.images[0]}
-              alt={item.name}
-              className="w-full h-full object-cover"
-            />
+        {/* ── Image area ───────────────────────────────── */}
+        <div className="relative bg-zinc-100 dark:bg-zinc-800" style={{ aspectRatio: '4/3' }}>
+          {imgs.length > 0 ? (
+            <>
+              <img
+                src={imgs[imgIdx]}
+                alt={`${item.name} ${imgIdx + 1}`}
+                className="w-full h-full object-cover transition-opacity duration-200"
+              />
+              {/* bottom gradient for badge legibility */}
+              <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+            </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Package className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground/30" />
+            <div className="w-full h-full flex flex-col items-center justify-center gap-1.5">
+              <Package className="h-10 w-10 text-muted-foreground/25" />
+              <span className="text-[10px] text-muted-foreground/50">No image</span>
             </div>
           )}
-          
-          {/* Badges */}
-          <div className="absolute top-1.5 sm:top-2 left-1.5 sm:left-2 flex flex-wrap gap-1">
-            {item.is_featured && (
-              <Badge className="bg-yellow-500 text-white text-[10px] sm:text-xs">
-                <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" /> Featured
-              </Badge>
+
+          {/* Carousel arrows */}
+          {hasMultiple && !isSelectMode && (
+            <>
+              <button
+                onClick={prevImg}
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-black/55 hover:bg-black/80 flex items-center justify-center text-white transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100"
+                aria-label="Previous image"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={nextImg}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-black/55 hover:bg-black/80 flex items-center justify-center text-white transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100"
+                aria-label="Next image"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+              {/* dot indicators */}
+              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1">
+                {imgs.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={(e) => { e.stopPropagation(); setImgIdx(i); }}
+                    className={cn(
+                      'w-1.5 h-1.5 rounded-full transition-all',
+                      i === imgIdx ? 'bg-white scale-110' : 'bg-white/50 hover:bg-white/80'
+                    )}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Top-left: select checkbox OR badges */}
+          {isSelectMode ? (
+            <div className="absolute top-2 left-2">
+              <div className={cn(
+                'h-6 w-6 rounded-md flex items-center justify-center shadow',
+                isSelected
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-white/90 dark:bg-zinc-800/90 border border-zinc-300 dark:border-zinc-600'
+              )}>
+                {isSelected
+                  ? <CheckSquare className="h-4 w-4" />
+                  : <Square className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </div>
+          ) : (
+            <div className="absolute top-1.5 left-1.5 flex flex-wrap gap-1">
+              {item.is_featured && (
+                <Badge className="bg-amber-500 text-white text-[10px] h-5 px-1.5 shadow">
+                  <Star className="h-2.5 w-2.5 mr-0.5 fill-white" /> Featured
+                </Badge>
+              )}
+              {item.is_spicy && (
+                <Badge variant="destructive" className="text-[10px] h-5 px-1.5 shadow">
+                  <Flame className="h-2.5 w-2.5 mr-0.5" /> Spicy
+                </Badge>
+              )}
+              {item.is_vegetarian && (
+                <Badge className="bg-green-600 text-white text-[10px] h-5 px-1.5 shadow">
+                  <Leaf className="h-2.5 w-2.5 mr-0.5" /> Veg
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Top-right: image count pill + actions menu */}
+          <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
+            {imgs.length > 1 && (
+              <span className="flex items-center gap-0.5 bg-black/55 text-white text-[10px] font-medium rounded-full px-1.5 py-0.5 leading-none">
+                <Images className="h-2.5 w-2.5" />{imgIdx + 1}/{imgs.length}
+              </span>
             )}
-            {item.is_spicy && (
-              <Badge variant="destructive" className="text-[10px] sm:text-xs">
-                <Flame className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" /> Spicy
-              </Badge>
-            )}
-            {item.is_vegetarian && (
-              <Badge className="bg-green-500 text-white text-[10px] sm:text-xs">
-                <Leaf className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" /> Veg
-              </Badge>
+            {!isSelectMode && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-7 w-7 bg-black/55 hover:bg-black/80 border-0 text-white shadow"
+                  >
+                    <MoreVertical className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <a href={`/portal/menu/${item.id}/view`} className="flex items-center cursor-pointer">
+                      <Package className="h-4 w-4 mr-2" /> View Details
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onEdit(item)}>
+                    <Edit className="h-4 w-4 mr-2" /> Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onToggleFeatured(item.id, !item.is_featured)}>
+                    <Star className="h-4 w-4 mr-2" />
+                    {item.is_featured ? 'Remove Featured' : 'Mark Featured'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigator.clipboard.writeText(item.id)}>
+                    <Copy className="h-4 w-4 mr-2" /> Copy ID
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive" onClick={() => onDelete(item.id)}>
+                    <Trash2 className="h-4 w-4 mr-2" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
-
-          {/* Actions */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="secondary"
-                size="icon"
-                className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 h-7 w-7 sm:h-8 sm:w-8"
-              >
-                <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <a href={`/portal/menu/${item.id}/view`} className="flex items-center cursor-pointer">
-                  <Package className="h-4 w-4 mr-2" /> View Details
-                </a>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEdit(item)}>
-                <Edit className="h-4 w-4 mr-2" /> Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onToggleFeatured(item.id, !item.is_featured)}>
-                <Star className="h-4 w-4 mr-2" /> 
-                {item.is_featured ? 'Remove Featured' : 'Mark Featured'}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(item.id)}>
-                <Copy className="h-4 w-4 mr-2" /> Copy ID
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => onDelete(item.id)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
 
-        <CardContent className="p-3 sm:p-4">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold truncate text-sm sm:text-base">{item.name}</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-0.5 sm:mt-1 tracking-wide">
-                {item.description}
-              </p>
-            </div>
-          </div>
+        {/* ── Card body ────────────────────────────────── */}
+        <CardContent className="p-3 pt-2.5 space-y-2">
+          {/* Category chip */}
+          {item.category && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              <Tag className="h-2.5 w-2.5" />{item.category}
+            </span>
+          )}
 
-          <div className="flex items-center justify-between mt-2 sm:mt-3">
-            <div className="flex items-baseline gap-1.5 sm:gap-2">
+          {/* Name */}
+          <h3 className="font-semibold text-sm sm:text-[15px] leading-tight truncate">{item.name}</h3>
+
+          {/* Description */}
+          {item.description && (
+            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+              {item.description}
+            </p>
+          )}
+
+          {/* Price row */}
+          <div className="flex items-center justify-between pt-0.5">
+            <div className="flex items-baseline gap-1.5">
               {item.has_variants && item.size_variants && item.size_variants.length > 0 ? (
                 <>
-                  <span className="text-base sm:text-lg font-bold text-primary">
+                  <span className="text-base font-bold text-primary">
                     Rs. {Math.min(...item.size_variants.map(v => v.price)).toLocaleString()}
                   </span>
-                  <span className="text-xs sm:text-sm text-muted-foreground">
-                    - Rs. {Math.max(...item.size_variants.map(v => v.price)).toLocaleString()}
-                  </span>
+                  <span className="text-xs text-muted-foreground">–{Math.max(...item.size_variants.map(v => v.price)).toLocaleString()}</span>
                 </>
               ) : item.sale_price ? (
                 <>
-                  <span className="text-base sm:text-lg font-bold text-primary">
-                    Rs. {item.sale_price.toLocaleString()}
-                  </span>
-                  <span className="text-xs sm:text-sm text-muted-foreground line-through">
-                    Rs. {item.price.toLocaleString()}
-                  </span>
+                  <span className="text-base font-bold text-primary">Rs. {item.sale_price.toLocaleString()}</span>
+                  <span className="text-xs text-muted-foreground line-through">Rs. {item.price.toLocaleString()}</span>
+                  {savePct && (
+                    <span className="flex items-center gap-0.5 text-[10px] font-semibold text-green-600 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 rounded-full">
+                      <TrendingDown className="h-2.5 w-2.5" />-{savePct}%
+                    </span>
+                  )}
                 </>
               ) : (
-                <span className="text-base sm:text-lg font-bold text-primary">
-                  Rs. {item.price.toLocaleString()}
-                </span>
+                <span className="text-base font-bold text-primary">Rs. {item.price.toLocaleString()}</span>
               )}
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
+
+            {/* Meta chips */}
+            <div className="flex items-center gap-1.5">
               {item.has_variants && (
-                <Badge variant="outline" className="text-[10px] sm:text-xs bg-primary/10 px-1.5 sm:px-2">
-                  <Ruler className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
-                  {item.size_variants?.length || 0}
+                <Badge variant="outline" className="text-[10px] h-5 px-1.5 bg-primary/8">
+                  <Ruler className="h-2.5 w-2.5 mr-0.5" />{item.size_variants?.length || 0} sizes
                 </Badge>
               )}
               {item.preparation_time && (
-                <span className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-0.5 sm:gap-1">
-                  <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" /> {item.preparation_time}m
+                <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                  <Clock className="h-2.5 w-2.5" />{item.preparation_time}m
                 </span>
               )}
             </div>
           </div>
         </CardContent>
 
-        <CardFooter className="p-3 sm:p-4 pt-0 flex items-center justify-between">
-          <Badge variant={item.is_available ? 'default' : 'secondary'} className="text-[10px] sm:text-xs">
-            {item.is_available ? 'Available' : 'Unavailable'}
-          </Badge>
+        {/* ── Footer ──────────────────────────────────── */}
+        <CardFooter className="px-3 py-2 border-t flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <div className={cn(
+              'h-2 w-2 rounded-full',
+              item.is_available ? 'bg-green-500' : 'bg-zinc-400'
+            )} />
+            <span className="text-[11px] font-medium text-muted-foreground">
+              {item.is_available ? 'Available' : 'Unavailable'}
+            </span>
+          </div>
           <Switch
             checked={item.is_available}
-            onCheckedChange={(value) => onToggleAvailability(item.id, value)}
+            disabled={isSelectMode}
+            onCheckedChange={(value) => !isSelectMode && onToggleAvailability(item.id, value)}
           />
         </CardFooter>
       </Card>
@@ -800,7 +910,9 @@ function CategoryManager({
               className="w-full"
             >
               {isAdding ? (
-                <>Adding...</>
+                <span className="flex items-center justify-center gap-2">
+                  <span className="zoiro-btn-spinner" />Adding…
+                </span>
               ) : (
                 <>
                   <Plus className="h-4 w-4 mr-2" />
@@ -920,7 +1032,11 @@ function CategoryManager({
               Cancel
             </Button>
             <Button onClick={handleEditCategory} disabled={isSaving || !editName.trim()}>
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {isSaving ? (
+                <span className="flex items-center gap-2">
+                  <span className="zoiro-btn-spinner" />Saving…
+                </span>
+              ) : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -943,7 +1059,11 @@ function CategoryManager({
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? (
+                <span className="flex items-center gap-2">
+                  <span className="zoiro-btn-spinner" />Deleting…
+                </span>
+              ) : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -966,6 +1086,36 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletingDeal, setDeletingDeal] = useState<Deal | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  // Multi-select state
+  const [isDealSelectMode, setIsDealSelectMode] = useState(false);
+  const [selectedDeals, setSelectedDeals] = useState<Set<string>>(new Set());
+  const [showBulkDealDeleteConfirm, setShowBulkDealDeleteConfirm] = useState(false);
+  const [isBulkDeletingDeals, setIsBulkDeletingDeals] = useState(false);
+
+  // Local optimistic copy — updated immediately so the grid empties right away
+  const [localDeals, setLocalDeals] = useState<Deal[]>(deals);
+  useEffect(() => { setLocalDeals(deals); }, [deals]);
+
+  const toggleSelectDeal = (id: string) => {
+    setSelectedDeals(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllDeals = () => {
+    if (selectedDeals.size === localDeals.length) {
+      setSelectedDeals(new Set());
+    } else {
+      setSelectedDeals(new Set(localDeals.map(d => d.id)));
+    }
+  };
+
+  const exitDealSelectMode = () => {
+    setIsDealSelectMode(false);
+    setSelectedDeals(new Set());
+  };
 
   const handleToggleStatus = async (deal: Deal) => {
     setTogglingId(deal.id);
@@ -986,9 +1136,16 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
     if (!deletingDeal) return;
     setIsDeleting(true);
     try {
+      const imageUrl = (deletingDeal as any).image_url as string | undefined;
       // Use Server Action (hidden from Network tab)
       const result = await deleteDealServer(deletingDeal.id);
       if (!result.success) throw new Error(result.error);
+      // Delete associated image from storage if present
+      if (imageUrl) {
+        await deleteStorageFile(imageUrl).catch((e) =>
+          console.warn('Could not delete deal image from storage:', e)
+        );
+      }
       toast.success('Deal deleted');
       setDeletingDeal(null);
       onUpdate();
@@ -996,6 +1153,39 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
       toast.error(error.message || 'Failed to delete deal');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleBulkDeleteDeals = async () => {
+    const ids = Array.from(selectedDeals);
+    if (ids.length === 0) return;
+    setIsBulkDeletingDeals(true);
+    // Optimistically remove from local state immediately
+    setLocalDeals(prev => prev.filter(d => !ids.includes(d.id)));
+    setShowBulkDealDeleteConfirm(false);
+    exitDealSelectMode();
+    try {
+      // Single batch DB call — no N-requests loop
+      const result = await deleteDealsBatchServer(ids);
+      // Delete images from storage in parallel (fire-and-forget)
+      const imageUrls = ids
+        .map(id => deals.find(d => d.id === id))
+        .map(deal => deal && (deal as any).image_url)
+        .filter(Boolean) as string[];
+      imageUrls.forEach(url =>
+        deleteStorageFile(url).catch(e => console.warn('Could not delete deal image:', e))
+      );
+      if ((result as any).failed_count > 0) {
+        toast.warning(`${(result as any).deleted_count} deleted, ${(result as any).failed_count} failed`);
+      } else {
+        toast.success(`${ids.length} deal${ids.length !== 1 ? 's' : ''} deleted`);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete deals');
+      onUpdate(); // Re-sync on error
+    } finally {
+      setIsBulkDeletingDeals(false);
+      onUpdate();
     }
   };
 
@@ -1021,20 +1211,72 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
 
   return (
     <>
+      {/* Gradient loader for deal operations */}
+      <PortalLoader visible={isDeleting} label="Deleting deal…" />
+      <PortalLoader visible={isBulkDeletingDeals} label={`Deleting ${selectedDeals.size} deal${selectedDeals.size !== 1 ? 's' : ''}…`} />
       <div className="space-y-4">
-        {/* Header with Add button */}
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {deals.length} deal{deals.length !== 1 ? 's' : ''} configured
-          </p>
-          <Button onClick={() => router.push('/portal/deals/add')} size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Deal
-          </Button>
+        {/* Header with Select toolbar + Add button */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            {localDeals.length > 0 && (
+              !isDealSelectMode ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsDealSelectMode(true)}
+                  className="gap-1.5"
+                >
+                  <CheckSquare className="h-4 w-4" /> Select
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" size="sm" onClick={exitDealSelectMode}>
+                    <X className="h-4 w-4 mr-1" /> Cancel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleSelectAllDeals}
+                    className="gap-1.5"
+                  >
+                    <CheckSquare className="h-4 w-4" />
+                    {selectedDeals.size === localDeals.length && localDeals.length > 0 ? 'Deselect All' : `Select All (${localDeals.length})`}
+                  </Button>
+                  {selectedDeals.size > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setShowBulkDealDeleteConfirm(true)}
+                      className="gap-1.5"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete {selectedDeals.size} Selected
+                    </Button>
+                  )}
+                </>
+              )
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {isDealSelectMode && (
+              <span className="text-sm text-muted-foreground">
+                {selectedDeals.size} of {localDeals.length} selected
+              </span>
+            )}
+            {!isDealSelectMode && (
+              <p className="text-sm text-muted-foreground">
+                {localDeals.length} deal{localDeals.length !== 1 ? 's' : ''} configured
+              </p>
+            )}
+            <Button onClick={() => router.push('/portal/deals/add')} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Deal
+            </Button>
+          </div>
         </div>
 
         {/* Deals Grid */}
-        {deals.length === 0 ? (
+        {localDeals.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Tag className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
@@ -1050,24 +1292,42 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {deals.map((deal) => {
+            {localDeals.map((deal) => {
               const status = getDealStatus(deal);
               const discountPct = deal.discount_percentage || (deal.original_price && deal.discounted_price 
                 ? Math.round((1 - deal.discounted_price / deal.original_price) * 100) 
                 : 0);
+              const isSelected = selectedDeals.has(deal.id);
               
               return (
-                <Card key={deal.id} className={cn(
-                  'relative overflow-hidden transition-shadow hover:shadow-md',
-                  !deal.is_active && 'opacity-70'
-                )}>
+                <Card
+                  key={deal.id}
+                  className={cn(
+                    'relative overflow-hidden transition-shadow hover:shadow-md',
+                    !deal.is_active && 'opacity-70',
+                    isDealSelectMode && isSelected && 'ring-2 ring-primary',
+                    isDealSelectMode && 'cursor-pointer select-none'
+                  )}
+                  onClick={isDealSelectMode ? () => toggleSelectDeal(deal.id) : undefined}
+                >
+                  {/* Checkbox overlay (select mode) */}
+                  {isDealSelectMode && (
+                    <div className="absolute top-2 left-2 z-10">
+                      {isSelected ? (
+                        <CheckSquare className="h-5 w-5 text-primary drop-shadow" />
+                      ) : (
+                        <Square className="h-5 w-5 text-muted-foreground drop-shadow" />
+                      )}
+                    </div>
+                  )}
+
                   {/* Status Badge */}
                   <div className="absolute top-3 right-3">
                     <Badge className={status.color}>{status.label}</Badge>
                   </div>
 
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base pr-16 line-clamp-1">{deal.name}</CardTitle>
+                    <CardTitle className={cn('text-base line-clamp-1', isDealSelectMode ? 'pr-16 pl-6' : 'pr-16')}>{deal.name}</CardTitle>
                     <CardDescription className="text-xs capitalize">
                       {deal.deal_type} Deal
                     </CardDescription>
@@ -1108,7 +1368,8 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             navigator.clipboard.writeText(deal.code);
                             toast.success('Code copied!');
                           }}
@@ -1136,30 +1397,33 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={deal.is_active}
-                        disabled={togglingId === deal.id}
-                        onCheckedChange={() => handleToggleStatus(deal)}
+                        disabled={togglingId === deal.id || isDealSelectMode}
+                        onCheckedChange={() => !isDealSelectMode && handleToggleStatus(deal)}
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <span className="text-xs text-muted-foreground">{deal.is_active ? 'Active' : 'Inactive'}</span>
                     </div>
                     
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => router.push(`/portal/deals/${deal.id}`)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => setDeletingDeal(deal)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    {!isDealSelectMode && (
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => router.push(`/portal/deals/${deal.id}`)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => setDeletingDeal(deal)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </CardFooter>
                 </Card>
               );
@@ -1168,14 +1432,14 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
         )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingDeal} onOpenChange={(open) => !open && setDeletingDeal(null)}>
+      {/* Single Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingDeal} onOpenChange={(open) => !isDeleting && !open && setDeletingDeal(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Deal?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deletingDeal?.name}"? 
-              This action cannot be undone.
+              Are you sure you want to delete &quot;{deletingDeal?.name}&quot;?
+              This will also remove its image from storage. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1185,7 +1449,37 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? (
+                <span className="flex items-center gap-2">
+                  <span className="zoiro-btn-spinner" />Deleting…
+                </span>
+              ) : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog
+        open={showBulkDealDeleteConfirm}
+        onOpenChange={(o) => !isBulkDeletingDeals && setShowBulkDealDeleteConfirm(o)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {selectedDeals.size} deal{selectedDeals.size !== 1 ? 's' : ''}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedDeals.size} deal{selectedDeals.size !== 1 ? 's' : ''} and their images. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDeleteDeals}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete {selectedDeals.size}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1193,7 +1487,6 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
     </>
   );
 }
-
 // Props for SSR
 interface MenuClientProps {
   initialData?: MenuManagementData;
@@ -1211,8 +1504,35 @@ export default function MenuClient({ initialData }: MenuClientProps) {
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
+  const [isDeletingSingle, setIsDeletingSingle] = useState(false);
+  // Multi-select state — menu items
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [bulkDeleteProgress, setBulkDeleteProgress] = useState<{ done: number; total: number } | null>(null);
 
-  // Fetch deals for refresh after mutations (not initial load - that's SSR)
+  const toggleSelectItem = (id: string) => {
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllItems = () => {
+    if (selectedItems.size === filteredItems.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(filteredItems.map(i => i.id)));
+    }
+  };
+
+  const exitSelectMode = () => {
+    setIsSelectMode(false);
+    setSelectedItems(new Set());
+  };
+
   const fetchDeals = useCallback(async () => {
     setIsDealsLoading(true);
     try {
@@ -1325,38 +1645,60 @@ export default function MenuClient({ initialData }: MenuClientProps) {
     }
   };
 
-  const handleDeleteItem = async () => {
-    if (!deleteItemId) return;
+  const handleBulkDeleteItems = async () => {
+    const ids = Array.from(selectedItems);
+    if (ids.length === 0) return;
+
+    setIsBulkDeleting(true);
+    // Show indeterminate progress while single batch call runs
+    setBulkDeleteProgress({ done: 0, total: ids.length });
 
     try {
-      // Use RPC function to bypass RLS and get images
-      const { data, error } = await getAuthenticatedClient().rpc('delete_menu_item', {
-        p_item_id: deleteItemId
-      });
-      
-      if (error) throw error;
-      
-      // Delete images from storage
-      if (data?.images && Array.isArray(data.images)) {
-        for (const imageUrl of data.images) {
-          try {
-            // Extract path from URL: https://...storage.../images/menu/filename.jpg
-            const urlParts = imageUrl.split('/images/');
-            if (urlParts.length === 2) {
-              await supabase.storage.from('images').remove([urlParts[1]]);
-            }
-          } catch (imgError) {
-            // Continue even if image deletion fails
-          }
-        }
+      // Single server-action call — one DB request for all items
+      const result = await deleteMenuItemsBatchServer(ids);
+
+      // Immediately mark full progress
+      setBulkDeleteProgress({ done: ids.length, total: ids.length });
+
+      // Clean up storage images (non-blocking, fire-and-forget per image)
+      if (result.images && result.images.length > 0) {
+        for (const imageUrl of result.images) deleteStorageFile(imageUrl).catch(() => {});
       }
-      
+
+      if (!result.success) throw new Error(result.error);
+
+      if ((result.failed_count ?? 0) === 0) {
+        toast.success(`${result.deleted_count} item${result.deleted_count !== 1 ? 's' : ''} deleted`);
+      } else {
+        toast.warning(`${result.deleted_count} deleted, ${result.failed_count} failed`);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete items');
+    } finally {
+      setIsBulkDeleting(false);
+      setBulkDeleteProgress(null);
+      setShowBulkDeleteConfirm(false);
+      setSelectedItems(new Set());
+      setIsSelectMode(false);
+    }
+    fetchData();
+  };
+
+  const handleDeleteItem = async () => {
+    if (!deleteItemId) return;
+    setIsDeletingSingle(true);
+    try {
+      // Server action — no client-side RPC, runs server-side
+      const result = await deleteMenuItemServer(deleteItemId);
+      if (!result.success) throw new Error(result.error);
+      // Clean up storage images
+      for (const imageUrl of result.images) deleteStorageFile(imageUrl).catch(() => {});
       toast.success('Item deleted successfully');
-      await invalidateMenuCache();
       fetchData();
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete item');
     } finally {
+      setIsDeletingSingle(false);
       setDeleteItemId(null);
     }
   };
@@ -1403,6 +1745,9 @@ export default function MenuClient({ initialData }: MenuClientProps) {
 
   return (
     <>
+      {/* Universal gradient loader for item delete operations */}
+      <PortalLoader visible={isDeletingSingle} label="Deleting item…" />
+      <PortalLoader visible={isBulkDeleting} label={`Deleting ${selectedItems.size} item${selectedItems.size !== 1 ? 's' : ''}…`} />
       <SectionHeader
         title="Menu Management"
         description="Manage your restaurant menu items and categories"
@@ -1422,6 +1767,55 @@ export default function MenuClient({ initialData }: MenuClientProps) {
         </TabsList>
 
         <TabsContent value="items" className="space-y-4">
+          {/* Select Mode Toolbar */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              {!isSelectMode ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsSelectMode(true)}
+                  className="gap-1.5"
+                >
+                  <CheckSquare className="h-4 w-4" /> Select
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" size="sm" onClick={exitSelectMode}>
+                    <X className="h-4 w-4 mr-1" /> Cancel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleSelectAllItems}
+                    className="gap-1.5"
+                  >
+                    <CheckSquare className="h-4 w-4" />
+                    {selectedItems.size === filteredItems.length && filteredItems.length > 0
+                      ? 'Deselect All'
+                      : `Select All (${filteredItems.length})`}
+                  </Button>
+                  {selectedItems.size > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setShowBulkDeleteConfirm(true)}
+                      className="gap-1.5"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete {selectedItems.size} Selected
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+            {isSelectMode && (
+              <span className="text-sm text-muted-foreground">
+                {selectedItems.size} of {filteredItems.length} selected
+              </span>
+            )}
+          </div>
+
           {/* Filters */}
           <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
             <div className="relative flex-1">
@@ -1460,6 +1854,9 @@ export default function MenuClient({ initialData }: MenuClientProps) {
                     onDelete={setDeleteItemId}
                     onToggleAvailability={handleToggleAvailability}
                     onToggleFeatured={handleToggleFeatured}
+                    isSelectMode={isSelectMode}
+                    isSelected={selectedItems.has(item.id)}
+                    onToggleSelect={toggleSelectItem}
                   />
                 ))}
               </AnimatePresence>
@@ -1489,19 +1886,72 @@ export default function MenuClient({ initialData }: MenuClientProps) {
         onSave={handleSaveItem}
       />
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteItemId} onOpenChange={() => setDeleteItemId(null)}>
+      {/* Single Delete Confirmation */}
+      <AlertDialog open={!!deleteItemId} onOpenChange={(o) => !isDeletingSingle && !o && setDeleteItemId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Menu Item?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. The item will be permanently removed from your menu.
+              This action cannot be undone. The item and its image will be permanently removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteItem} className="bg-destructive text-destructive-foreground">
-              Delete
+            <AlertDialogCancel disabled={isDeletingSingle}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteItem}
+              disabled={isDeletingSingle}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingSingle ? (
+                <span className="flex items-center gap-2">
+                  <span className="zoiro-btn-spinner" />Deleting…
+                </span>
+              ) : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog
+        open={showBulkDeleteConfirm}
+        onOpenChange={(o) => !isBulkDeleting && setShowBulkDeleteConfirm(o)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {selectedItems.size} item{selectedItems.size !== 1 ? 's' : ''}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedItems.size} menu item{selectedItems.size !== 1 ? 's' : ''} and their images. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {isBulkDeleting && bulkDeleteProgress && (
+            <div className="space-y-2 py-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Deleting {bulkDeleteProgress.done} of {bulkDeleteProgress.total}…</span>
+                <span>{Math.round((bulkDeleteProgress.done / bulkDeleteProgress.total) * 100)}%</span>
+              </div>
+              <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-destructive h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(bulkDeleteProgress.done / bulkDeleteProgress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDeleteItems}
+              disabled={isBulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isBulkDeleting ? (
+                <span className="flex items-center gap-2">
+                  <span className="zoiro-btn-spinner" />Deleting…
+                </span>
+              ) : `Delete ${selectedItems.size}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

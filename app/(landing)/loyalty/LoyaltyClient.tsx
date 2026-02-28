@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { format } from "date-fns";
+// Auth is enforced server-side in page.tsx — no client-side redirect needed
 import {
   Award,
   Gift,
@@ -49,10 +51,10 @@ interface CheckedPromo {
 }
 
 const tierConfig = {
-  bronze: { color: "from-amber-600 to-amber-800", points: 0, icon: "🥉" },
-  silver: { color: "from-gray-400 to-gray-600", points: 500, icon: "🥈" },
-  gold: { color: "from-yellow-400 to-yellow-600", points: 1500, icon: "🥇" },
-  platinum: { color: "from-purple-400 to-purple-600", points: 3000, icon: "💎" },
+  bronze: { color: "from-red-700 via-rose-600 to-red-900", points: 0, icon: "🥉" },
+  silver: { color: "from-red-500 via-rose-400 to-red-700", points: 500, icon: "🥈" },
+  gold: { color: "from-red-600 via-orange-500 to-red-800", points: 1500, icon: "🥇" },
+  platinum: { color: "from-red-800 via-rose-700 to-red-950", points: 3000, icon: "💎" },
 };
 
 interface LoyaltyClientProps {
@@ -68,31 +70,22 @@ export default function LoyaltyClient({
 }: LoyaltyClientProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, isLoading: authLoading } = useAuth();
-  const hasFetchedRef = useRef(!!initialLoyalty);
-  
+  // user is kept for optional fallback fetch (SSR always provides data now)
+  const { user } = useAuth();
+  const hasFetchedRef = useRef(true); // SSR always provides data, skip client fetch
+
   const [loyaltyData, setLoyaltyData] = useState<LoyaltyDataServer | null>(initialLoyalty);
   const [promoCodes, setPromoCodes] = useState<PromoCodeServer[]>(initialPromoCodes);
   const [pointsHistory, setPointsHistory] = useState<PointsHistoryServer[]>(initialPointsHistory);
-  const [isLoading, setIsLoading] = useState(!initialLoyalty);
+  const [isLoading, setIsLoading] = useState(false); // SSR always provides initial data
   const [promoInput, setPromoInput] = useState("");
   const [isChecking, setIsChecking] = useState(false);
   const [checkedPromo, setCheckedPromo] = useState<CheckedPromo | null>(null);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
-  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
-  // Delay auth check to allow localStorage to be read
   useEffect(() => {
     setIsMobileDevice(isMobile());
-    const timer = setTimeout(() => setHasCheckedAuth(true), 100);
-    return () => clearTimeout(timer);
   }, []);
-
-  useEffect(() => {
-    if (hasCheckedAuth && !authLoading && !user) {
-      router.push("/auth");
-    }
-  }, [user, authLoading, router, hasCheckedAuth]);
 
   // Only fetch if no SSR data provided - uses API route
   useEffect(() => {
@@ -182,7 +175,7 @@ export default function LoyaltyClient({
     });
   };
 
-  if (authLoading || isLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <motion.div
@@ -198,6 +191,9 @@ export default function LoyaltyClient({
   const tier = loyaltyData?.tier || "bronze";
   const tierInfo = tierConfig[tier];
 
+  const CARD_TITLE_CLASS = "bg-gradient-to-r from-red-600 via-orange-500 to-red-500 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] font-extrabold tracking-widest uppercase";
+  const FIELD_LABEL_CLASS = "bg-gradient-to-r from-red-500 via-rose-400 to-orange-400 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] font-semibold tracking-widest text-xs uppercase";
+
   return (
     <div className="min-h-screen pt-32 pb-16 bg-gradient-to-b from-background to-secondary/20">
       <div className="container-custom max-w-3xl">
@@ -206,6 +202,18 @@ export default function LoyaltyClient({
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
+
+          {/* Page Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-8"
+          >
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-widest uppercase bg-gradient-to-r from-red-600 via-rose-500 to-orange-500 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
+              Loyalty Rewards
+            </h1>
+            <p className="text-muted-foreground mt-2 text-sm tracking-wide">Earn points, unlock rewards & climb the tiers</p>
+          </motion.div>
 
           {/* Loyalty Card */}
           <motion.div
@@ -229,7 +237,7 @@ export default function LoyaltyClient({
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <p className="text-white/70 text-sm mb-1">Your Tier</p>
+                  <p className="text-white font-bold tracking-widest text-xs uppercase mb-1 opacity-90">Your Tier</p>
                   <div className="flex items-center gap-2">
                     <span className="text-3xl">{tierInfo.icon}</span>
                     <h2 className="text-2xl md:text-3xl font-bold capitalize">{tier}</h2>
@@ -240,12 +248,12 @@ export default function LoyaltyClient({
 
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <p className="text-white/70 text-sm mb-1">Total Points</p>
+                  <p className="text-white font-bold tracking-widest text-xs uppercase mb-1 opacity-90">Total Points</p>
                   <p className="text-3xl md:text-4xl font-bold">{loyaltyData?.total_points || 0}</p>
                 </div>
                 {tier !== "platinum" && (
                   <div>
-                    <p className="text-white/70 text-sm mb-1">Points to Next Tier</p>
+                    <p className="text-white font-bold tracking-widest text-xs uppercase mb-1 opacity-90">Points to Next Tier</p>
                     <p className="text-3xl md:text-4xl font-bold">{loyaltyData?.points_to_next_tier || 0}</p>
                   </div>
                 )}
@@ -273,12 +281,12 @@ export default function LoyaltyClient({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-gradient-to-br from-card via-card to-yellow-500/5 rounded-2xl border shadow-lg p-6 mb-6 relative overflow-hidden"
+            className="bg-gradient-to-br from-card via-card to-red-500/5 rounded-2xl border shadow-lg p-6 mb-6 relative overflow-hidden"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl" />
-            <h3 className="font-semibold mb-4 flex items-center gap-2 relative z-10">
-              <Star className="h-5 w-5 text-yellow-500" />
-              How to Earn Points
+            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl" />
+            <h3 className="font-extrabold mb-4 flex items-center gap-2 relative z-10">
+              <Star className="h-5 w-5 text-red-500" />
+              <span className={CARD_TITLE_CLASS}>How to Earn Points</span>
             </h3>
             <div className="grid gap-4 md:grid-cols-3 relative z-10">
               {[
@@ -311,9 +319,9 @@ export default function LoyaltyClient({
             className="bg-gradient-to-br from-card via-card to-primary/5 rounded-2xl border shadow-lg p-6 mb-6 relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-40 h-40 bg-primary/10 rounded-full blur-3xl" />
-            <h3 className="font-semibold mb-4 flex items-center gap-2 relative z-10">
-              <Ticket className="h-5 w-5 text-primary" />
-              Check Promo Code
+            <h3 className="font-extrabold mb-4 flex items-center gap-2 relative z-10">
+              <Ticket className="h-5 w-5 text-red-500" />
+              <span className={CARD_TITLE_CLASS}>Check Promo Code</span>
             </h3>
             <div className="flex gap-2 relative z-10">
               <Input
@@ -361,7 +369,7 @@ export default function LoyaltyClient({
                           {(checkedPromo.promo.expires_at || checkedPromo.promo.valid_until) && (
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              Expires: {new Date(checkedPromo.promo.expires_at || checkedPromo.promo.valid_until!).toLocaleDateString()}
+                              Expires: {format(new Date(checkedPromo.promo.expires_at || checkedPromo.promo.valid_until!), 'dd MMM yyyy')}
                             </span>
                           )}
                         </div>
@@ -379,12 +387,12 @@ export default function LoyaltyClient({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-gradient-to-br from-card via-card to-green-500/5 rounded-2xl border shadow-lg p-6 mb-6 relative overflow-hidden"
+            className="bg-gradient-to-br from-card via-card to-red-500/5 rounded-2xl border shadow-lg p-6 mb-6 relative overflow-hidden"
           >
-            <div className="absolute top-0 right-0 w-40 h-40 bg-green-500/10 rounded-full blur-3xl" />
-            <h3 className="font-semibold mb-4 flex items-center gap-2 relative z-10">
-              <Gift className="h-5 w-5 text-green-500" />
-              My Reward Codes
+            <div className="absolute top-0 right-0 w-40 h-40 bg-red-500/10 rounded-full blur-3xl" />
+            <h3 className="font-extrabold mb-4 flex items-center gap-2 relative z-10">
+              <Gift className="h-5 w-5 text-red-500" />
+              <span className={CARD_TITLE_CLASS}>My Reward Codes</span>
             </h3>
             <p className="text-xs text-muted-foreground mb-4 relative z-10">
               These promo codes were awarded to you based on your loyalty points.
@@ -451,12 +459,12 @@ export default function LoyaltyClient({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-gradient-to-br from-card via-card to-blue-500/5 rounded-2xl border shadow-lg p-6 relative overflow-hidden"
+            className="bg-gradient-to-br from-card via-card to-red-500/5 rounded-2xl border shadow-lg p-6 relative overflow-hidden"
           >
-            <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
-            <h3 className="font-semibold mb-4 flex items-center gap-2 relative z-10">
-              <Clock className="h-5 w-5 text-blue-500" />
-              Points History
+            <div className="absolute top-0 right-0 w-40 h-40 bg-red-500/10 rounded-full blur-3xl" />
+            <h3 className="font-extrabold mb-4 flex items-center gap-2 relative z-10">
+              <Clock className="h-5 w-5 text-red-500" />
+              <span className={CARD_TITLE_CLASS}>Points History</span>
             </h3>
 
             {pointsHistory.length === 0 ? (
@@ -475,7 +483,7 @@ export default function LoyaltyClient({
                       </div>
                       <div>
                         <p className="font-medium">{item.description}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(item.created_at).toLocaleDateString()}</p>
+                        <p className="text-xs text-muted-foreground">{format(new Date(item.created_at), 'dd MMM yyyy')}</p>
                       </div>
                     </div>
                     <span className={`font-bold ${item.type === "earned" ? "text-green-500" : "text-red-500"}`}>

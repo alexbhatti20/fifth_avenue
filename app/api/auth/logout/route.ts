@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { redis } from '@/lib/redis';
 import { supabase } from '@/lib/supabase';
 
+// Clear every auth cookie — httpOnly flags MUST match how each was originally set
+// otherwise the browser ignores the deletion.
+function clearAllCookies(response: NextResponse) {
+  const isSecure = process.env.NODE_ENV === 'production';
+  const base = { secure: isSecure, sameSite: 'lax' as const, maxAge: 0, path: '/' };
+
+  // These were set with httpOnly: false — must clear with httpOnly: false
+  response.cookies.set('auth_token',      '', { ...base, httpOnly: false });
+  response.cookies.set('sb-access-token', '', { ...base, httpOnly: false });
+
+  // These were set with httpOnly: true
+  response.cookies.set('auth-token',      '', { ...base, httpOnly: true });
+  response.cookies.set('sb-refresh-token','', { ...base, httpOnly: true });
+
+  // employee_data and user_type were set with httpOnly: false
+  response.cookies.set('employee_data',   '', { ...base, httpOnly: false });
+  response.cookies.set('user_type',       '', { ...base, httpOnly: false });
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get auth token from cookie or header (check both names for backward compatibility)
@@ -38,55 +57,12 @@ export async function POST(request: NextRequest) {
       message: 'Logged out successfully' 
     });
 
-    // Clear auth cookies (both naming conventions for backward compatibility)
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,
-      maxAge: 0,
-      path: '/',
-    };
-
-    response.cookies.set('auth_token', '', cookieOptions);
-    response.cookies.set('auth-token', '', cookieOptions);
-    response.cookies.set('sb-access-token', '', cookieOptions);
-    response.cookies.set('sb-refresh-token', '', cookieOptions);
-    
-    // Clear employee_data cookie (for maintenance mode admin bypass)
-    response.cookies.set('employee_data', '', {
-      ...cookieOptions,
-      httpOnly: false, // Match how it was set
-    });
-
+    clearAllCookies(response);
     return response;
 
   } catch (error) {
-    // Still return success - we want user to be logged out client-side
-    const response = NextResponse.json({ 
-      success: true, 
-      message: 'Logged out' 
-    });
-
-    // Clear cookies even on error
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,
-      maxAge: 0,
-      path: '/',
-    };
-
-    response.cookies.set('auth_token', '', cookieOptions);
-    response.cookies.set('auth-token', '', cookieOptions);
-    response.cookies.set('sb-access-token', '', cookieOptions);
-    response.cookies.set('sb-refresh-token', '', cookieOptions);
-    
-    // Clear employee_data cookie (for maintenance mode admin bypass)
-    response.cookies.set('employee_data', '', {
-      ...cookieOptions,
-      httpOnly: false, // Match how it was set
-    });
-
+    const response = NextResponse.json({ success: true, message: 'Logged out' });
+    clearAllCookies(response);
     return response;
   }
 }

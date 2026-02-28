@@ -33,6 +33,7 @@ export const ALL_PAGES = {
   notifications: { path: '/portal/notifications', label: 'Notifications', icon: 'Bell' },
   deals: { path: '/portal/deals', label: 'Deals', icon: 'Percent' },
   audit: { path: '/portal/audit', label: 'Audit Log', icon: 'FileSearch' },
+  backup: { path: '/portal/backup', label: 'DB Backup', icon: 'HardDriveDownload' },
 } as const;
 
 export type PageKey = keyof typeof ALL_PAGES;
@@ -52,7 +53,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<EmployeeRole, {
   admin: {
     pages: Object.keys(ALL_PAGES) as PageKey[],
     orderFilters: ['all'],
-    features: ['manage_all', 'view_reports', 'system_settings', 'employee_management'],
+    features: ['manage_all', 'view_reports', 'system_settings', 'employee_management', 'database_backup'],
   },
   
   manager: {
@@ -61,6 +62,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<EmployeeRole, {
       ...GENERAL_PAGES,
       'menu', 'orders', 'kitchen', 'delivery', 'tables', 'billing',
       'inventory', 'reports', 'perks', 'reviews', 'messages', 'deals', 'notifications', 'customers',
+      'backup',
     ],
     orderFilters: ['all'],
     features: ['manage_orders', 'manage_tables', 'view_reports', 'manage_inventory'],
@@ -119,6 +121,7 @@ export const EXTRA_PERMISSIONS = [
   { key: 'access_perks', label: 'Perks & Loyalty Access', category: 'Page Access', page: 'perks' },
   { key: 'access_reviews', label: 'Reviews Access', category: 'Page Access', page: 'reviews' },
   { key: 'access_customers', label: 'Customers Access', category: 'Page Access', page: 'customers' },
+  { key: 'access_backup', label: 'Database Backup Access', category: 'Page Access', page: 'backup' },
   
   // Order Filters
   { key: 'view_dine_in_orders', label: 'View Dine-in Orders', category: 'Orders' },
@@ -244,9 +247,13 @@ export function getSidebarItems(permissions: UserPermissions) {
 
 /**
  * Cache key for storing permissions in localStorage
+ * BUMP THIS VERSION whenever ALL_PAGES or ROLE_DEFAULT_PERMISSIONS changes
+ * so stale caches are automatically invalidated for all users.
  */
 export const PERMISSIONS_CACHE_KEY = 'user_permissions';
 export const PERMISSIONS_CACHE_EXPIRY = 'user_permissions_expiry';
+export const PERMISSIONS_CACHE_VERSION_KEY = 'user_permissions_version';
+export const PERMISSIONS_CACHE_VERSION = '2'; // bumped: added backup page
 export const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 /**
@@ -257,19 +264,30 @@ export function cachePermissions(permissions: UserPermissions): void {
   
   localStorage.setItem(PERMISSIONS_CACHE_KEY, JSON.stringify(permissions));
   localStorage.setItem(PERMISSIONS_CACHE_EXPIRY, String(Date.now() + CACHE_DURATION));
+  localStorage.setItem(PERMISSIONS_CACHE_VERSION_KEY, PERMISSIONS_CACHE_VERSION);
 }
 
 /**
- * Get cached permissions
+ * Get cached permissions — returns null if expired OR version is stale
  */
 export function getCachedPermissions(): UserPermissions | null {
   if (typeof window === 'undefined') return null;
-  
+
+  // Version check: if the stored version doesn't match, bust the cache
+  const storedVersion = localStorage.getItem(PERMISSIONS_CACHE_VERSION_KEY);
+  if (storedVersion !== PERMISSIONS_CACHE_VERSION) {
+    localStorage.removeItem(PERMISSIONS_CACHE_KEY);
+    localStorage.removeItem(PERMISSIONS_CACHE_EXPIRY);
+    localStorage.removeItem(PERMISSIONS_CACHE_VERSION_KEY);
+    return null;
+  }
+
   const expiry = localStorage.getItem(PERMISSIONS_CACHE_EXPIRY);
   if (!expiry || Date.now() > parseInt(expiry)) {
     // Cache expired
     localStorage.removeItem(PERMISSIONS_CACHE_KEY);
     localStorage.removeItem(PERMISSIONS_CACHE_EXPIRY);
+    localStorage.removeItem(PERMISSIONS_CACHE_VERSION_KEY);
     return null;
   }
   
@@ -290,4 +308,5 @@ export function clearPermissionsCache(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(PERMISSIONS_CACHE_KEY);
   localStorage.removeItem(PERMISSIONS_CACHE_EXPIRY);
+  localStorage.removeItem(PERMISSIONS_CACHE_VERSION_KEY);
 }

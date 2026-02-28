@@ -73,6 +73,8 @@ export function TakeOrderDialog({
   const [notes, setNotes] = useState('');
   const [sendEmail, setSendEmail] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Track if user has manually edited fields after selecting a customer
+  const [hasManualEdit, setHasManualEdit] = useState(false);
 
   // Fetch menu data
   useEffect(() => {
@@ -116,8 +118,10 @@ export function TakeOrderDialog({
     }
   };
 
-  // Customer lookup
+  // Customer lookup - only runs when no customer is found and user hasn't manually edited
   const lookupCustomer = async () => {
+    // Don't lookup if customer is already found or user has manually edited fields
+    if (foundCustomer || hasManualEdit) return;
     if (!customerPhone && !customerEmail) return;
 
     setIsLookingUp(true);
@@ -143,8 +147,37 @@ export function TakeOrderDialog({
         toast.info('Customer not found in system');
       }
     } catch (error) {
-      } finally {
+      console.error('Customer lookup error:', error);
+    } finally {
       setIsLookingUp(false);
+    }
+  };
+
+  // Handle phone change - detach customer if editing after selection
+  const handlePhoneChange = (value: string) => {
+    setCustomerPhone(value);
+    if (foundCustomer) {
+      // User is editing after selecting a customer - detach but keep values
+      setFoundCustomer(null);
+      setHasManualEdit(true);
+    }
+  };
+
+  // Handle name change - detach customer if editing after selection
+  const handleNameChange = (value: string) => {
+    setCustomerName(value);
+    if (foundCustomer) {
+      setFoundCustomer(null);
+      setHasManualEdit(true);
+    }
+  };
+
+  // Handle email change - detach customer if editing after selection
+  const handleEmailChange = (value: string) => {
+    setCustomerEmail(value);
+    if (foundCustomer) {
+      setFoundCustomer(null);
+      setHasManualEdit(true);
     }
   };
 
@@ -240,6 +273,7 @@ export function TakeOrderDialog({
       setCustomerName('');
       setCustomerEmail('');
       setFoundCustomer(null);
+      setHasManualEdit(false);
       setNotes('');
       onOpenChange(false);
       onOrderComplete();
@@ -362,7 +396,7 @@ export function TakeOrderDialog({
                     <Input
                       placeholder="03XX..."
                       value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
                       onBlur={lookupCustomer}
                       className="h-9 sm:h-8 pr-8 text-base sm:text-sm"
                     />
@@ -375,14 +409,14 @@ export function TakeOrderDialog({
               <Input
                 placeholder="Customer Name"
                 value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
+                onChange={(e) => handleNameChange(e.target.value)}
                 className="h-9 sm:h-8 text-base sm:text-sm"
               />
               <Input
                 placeholder="Email (for receipt)"
                 type="email"
                 value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
+                onChange={(e) => handleEmailChange(e.target.value)}
                 onBlur={lookupCustomer}
                 className="h-9 sm:h-8 text-base sm:text-sm"
               />

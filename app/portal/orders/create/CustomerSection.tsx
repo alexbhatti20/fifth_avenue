@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
@@ -56,6 +57,7 @@ interface CustomerSectionProps {
   onClearTables: () => void;
   onRefreshTables: () => void;
   onOpenTableSelector: () => void;
+  onCloseSearchResults: () => void;
 }
 
 export function CustomerSection({
@@ -82,7 +84,31 @@ export function CustomerSection({
   onClearTables,
   onRefreshTables,
   onOpenTableSelector,
+  onCloseSearchResults,
 }: CustomerSectionProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [activeSearchField, setActiveSearchField] = useState<'name' | 'phone' | 'email' | null>(null);
+
+  // SSR-safe click-outside: single stable listener on the container
+  useEffect(() => {
+    const handlePointerDown = (e: PointerEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        onCloseSearchResults();
+        setActiveSearchField(null);
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [onCloseSearchResults]);
+
+  // When a field changes, trigger search.
+  // The parent's handleCustomerSearch silently detaches the registered-customer
+  // link without wiping the other fields, so name/email/phone are all preserved.
+  const handleFieldChange = (value: string, field: 'name' | 'phone' | 'email') => {
+    setActiveSearchField(field);
+    onCustomerSearch(value, field);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -91,7 +117,7 @@ export function CustomerSection({
           Customer Information
         </CardTitle>
         <CardDescription>
-          Search by name, phone or email - auto-fills if customer exists
+          Search by name, phone or email — auto-fills on match. Edit any field to detach.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -101,6 +127,7 @@ export function CustomerSection({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="p-4 bg-gradient-to-r from-primary/10 via-orange-500/10 to-primary/10 rounded-xl border border-primary/20"
+            onPointerDown={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between">
               <div className="space-y-1">
@@ -163,7 +190,7 @@ export function CustomerSection({
         )}
 
         {/* Customer Input Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div ref={containerRef} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Name Field with Search */}
           <div className="relative md:col-span-2">
             <Label htmlFor="customerName">Customer Name *</Label>
@@ -171,30 +198,27 @@ export function CustomerSection({
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="customerName"
-                placeholder="Type & press Enter to search..."
+                placeholder="Name — auto-searches as you type"
                 value={customerName}
-                onChange={(e) => onCustomerSearch(e.target.value, 'name')}
+                onChange={(e) => handleFieldChange(e.target.value, 'name')}
                 onKeyDown={onSearchKeyDown}
-                className={cn(
-                  "pl-10",
-                  registeredCustomer && "bg-muted/50"
-                )}
-                disabled={!!registeredCustomer}
+                onFocus={() => setActiveSearchField('name')}
+                className="pl-10"
               />
-              {isSearchingCustomer && (
+              {isSearchingCustomer && activeSearchField === 'name' && (
                 <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
               )}
             </div>
             
-            {/* Search Results Dropdown */}
+            {/* Search Results Dropdown — shown under whichever field is active */}
             <AnimatePresence>
-              {showSearchResults && customerSearchResults.length > 0 && !registeredCustomer && (
+              {showSearchResults && customerSearchResults.length > 0 && !registeredCustomer && activeSearchField === 'name' && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   className="absolute left-0 right-0 top-full mt-1 z-50 border rounded-xl shadow-lg bg-card overflow-hidden"
-                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                 >
                   <div className="p-2 bg-muted/50 border-b">
                     <p className="text-xs font-medium text-muted-foreground px-2">
@@ -206,7 +230,7 @@ export function CustomerSection({
                       <button
                         key={customer.id}
                         className="w-full p-3 text-left hover:bg-primary/5 transition-colors border-b last:border-0"
-                        onClick={() => onSelectCustomer(customer)}
+                        onClick={() => { onSelectCustomer(customer); setActiveSearchField(null); }}
                       >
                         <div className="flex items-center justify-between">
                           <div className="min-w-0 flex-1">
@@ -255,17 +279,77 @@ export function CustomerSection({
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="customerPhone"
-                placeholder="03XX-XXXXXXX (Enter to search)"
+                placeholder="03XX-XXXXXXX — fastest way to find customer"
                 value={customerPhone}
-                onChange={(e) => onCustomerSearch(e.target.value, 'phone')}
+                onChange={(e) => handleFieldChange(e.target.value, 'phone')}
                 onKeyDown={onSearchKeyDown}
-                className={cn(
-                  "pl-10",
-                  registeredCustomer && "bg-muted/50"
-                )}
-                disabled={!!registeredCustomer}
+                onFocus={() => setActiveSearchField('phone')}
+                className="pl-10"
               />
+              {isSearchingCustomer && activeSearchField === 'phone' && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
             </div>
+            {/* Phone-field dropdown */}
+            <AnimatePresence>
+              {showSearchResults && customerSearchResults.length > 0 && !registeredCustomer && activeSearchField === 'phone' && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute left-0 right-0 top-full mt-1 z-50 border rounded-xl shadow-lg bg-card overflow-hidden"
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <div className="p-2 bg-muted/50 border-b">
+                    <p className="text-xs font-medium text-muted-foreground px-2">
+                      Found {customerSearchResults.length} matching customer{customerSearchResults.length > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <ScrollArea className="max-h-60">
+                    {customerSearchResults.map((customer) => (
+                      <button
+                        key={customer.id}
+                        className="w-full p-3 text-left hover:bg-primary/5 transition-colors border-b last:border-0"
+                        onClick={() => { onSelectCustomer(customer); setActiveSearchField(null); }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{customer.name}</p>
+                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {customer.phone}
+                              </span>
+                              {customer.email && (
+                                <span className="flex items-center gap-1 truncate">
+                                  <Mail className="h-3 w-3" />
+                                  {customer.email}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-2">
+                            <Badge
+                              className={cn(
+                                "text-xs",
+                                LOYALTY_TIER_CONFIG[customer.loyalty_tier].bg,
+                                LOYALTY_TIER_CONFIG[customer.loyalty_tier].color
+                              )}
+                            >
+                              {LOYALTY_TIER_CONFIG[customer.loyalty_tier].label}
+                            </Badge>
+                            <span className="text-xs text-amber-600 flex items-center gap-0.5">
+                              <Star className="h-3 w-3 fill-current" />
+                              {customer.loyalty_points}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </ScrollArea>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Email Field */}
@@ -275,18 +359,78 @@ export function CustomerSection({
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="customerEmail"
-                placeholder="customer@email.com (Enter to search)"
+                placeholder="customer@email.com"
                 type="email"
                 value={customerEmail}
-                onChange={(e) => onCustomerSearch(e.target.value, 'email')}
+                onChange={(e) => handleFieldChange(e.target.value, 'email')}
                 onKeyDown={onSearchKeyDown}
-                className={cn(
-                  "pl-10",
-                  registeredCustomer && "bg-muted/50"
-                )}
-                disabled={!!registeredCustomer}
+                onFocus={() => setActiveSearchField('email')}
+                className="pl-10"
               />
+              {isSearchingCustomer && activeSearchField === 'email' && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
             </div>
+            {/* Email-field dropdown */}
+            <AnimatePresence>
+              {showSearchResults && customerSearchResults.length > 0 && !registeredCustomer && activeSearchField === 'email' && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute left-0 right-0 top-full mt-1 z-50 border rounded-xl shadow-lg bg-card overflow-hidden"
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <div className="p-2 bg-muted/50 border-b">
+                    <p className="text-xs font-medium text-muted-foreground px-2">
+                      Found {customerSearchResults.length} matching customer{customerSearchResults.length > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <ScrollArea className="max-h-60">
+                    {customerSearchResults.map((customer) => (
+                      <button
+                        key={customer.id}
+                        className="w-full p-3 text-left hover:bg-primary/5 transition-colors border-b last:border-0"
+                        onClick={() => { onSelectCustomer(customer); setActiveSearchField(null); }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{customer.name}</p>
+                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {customer.phone}
+                              </span>
+                              {customer.email && (
+                                <span className="flex items-center gap-1 truncate">
+                                  <Mail className="h-3 w-3" />
+                                  {customer.email}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-2">
+                            <Badge
+                              className={cn(
+                                "text-xs",
+                                LOYALTY_TIER_CONFIG[customer.loyalty_tier].bg,
+                                LOYALTY_TIER_CONFIG[customer.loyalty_tier].color
+                              )}
+                            >
+                              {LOYALTY_TIER_CONFIG[customer.loyalty_tier].label}
+                            </Badge>
+                            <span className="text-xs text-amber-600 flex items-center gap-0.5">
+                              <Star className="h-3 w-3 fill-current" />
+                              {customer.loyalty_points}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </ScrollArea>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Address Field */}
@@ -299,11 +443,7 @@ export function CustomerSection({
                 placeholder="Enter delivery address (optional for dine-in)"
                 value={customerAddress}
                 onChange={(e) => onAddressChange(e.target.value)}
-                className={cn(
-                  "pl-10 min-h-[60px]",
-                  registeredCustomer && "bg-muted/50"
-                )}
-                disabled={!!registeredCustomer}
+                className="pl-10 min-h-[60px]"
               />
             </div>
           </div>

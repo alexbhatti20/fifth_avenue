@@ -3,7 +3,7 @@
 // All new code should import from '@/lib/auth' instead
 // ============================================================================
 
-import { createClient } from '@/lib/supabase';
+import { createClient, createAuthenticatedClient } from '@/lib/supabase';
 
 // Re-export types for backward compatibility
 export interface JWTPayload {
@@ -40,13 +40,17 @@ export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string 
  */
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
-    const supabase = createClient();
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    
+    // Use anon client only to validate the token itself
+    const anonClient = createClient();
+    const { data: { user }, error } = await anonClient.auth.getUser(token);
+
     if (error || !user) return null;
 
+    // Use authenticated client for DB lookups so RLS auth.uid() resolves correctly
+    const authedClient = createAuthenticatedClient(token);
+
     // Check if user is an employee
-    const { data: employee } = await supabase
+    const { data: employee } = await authedClient
       .from('employees')
       .select('id, email, name, phone, role, permissions')
       .eq('auth_user_id', user.id)
@@ -67,7 +71,7 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
     }
 
     // Check if user is a customer using RPC (bypasses RLS)
-    const { data: customerData } = await supabase.rpc('get_customer_by_auth_id', {
+    const { data: customerData } = await authedClient.rpc('get_customer_by_auth_id', {
       p_auth_user_id: user.id
     });
 

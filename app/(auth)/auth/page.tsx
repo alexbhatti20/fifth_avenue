@@ -127,8 +127,22 @@ export default function UnifiedAuth() {
     const error = searchParams.get('error');
     const googleLogin = searchParams.get('google_login');
     const googleRegister = searchParams.get('google_register');
-    
-    if (error) {
+    const reason = searchParams.get('reason');
+
+    // Session expired redirect from middleware
+    if (reason === 'expired') {
+      setAuthError('Your session has expired. Please sign in again.');
+      toast({
+        title: 'Session Expired',
+        description: 'Your session has expired. Please sign in again.',
+        variant: 'destructive',
+      });
+      // Remove the reason param from URL without triggering a navigation
+      const clean = new URLSearchParams(window.location.search);
+      clean.delete('reason');
+      const qs = clean.toString();
+      window.history.replaceState({}, '', qs ? `/auth?${qs}` : '/auth');
+    } else if (error) {
       const decodedError = decodeURIComponent(error);
       setAuthError(decodedError);
       toast({
@@ -932,6 +946,7 @@ export default function UnifiedAuth() {
                     src="/assets/zoiro-logo.png"
                     alt="Zoiro Broast"
                     fill
+                    sizes="120px"
                     className="object-contain drop-shadow-2xl"
                     priority
                   />
@@ -1056,6 +1071,7 @@ export default function UnifiedAuth() {
                       src="/assets/zoiro-logo.png"
                       alt="Zoiro Broast"
                       fill
+                      sizes="80px"
                       className="object-contain drop-shadow-xl"
                       priority
                     />

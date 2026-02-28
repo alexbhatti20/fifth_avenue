@@ -362,9 +362,13 @@ export default function PublicReviewsClient({ initialData }: PublicReviewsClient
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [remainingReviews, setRemainingReviews] = useState(3);
   const [helpfulLoading, setHelpfulLoading] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
   const { user: customer, isLoading: authLoading } = useAuth();
   
+  // Set mounted after hydration to avoid auth-dependent mismatch
+  useEffect(() => { setMounted(true); }, []);
+
   const ref = useRef(null);
   const statsRef = useRef(null);
   const containerRef = useRef<HTMLElement>(null);
@@ -675,7 +679,7 @@ export default function PublicReviewsClient({ initialData }: PublicReviewsClient
         </section>
 
         {/* Reviews Grid */}
-        <section className="py-16 overflow-hidden relative" ref={containerRef}>
+        <section className="py-16 overflow-hidden relative" style={{ position: 'relative' }} ref={containerRef}>
           <motion.div 
             className="absolute inset-0 pointer-events-none overflow-hidden"
             style={{ y: bgY }}
@@ -694,7 +698,7 @@ export default function PublicReviewsClient({ initialData }: PublicReviewsClient
                 <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
                 <h3 className="text-xl font-semibold mb-2">No Reviews Yet</h3>
                 <p className="text-muted-foreground mb-6">Be the first to share your experience!</p>
-                {!authLoading && customer && (
+                {mounted && !authLoading && customer && (
                   <Button onClick={() => setShowReviewModal(true)}>
                     Write the First Review
                   </Button>
@@ -764,7 +768,7 @@ export default function PublicReviewsClient({ initialData }: PublicReviewsClient
               <p className="text-primary-foreground/80 max-w-xl mx-auto mb-8">
                 Loved our food? We'd love to hear from you! Your feedback helps us serve you better.
               </p>
-              {!authLoading && customer ? (
+              {mounted && !authLoading && customer ? (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}

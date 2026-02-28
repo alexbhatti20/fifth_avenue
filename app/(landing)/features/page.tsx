@@ -365,7 +365,7 @@ export default function FeaturesPage() {
   const heroY = useTransform(scrollYProgress, [0, 0.15], [0, canUseParallax ? -50 : 0]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white overflow-hidden relative pt-20" ref={containerRef}>
+    <div className="min-h-screen bg-zinc-950 text-white overflow-hidden relative pt-20" style={{ position: 'relative' }} ref={containerRef}>
         {/* WebGL Background - Only on high-performance devices */}
         <WebGLBackground enabled={canUseWebGL} />
 

@@ -54,16 +54,17 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { usePortalAuth } from '@/hooks/usePortal';
 import {
-  getAdminReviewsAdvanced,
-  updateReviewVisibility,
-  replyToReviewAdvanced,
-  deleteReviewAdvanced,
-  bulkUpdateReviewVisibility,
   type AdminReviewAdvanced,
   type AllReviewStats,
   type ReviewStatusFilter,
   type ReviewSortBy,
 } from '@/lib/portal-queries';
+import {
+  updateReviewVisibilityAction,
+  replyToReviewAction,
+  deleteReviewAction,
+  bulkUpdateReviewVisibilityAction,
+} from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -407,62 +408,22 @@ export default function ReviewsClient({ initialReviews, initialStats }: ReviewsC
   const [showBulkDialog, setShowBulkDialog] = useState<'show' | 'hide' | null>(null);
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
-  const fetchingRef = useRef(false);
-
   // Authorization
   const isAuthorized = employee?.role === 'admin' || employee?.role === 'manager';
 
-  // Fetch data
-  const fetchData = useCallback(async () => {
-    if (fetchingRef.current || !employee?.id) return;
-    fetchingRef.current = true;
-    setIsLoading(true);
-
-    try {
-      const response = await getAdminReviewsAdvanced({
-        status: statusFilter,
-        minRating: ratingFilter !== 'all' ? parseInt(ratingFilter) : undefined,
-        maxRating: ratingFilter !== 'all' ? parseInt(ratingFilter) : undefined,
-        sortBy,
-        limit: 100,
-      }, employee.id);
-
-      if (response.success) {
-        setReviews(response.reviews);
-        const rpcStats = (response as any).stats;
-        if (rpcStats) {
-          setStats({
-            success: true,
-            total_reviews: rpcStats.total || 0,
-            visible_reviews: rpcStats.visible || 0,
-            hidden_reviews: rpcStats.hidden || 0,
-            verified_reviews: rpcStats.verified || 0,
-            average_rating: rpcStats.avg_rating || 0,
-            five_star: rpcStats.five_star || 0,
-            four_star: rpcStats.four_star || 0,
-            three_star: rpcStats.three_star || 0,
-            two_star: rpcStats.two_star || 0,
-            one_star: rpcStats.one_star || 0,
-            pending_replies: rpcStats.pending_reply || 0,
-            total_replied: rpcStats.replied || 0,
-            this_week: 0, this_month: 0, today: 0, most_helpful: 0, avg_helpful: 0,
-            by_type: {}, recent_avg_rating: rpcStats.avg_rating || 0, previous_avg_rating: 0,
-          });
-        }
-      }
-    } catch (error) {
-      toast.error('Failed to load reviews');
-    } finally {
-      setIsLoading(false);
-      fetchingRef.current = false;
-    }
-  }, [employee?.id, statusFilter, ratingFilter, sortBy]);
-
+  // Sync state with server-side props when they change
   useEffect(() => {
-    if (!authLoading && isAuthorized && (!initialReviews || initialReviews.length === 0)) {
-      fetchData();
-    }
-  }, [authLoading, isAuthorized, fetchData, initialReviews]);
+    setReviews(initialReviews ?? []);
+    setStats(initialStats);
+  }, [initialReviews, initialStats]);
+
+  // SSR Refresh - triggers server-side data refetch
+  const fetchData = useCallback(() => {
+    setIsLoading(true);
+    router.refresh();
+    // Reset loading after a short delay to show feedback
+    setTimeout(() => setIsLoading(false), 500);
+  }, [router]);
 
   useEffect(() => {
     if (!authLoading && !isAuthorized && employee !== null) {
@@ -481,7 +442,7 @@ export default function ReviewsClient({ initialReviews, initialStats }: ReviewsC
     );
   }, [reviews, searchQuery]);
 
-  // Handlers - using setTimeout to defer state updates
+  // Handlers - using server actions for SSR
   const handleReply = useCallback(async (reply: string) => {
     if (!replyReview || isSubmittingReply) return;
 
@@ -489,12 +450,13 @@ export default function ReviewsClient({ initialReviews, initialStats }: ReviewsC
     setIsSubmittingReply(true);
 
     try {
-      const result = await replyToReviewAdvanced(reviewId, reply, employee?.id);
+      const result = await replyToReviewAction(reviewId, reply, employee?.id);
 
       if (result.success) {
         // Close dialog first
         setReplyReview(null);
         setIsSubmittingReply(false);
+        toast.success('Reply sent successfully');
 
         // Defer state update to next tick to avoid render conflict
         setTimeout(() => {
@@ -519,14 +481,15 @@ export default function ReviewsClient({ initialReviews, initialStats }: ReviewsC
 
   const handleToggleVisibility = useCallback(async (review: AdminReviewAdvanced) => {
     try {
-      const result = await updateReviewVisibility(review.id, !review.is_visible, employee?.id);
+      const result = await updateReviewVisibilityAction(review.id, !review.is_visible, employee?.id);
       if (result.success) {
         setReviews((prev) => prev.map((r) => r.id === review.id ? { ...r, is_visible: !review.is_visible } : r));
         toast.success(review.is_visible ? 'Review hidden' : 'Review shown');
       } else {
         toast.error(result.error || 'Failed to update visibility');
       }
-    } catch {
+    } catch (err) {
+      console.error('Toggle visibility error:', err);
       toast.error('Failed to update visibility');
     }
   }, [employee?.id]);
@@ -534,7 +497,7 @@ export default function ReviewsClient({ initialReviews, initialStats }: ReviewsC
   const handleDelete = useCallback(async (reviewId: string) => {
     if (!confirm('Are you sure you want to delete this review?')) return;
     try {
-      const result = await deleteReviewAdvanced(reviewId, employee?.id);
+      const result = await deleteReviewAction(reviewId, employee?.id);
       if (result.success) {
         setReviews((prev) => prev.filter((r) => r.id !== reviewId));
         setSelectedReviews((prev) => {
@@ -542,11 +505,12 @@ export default function ReviewsClient({ initialReviews, initialStats }: ReviewsC
           next.delete(reviewId);
           return next;
         });
-        toast.success('Review deleted');
+        toast.success('Review deleted successfully');
       } else {
         toast.error(result.error || 'Failed to delete review');
       }
-    } catch {
+    } catch (err) {
+      console.error('Delete review error:', err);
       toast.error('Failed to delete review');
     }
   }, [employee?.id]);
@@ -554,11 +518,11 @@ export default function ReviewsClient({ initialReviews, initialStats }: ReviewsC
   const handleBulkVisibility = useCallback(async (isVisible: boolean) => {
     if (selectedReviews.size === 0) return;
     try {
-      const result = await bulkUpdateReviewVisibility(Array.from(selectedReviews), isVisible, employee?.id);
+      const result = await bulkUpdateReviewVisibilityAction(Array.from(selectedReviews), isVisible, employee?.id);
       if (result.success) {
         setReviews((prev) => prev.map((r) => selectedReviews.has(r.id) ? { ...r, is_visible: isVisible } : r));
         setSelectedReviews(new Set());
-        toast.success(`${result.affected_count || selectedReviews.size} reviews updated`);
+        toast.success(`${(result.data as any)?.affected_count || selectedReviews.size} reviews updated`);
       } else {
         toast.error(result.error || 'Failed to update reviews');
       }

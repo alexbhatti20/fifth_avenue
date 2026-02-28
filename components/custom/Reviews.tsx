@@ -153,7 +153,7 @@ export default function Reviews() {
   };
 
   return (
-    <section className="section-padding bg-foreground text-background overflow-hidden relative" ref={containerRef}>
+    <section className="section-padding bg-foreground text-background overflow-hidden relative" style={{ position: 'relative' }} ref={containerRef}>
       {/* Parallax Background Elements - Hidden on mobile */}
       {!shouldReduceMotion && (
         <motion.div 

@@ -28,7 +28,7 @@
 // - getKitchenOrders → getKitchenOrdersServer
 // =============================================
 
-import { supabase, isSupabaseConfigured, createAuthenticatedClient } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 import { redis, CACHE_KEYS, getFromCache, setInCache } from './redis';
 import { deduplicateRequest, CACHE_KEYS as DEDUP_KEYS, clearRequestCache } from './request-dedup';
 import type {
@@ -50,31 +50,132 @@ import type {
 
 function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
-  
-  // Try localStorage first (set during login)
+
+  // 1. Our own custom keys (set on login + TOKEN_REFRESHED)
   const lsToken = localStorage.getItem('sb_access_token') || localStorage.getItem('auth_token');
   if (lsToken) return lsToken;
-  
-  // Try cookie fallback
+
+  // 2. Supabase's own native session JSON — key pattern: sb-<projectRef>-auth-token
+  //    Supabase v2 always writes this immediately after signInWithPassword/signInWithOAuth,
+  //    before TOKEN_REFRESHED fires, so it's reliably present on fresh logins.
   try {
-    const match = document.cookie.match(/(^| )auth_token=([^;]+)/);
-    if (match) return decodeURIComponent(match[2]);
-    const match2 = document.cookie.match(/(^| )sb-access-token=([^;]+)/);
-    if (match2) return decodeURIComponent(match2[2]);
-  } catch {}
-  
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+        const stored = JSON.parse(localStorage.getItem(key) || '{}');
+        if (stored?.access_token) return stored.access_token;
+      }
+    }
+  } catch { /* ignore */ }
+
+  // 3. Cookie fallback (non-httpOnly cookies we set at login)
+  try {
+    const m1 = document.cookie.match(/(^| )sb-access-token=([^;]+)/);
+    if (m1) return decodeURIComponent(m1[2]);
+    const m2 = document.cookie.match(/(^| )auth_token=([^;]+)/);
+    if (m2) return decodeURIComponent(m2[2]);
+  } catch { /* ignore */ }
+
   return null;
 }
 
-// Get an authenticated client - will use token if available, otherwise falls back to base client
-// EXPORTED for use in portal client components
+// Get an authenticated client for browser-side use.
+//
+// IMPORTANT: always returns the singleton `supabase` instance.
+// The singleton already holds the session (set during login via supabase.auth.setSession
+// and kept fresh by the TOKEN_REFRESHED handler in useAuth.tsx).
+//
+// Do NOT call createAuthenticatedClient() here — that spawns a second GoTrueClient
+// sharing the same localStorage key, which triggers the
+// "Multiple GoTrueClient instances detected" warning and can cause race conditions.
 export function getAuthenticatedClient() {
-  const token = getAuthToken();
-  if (token) {
-    return createAuthenticatedClient(token);
-  }
-  // Fallback to regular client (will use anon if no session)
   return supabase;
+}
+
+/**
+ * Make a Supabase RPC call using a direct REST fetch, bypassing GoTrueClient entirely.
+ *
+ * Why: supabase.rpc() requires the singleton to have an active session. On first mount,
+ * before loadEmployee() calls setSession, the singleton has no session → 401.
+ * Using fetch() directly with the token from localStorage solves this without
+ * creating new GoTrueClient instances.
+ */
+async function rpcWithToken<T = unknown>(
+  functionName: string,
+  params: Record<string, unknown> = {}
+): Promise<{ data: T | null; error: { message: string } | null }> {
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+  const supabaseKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+
+  const token = getAuthToken();
+  if (!token) return { data: null, error: { message: 'No auth token available' } };
+
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/rpc/${functionName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText);
+      return { data: null, error: { message: `${res.status}: ${text}` } };
+    }
+
+    const data = await res.json() as T;
+    return { data, error: null };
+  } catch (e: unknown) {
+    return { data: null, error: { message: e instanceof Error ? e.message : 'Network error' } };
+  }
+}
+
+/**
+ * Ensure the Supabase singleton has an active session before making an
+ * authenticated RPC call. This is needed when a component mounts with SSR
+ * data (so `employee` is non-null immediately) and fires an RPC before
+ * PortalProvider's `loadEmployee()` has had a chance to call setSession.
+ */
+async function restoreSessionIfNeeded(): Promise<void> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) return; // already authenticated, nothing to do
+
+    const token = getAuthToken();
+    if (!token) return;
+
+    // Try to extract refresh token — check localStorage keys in priority order:
+    // 1. Our own key set during TOKEN_REFRESHED
+    // 2. Supabase's own stored session JSON (key: sb-<projectRef>-auth-token)
+    let refreshToken: string | undefined =
+      localStorage.getItem('sb_refresh_token') || undefined;
+
+    if (!refreshToken) {
+      // Walk all localStorage keys looking for Supabase's own session storage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+          try {
+            const stored = JSON.parse(localStorage.getItem(key) || '{}');
+            if (stored?.refresh_token) {
+              refreshToken = stored.refresh_token;
+              break;
+            }
+          } catch { /* ignore */ }
+        }
+      }
+    }
+
+    const { setSupabaseSession } = await import('./supabase');
+    await setSupabaseSession(token, refreshToken);
+  } catch {
+    // Fail silently — caller handles the 401
+  }
 }
 
 // Re-export clearRequestCache for logout cleanup
@@ -468,6 +569,20 @@ export async function employeeLogin(
     return { success: false, error: error.message };
   }
 
+  // Write access token to our custom localStorage keys immediately.
+  // The TOKEN_REFRESHED event only fires on *refresh*, not initial sign-in,
+  // so getAuthToken() would return null until the first refresh without this.
+  // This ensures getAuthHeaders() works on settings page button clicks right away.
+  if (typeof window !== 'undefined' && data.session?.access_token) {
+    try {
+      localStorage.setItem('sb_access_token', data.session.access_token);
+      localStorage.setItem('auth_token', data.session.access_token);
+      if (data.session.refresh_token) {
+        localStorage.setItem('sb_refresh_token', data.session.refresh_token);
+      }
+    } catch { /* ignore — private browsing may refuse */ }
+  }
+
   // Check if 2FA is required via RPC
   const { data: employee } = await getAuthenticatedClient().rpc('get_employee_for_2fa', {
     p_employee_id: data.user?.id,
@@ -602,9 +717,6 @@ export async function getEmployeeComplete(employeeId: string): Promise<any> {
   if (!isSupabaseConfigured) return null;
 
   const client = getAuthenticatedClient();
-  console.log('[getEmployeeComplete] Fetching for ID:', employeeId);
-  console.log('[getEmployeeComplete] Has auth token:', !!getAuthToken());
-  
   const { data, error } = await client.rpc('get_employee_complete', {
     p_employee_id: employeeId,
   });
@@ -619,8 +731,6 @@ export async function getEmployeeComplete(employeeId: string): Promise<any> {
     return null;
   }
 
-  console.log('[getEmployeeComplete] RPC returned:', data);
-  
   // RPC returns {success: true/false, data: {...}} or {error: string}
   if (data && data.success === true && data.data) {
     return data.data;
@@ -663,19 +773,19 @@ export async function getMyNotifications(
 
   // Use deduplication to prevent multiple calls with same params
   const cacheKey = `${DEDUP_KEYS.NOTIFICATIONS}:${limit}:${unreadOnly}`;
-  
+
   return deduplicateRequest(cacheKey, async () => {
-    const { data, error } = await getAuthenticatedClient().rpc('get_my_notifications', {
-      p_limit: limit,
-      p_unread_only: unreadOnly,
-    });
+    // Use rpcWithToken — direct fetch with token from localStorage.
+    // This bypasses GoTrueClient session entirely so it works even when
+    // the singleton hasn't had setSession called yet (race on first mount).
+    const { data, error } = await rpcWithToken<Notification[]>(
+      'get_my_notifications',
+      { p_limit: limit, p_unread_only: unreadOnly }
+    );
 
-    if (error) {
-      return [];
-    }
-
+    if (error) return [];
     return (data || []) as Notification[];
-  }, { ttl: 3000 }); // 3 second cache for notifications
+  }, { ttl: 3000 }); // 3 second dedup cache
 }
 
 export async function markNotificationsRead(
@@ -685,14 +795,12 @@ export async function markNotificationsRead(
     return { success: false, error: 'Database not configured' };
   }
 
-  const { error } = await getAuthenticatedClient().rpc('mark_notifications_read', {
+  // Use rpcWithToken for the same reason as getMyNotifications
+  const { error } = await rpcWithToken('mark_notifications_read', {
     p_notification_ids: notificationIds,
   });
 
-  if (error) {
-    return { success: false, error: error.message };
-  }
-
+  if (error) return { success: false, error: error.message };
   return { success: true };
 }
 

@@ -51,7 +51,7 @@ export default function LocationSection() {
   const animationDuration = shouldReduceMotion ? 0.15 : 0.8;
 
   return (
-    <section className="section-padding overflow-hidden relative" ref={containerRef}>
+    <section className="section-padding overflow-hidden relative" style={{ position: 'relative' }} ref={containerRef}>
       {/* Parallax Background Elements - Hidden on mobile */}
       {!shouldReduceMotion && (
         <motion.div 

@@ -41,8 +41,6 @@ export function GoogleAuthHandler({ onAuthComplete }: GoogleAuthHandlerProps) {
           return;
         }
 
-        console.log('Processing Google OAuth from URL hash...');
-
         // Set the session in Supabase
         const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,

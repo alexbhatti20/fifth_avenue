@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SectionHeader } from '@/components/portal/PortalProvider';
 import { createClient } from '@/lib/supabase';
+import { searchCustomerForOrderServer } from '@/lib/actions';
 import { toast } from 'sonner';
 import { usePortalAuth } from '@/hooks/usePortal';
 import type { OrderCreationDataServer } from '@/lib/server-queries';
@@ -53,7 +54,7 @@ export default function OrderCreateClient({ initialData }: OrderCreateClientProp
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isNewCustomer, setIsNewCustomer] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const searchRequestIdRef = useRef(0);
   const lastSearchTermRef = useRef<string>('');
   const searchCacheRef = useRef<Map<string, RegisteredCustomer[]>>(new Map());
   
@@ -225,6 +226,13 @@ export default function OrderCreateClient({ initialData }: OrderCreateClientProp
 
   // Clear customer
   const clearCustomer = () => {
+    // Cancel any pending debounced search so it doesn't re-populate results
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
+    }
+    // Reset last search term so the same name can be searched again after clearing
+    lastSearchTermRef.current = '';
     setRegisteredCustomer(null);
     setCustomerName('');
     setCustomerPhone('');
@@ -408,82 +416,63 @@ export default function OrderCreateClient({ initialData }: OrderCreateClientProp
     fetchOrderCreationData();
   }, [isAuthorized]);
 
-  // Customer search
+  // Customer search — runs as a server action (hidden from Network tab, no Supabase calls from browser)
   const searchCustomer = async (searchTerm: string) => {
     const trimmedSearch = searchTerm.trim().toLowerCase();
-    
-    if (trimmedSearch.length < 3) {
+
+    if (trimmedSearch.length < 2) {
       setCustomerSearchResults([]);
       setShowSearchResults(false);
       setIsSearchingCustomer(false);
       return;
     }
-    
+
+    // Skip identical consecutive searches
     if (trimmedSearch === lastSearchTermRef.current) return;
-    
+
+    // Cache hit — instant, no server round-trip
     if (searchCacheRef.current.has(trimmedSearch)) {
-      const cachedResults = searchCacheRef.current.get(trimmedSearch)!;
-      setCustomerSearchResults(cachedResults);
+      const cached = searchCacheRef.current.get(trimmedSearch)!;
+      setCustomerSearchResults(cached);
       setShowSearchResults(true);
-      setIsNewCustomer(cachedResults.length === 0);
+      setIsNewCustomer(cached.length === 0);
       lastSearchTermRef.current = trimmedSearch;
       return;
     }
-    
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-    
+
+    // Bump request ID so any in-flight older request is silently discarded
+    const thisRequestId = ++searchRequestIdRef.current;
+
     setIsSearchingCustomer(true);
     setShowSearchResults(true);
-    
+
     try {
-      const { data, error } = await supabase.rpc('search_customer_for_order', {
-        p_search: trimmedSearch
-      });
-      
-      if (abortControllerRef.current?.signal.aborted) return;
-      
-      if (error) {
-        setCustomerSearchResults([]);
-        setIsNewCustomer(true);
-        return;
+      const result = await searchCustomerForOrderServer(trimmedSearch);
+
+      // Stale — a newer search started while we were awaiting; discard
+      if (thisRequestId !== searchRequestIdRef.current) return;
+
+      const results = result.success ? result.customers : [];
+
+      // Cap cache at 50 entries (LRU-lite)
+      if (searchCacheRef.current.size >= 50) {
+        const firstKey = searchCacheRef.current.keys().next().value;
+        if (firstKey) searchCacheRef.current.delete(firstKey);
       }
-      
-      if (data?.success) {
-        const results = (data.customers || []).map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          phone: c.phone,
-          email: c.email,
-          address: c.address,
-          loyalty_points: c.loyalty_points || 0,
-          loyalty_tier: c.loyalty_tier || 'bronze',
-          total_orders: c.total_orders || 0,
-          total_spent: 0,
-        }));
-        
-        if (searchCacheRef.current.size > 50) {
-          const firstKey = searchCacheRef.current.keys().next().value;
-          if (firstKey) searchCacheRef.current.delete(firstKey);
-        }
-        searchCacheRef.current.set(trimmedSearch, results);
-        lastSearchTermRef.current = trimmedSearch;
-        
-        setCustomerSearchResults(results);
-        setIsNewCustomer(results.length === 0);
-      } else {
-        setCustomerSearchResults([]);
-        setIsNewCustomer(true);
-      }
-    } catch (error: any) {
-      if (error?.name !== 'AbortError') {
+      searchCacheRef.current.set(trimmedSearch, results);
+      lastSearchTermRef.current = trimmedSearch;
+
+      setCustomerSearchResults(results);
+      setIsNewCustomer(results.length === 0);
+    } catch {
+      if (thisRequestId === searchRequestIdRef.current) {
         setCustomerSearchResults([]);
         setIsNewCustomer(true);
       }
     } finally {
-      setIsSearchingCustomer(false);
+      if (thisRequestId === searchRequestIdRef.current) {
+        setIsSearchingCustomer(false);
+      }
     }
   };
 
@@ -510,7 +499,15 @@ export default function OrderCreateClient({ initialData }: OrderCreateClientProp
     if (field === 'name') setCustomerName(value);
     if (field === 'phone') setCustomerPhone(value);
     if (field === 'email') setCustomerEmail(value);
-    
+
+    // If the user edits any field while a registered customer is linked,
+    // detach the link but KEEP the other fields intact (don't wipe name/email/phone).
+    if (registeredCustomer) {
+      setRegisteredCustomer(null);
+      setCustomerSearchResults([]);
+      setShowSearchResults(false);
+    }
+
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
@@ -528,28 +525,26 @@ export default function OrderCreateClient({ initialData }: OrderCreateClientProp
       return;
     }
     
-    if (registeredCustomer) return;
-    
-    const searchValue = field === 'phone' ? value : 
+    const searchValue = field === 'phone' ? value :
                         field === 'name' ? value :
                         value || customerPhone || customerName;
     
     searchTimeoutRef.current = setTimeout(() => {
-      if (searchValue && searchValue.length >= 3) {
+      if (searchValue && searchValue.length >= 2) {
         searchCustomer(searchValue);
-      } else if (searchValue && searchValue.length < 3) {
+      } else if (searchValue && searchValue.length < 2) {
         setCustomerSearchResults([]);
         setShowSearchResults(false);
         setIsNewCustomer(false);
       }
-    }, 800);
+    }, 350);
   };
 
   // Select customer
   const selectCustomer = (customer: RegisteredCustomer) => {
     setRegisteredCustomer(customer);
-    setCustomerName(customer.name);
-    setCustomerPhone(customer.phone);
+    setCustomerName(customer.name || '');
+    setCustomerPhone(customer.phone || '');
     setCustomerEmail(customer.email || '');
     setCustomerAddress(customer.address || '');
     setCustomerSearchResults([]);
@@ -557,23 +552,7 @@ export default function OrderCreateClient({ initialData }: OrderCreateClientProp
     setIsNewCustomer(false);
   };
 
-  // Click outside to close search results
-  useEffect(() => {
-    const handleClickOutside = () => {
-      if (showSearchResults) {
-        setShowSearchResults(false);
-      }
-    };
-    
-    const timer = setTimeout(() => {
-      document.addEventListener('click', handleClickOutside);
-    }, 100);
-    
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [showSearchResults]);
+  // Click outside is now handled inside CustomerSection via a stable pointerdown ref
 
   // Cart functions
   const addToCart = (item: MenuItem, variant?: string, variantPrice?: number) => {
@@ -585,9 +564,13 @@ export default function OrderCreateClient({ initialData }: OrderCreateClientProp
       if (existingIndex >= 0) {
         const updated = [...prev];
         updated[existingIndex].quantity += 1;
+        toast.success(`Added ${item.name}${variant ? ` (${variant})` : ''}`, {
+          description: `Quantity: ${updated[existingIndex].quantity}`,
+        });
         return updated;
       }
       
+      toast.success(`Added ${item.name}${variant ? ` (${variant})` : ''} to cart`);
       return [...prev, {
         id: `${item.id}-${variant || 'default'}-${Date.now()}`,
         menuItem: item,
@@ -780,6 +763,7 @@ export default function OrderCreateClient({ initialData }: OrderCreateClientProp
               refreshTables();
               setShowTableSelector(true);
             }}
+            onCloseSearchResults={() => setShowSearchResults(false)}
           />
 
           <MenuSection

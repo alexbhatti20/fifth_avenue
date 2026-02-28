@@ -88,16 +88,12 @@ export default function EmployeeDetailsClient({
       const needsFetch = !initialEmployee || (typeof initialEmployee === 'object' && !initialEmployee?.name);
       
       if (needsFetch && employeeId) {
-        console.log('[Client] SSR data missing or empty, fetching client-side for:', employeeId);
         setLoading(true);
         try {
           const [empData, payrollData] = await Promise.all([
             getEmployeeComplete(employeeId),
             getEmployeePayrollSummary(employeeId),
           ]);
-          
-          console.log('[Client] Fetched employee data:', empData);
-          console.log('[Client] Fetched payroll data:', payrollData);
           
           if (empData && empData.name) {
             setEmployee(empData);
@@ -219,9 +215,6 @@ export default function EmployeeDetailsClient({
       </div>
     );
   }
-
-  // Debug: Log employee data to console
-  console.log('[Render] Employee data:', JSON.stringify(employee, null, 2));
 
   const isBlocked = !employee.portal_enabled;
 

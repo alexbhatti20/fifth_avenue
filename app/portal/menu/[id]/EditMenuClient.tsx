@@ -15,7 +15,6 @@ import {
   Leaf,
   Star,
   Upload,
-  Loader2,
   Check,
   Package,
   FileText,
@@ -48,9 +47,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { uploadMenuImage } from '@/lib/storage';
+import { uploadMenuImage, deleteStorageFile } from '@/lib/storage';
 import { createClient } from '@/lib/supabase';
 import { updateMenuItemAdvanced, deleteMenuItemServer } from '@/lib/actions';
+import { PortalLoader } from '@/components/portal/PortalLoader';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -132,6 +132,7 @@ export default function EditMenuClient({ id, initialItem, categories }: EditMenu
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingLabel, setLoadingLabel] = useState('Processing…');
   const [imagePreview, setImagePreview] = useState<string[]>(initialItem?.images || []);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -207,8 +208,13 @@ export default function EditMenuClient({ id, initialItem, categories }: EditMenu
   };
 
   const removeImage = (index: number) => {
+    const urlToRemove = imagePreview[index];
     setImagePreview(prev => prev.filter((_, i) => i !== index));
     setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
+    // If this URL was already saved in the DB, delete it from storage too
+    if (urlToRemove && initialItem?.images?.includes(urlToRemove)) {
+      deleteStorageFile(urlToRemove).catch(() => {});
+    }
   };
 
   // Size variants helpers
@@ -262,6 +268,7 @@ export default function EditMenuClient({ id, initialItem, categories }: EditMenu
       return;
     }
 
+    setLoadingLabel('Saving changes…');
     setIsLoading(true);
     try {
       // Use Server Action to update menu item (hidden from Network tab)
@@ -293,6 +300,7 @@ export default function EditMenuClient({ id, initialItem, categories }: EditMenu
   };
 
   const handleDelete = async () => {
+    setLoadingLabel('Deleting item…');
     setIsLoading(true);
     try {
       // Use Server Action to delete menu item (hidden from Network tab)
@@ -303,14 +311,7 @@ export default function EditMenuClient({ id, initialItem, categories }: EditMenu
       // Delete images from storage
       if (formData.images && Array.isArray(formData.images)) {
         for (const imageUrl of formData.images) {
-          try {
-            const urlParts = imageUrl.split('/images/');
-            if (urlParts.length === 2) {
-              await supabase.storage.from('images').remove([urlParts[1]]);
-            }
-          } catch (imgError) {
-            // Continue even if image deletion fails
-          }
+          deleteStorageFile(imageUrl).catch(() => {}); // non-blocking, silent fail
         }
       }
 
@@ -617,9 +618,16 @@ export default function EditMenuClient({ id, initialItem, categories }: EditMenu
               <label htmlFor="image-upload" className={cn("cursor-pointer", isUploadingImage && "cursor-wait")}>
                 {isUploadingImage ? (
                   <>
-                    <Loader2 className="h-12 w-12 mx-auto text-primary mb-4 animate-spin" />
-                    <p className="text-lg font-medium">Compressing & uploading...</p>
-                    <p className="text-sm text-muted-foreground mt-1">Please wait</p>
+                    <div className="w-12 h-12 mx-auto mb-4 rounded-full"
+                      style={{
+                        background: 'conic-gradient(from 0deg, transparent 0%, #d4163c 30%, #8b0e26 65%, #141414 85%, transparent 100%)',
+                        animation: 'zoiroSpin 0.8s linear infinite',
+                        WebkitMaskImage: 'radial-gradient(circle, transparent 48%, black 50%)',
+                        maskImage: 'radial-gradient(circle, transparent 48%, black 50%)',
+                      }}
+                    />
+                    <p className="text-lg font-medium">Compressing &amp; uploading…</p>
+                    <p className="text-sm text-muted-foreground mt-1">Converting to WebP</p>
                   </>
                 ) : (
                   <>
@@ -864,11 +872,11 @@ export default function EditMenuClient({ id, initialItem, categories }: EditMenu
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
+              <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={isLoading}>
                 <Trash2 className="h-4 w-4 mr-2" /> Delete
               </Button>
-              <Button onClick={handleSubmit} disabled={isLoading}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+              <Button onClick={handleSubmit} disabled={isLoading || !formData.name || !formData.category_id || formData.price <= 0}>
+                <Save className="h-4 w-4 mr-2" />
                 Save Changes
               </Button>
             </div>
@@ -937,26 +945,30 @@ export default function EditMenuClient({ id, initialItem, categories }: EditMenu
               >
                 Previous
               </Button>
-              {currentStep < STEPS.length ? (
-                <Button
-                  onClick={() => setCurrentStep(prev => Math.min(STEPS.length, prev + 1))}
-                  disabled={!canProceed()}
-                >
-                  Next Step
+              <div className="flex items-center gap-2">
+                {currentStep < STEPS.length && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentStep(prev => Math.min(STEPS.length, prev + 1))}
+                  >
+                    Next Step
+                  </Button>
+                )}
+                <Button onClick={handleSubmit} disabled={isLoading || !formData.name || !formData.category_id || formData.price <= 0}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
                 </Button>
-              ) : (
-                <Button onClick={handleSubmit} disabled={isLoading}>
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-                  Update Item
-                </Button>
-              )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Universal gradient loader */}
+      <PortalLoader visible={isLoading} label={loadingLabel} />
+
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog open={showDeleteDialog} onOpenChange={(o) => !isLoading && setShowDeleteDialog(o)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Menu Item</AlertDialogTitle>

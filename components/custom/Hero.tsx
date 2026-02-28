@@ -151,7 +151,7 @@ export default function Hero() {
   const contentOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   return (
-    <section ref={containerRef} className="relative min-h-screen flex items-center overflow-hidden pt-20">
+    <section ref={containerRef} className="relative min-h-screen flex items-center overflow-hidden pt-20" style={{ position: 'relative' }}>
       {/* Background Image with Parallax */}
       <motion.div 
         className="absolute inset-0 z-0 bg-zinc-900"

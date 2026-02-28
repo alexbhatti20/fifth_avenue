@@ -1,7 +1,9 @@
 import { getLoyaltyPageDataServer, getServerCustomer } from "@/lib/server-queries";
 import LoyaltyClient from "./LoyaltyClient";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata = {
   title: "Loyalty Program | ZOIRO Injected Broast",
@@ -11,23 +13,19 @@ export const metadata = {
 export default async function LoyaltyPage() {
   // Get customer from server-side session
   const customer = await getServerCustomer();
-  
-  let initialLoyalty = null;
-  let initialPromoCodes: any[] = [];
-  let initialPointsHistory: any[] = [];
-  
-  if (customer) {
-    const data = await getLoyaltyPageDataServer(customer.id);
-    initialLoyalty = data.loyalty;
-    initialPromoCodes = data.promoCodes;
-    initialPointsHistory = data.pointsHistory;
+
+  // Redirect unauthenticated users immediately on the server
+  if (!customer) {
+    redirect("/auth");
   }
+
+  const data = await getLoyaltyPageDataServer(customer.id);
 
   return (
     <LoyaltyClient
-      initialLoyalty={initialLoyalty}
-      initialPromoCodes={initialPromoCodes}
-      initialPointsHistory={initialPointsHistory}
+      initialLoyalty={data.loyalty}
+      initialPromoCodes={data.promoCodes}
+      initialPointsHistory={data.pointsHistory}
     />
   );
 }

@@ -27,6 +27,7 @@ const nextConfig = {
   
   // Security headers
   async headers() {
+    const isProd = process.env.NODE_ENV === 'production';
     return [
       {
         source: '/:path*',
@@ -35,10 +36,11 @@ const nextConfig = {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
           },
-          {
+          // HSTS - enabled in production
+          ...(isProd ? [{
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload',
-          },
+          }] : []),
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
@@ -53,11 +55,33 @@ const nextConfig = {
           },
           {
             key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
+            value: 'strict-origin-when-cross-origin',
           },
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(self)',
+          },
+        ],
+      },
+      {
+        // CORS for API routes
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: isProd ? 'https://zoirobroast.me' : '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-CSRF-Token',
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true',
           },
         ],
       },
@@ -74,10 +98,12 @@ const nextConfig = {
     ];
   },
   
-  // Redirects for domain management
+  // Redirects for domain management (disabled for local dev)
   async redirects() {
+    const isProd = process.env.NEXT_PUBLIC_APP_URL?.startsWith('https://');
+    if (!isProd) return [];
     return [
-      // Redirect www to non-www
+      // Redirect www to non-www (production only)
       {
         source: '/:path*',
         has: [

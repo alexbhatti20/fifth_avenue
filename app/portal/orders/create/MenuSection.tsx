@@ -97,7 +97,11 @@ export function MenuSection({
                     "p-3 border rounded-lg cursor-pointer transition-all hover:border-primary/50 hover:shadow-sm",
                     !item.is_available && "opacity-50 cursor-not-allowed"
                   )}
-                  onClick={() => item.is_available && onAddToCart(item)}
+                  onClick={() => {
+                    if (item.is_available) {
+                      onAddToCart(item);
+                    }
+                  }}
                 >
                   <div className="flex gap-3">
                     {item.image_url && (
@@ -127,7 +131,9 @@ export function MenuSection({
                           className="text-xs cursor-pointer hover:bg-primary/10"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (item.is_available) onAddToCart(item, v.name, v.price);
+                            if (item.is_available) {
+                              onAddToCart(item, v.name, v.price);
+                            }
                           }}
                         >
                           {v.name}: Rs. {v.price}

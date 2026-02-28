@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
 
           const isSecure = process.env.NEXT_PUBLIC_APP_URL?.startsWith('https') || process.env.NODE_ENV === 'production';
           response.cookies.set('auth_token', token, {
-            httpOnly: true,
+            httpOnly: false,
             secure: isSecure,
             sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 7,
@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
     // Set secure HTTP-only cookie for token
     const isSecure = process.env.NEXT_PUBLIC_APP_URL?.startsWith('https') || process.env.NODE_ENV === 'production';
     response.cookies.set('auth_token', token, {
-      httpOnly: true,
+      httpOnly: false,
       secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days

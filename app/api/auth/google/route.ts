@@ -13,8 +13,6 @@ export async function POST(request: NextRequest) {
     const baseUrl = `${protocol}://${host}`;
     const redirectTo = `${baseUrl}/api/auth/google/callback?intent=${type || 'login'}`;
 
-    console.log('Google OAuth redirect URL:', redirectTo);
-
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {

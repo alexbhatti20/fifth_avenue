@@ -150,7 +150,7 @@ export const SECURITY_HEADERS = {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: https: blob:",
     "font-src 'self' https://fonts.gstatic.com",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.upstash.io https://www.google-analytics.com",
+    `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.upstash.io https://www.google-analytics.com${process.env.NODE_ENV === 'development' ? ' http://localhost:3000 http://localhost:3001 http://127.0.0.1:3000' : ''}`,
     "frame-ancestors 'self'",
     "base-uri 'self'",
     "form-action 'self'",
