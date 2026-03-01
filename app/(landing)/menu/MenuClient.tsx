@@ -331,10 +331,13 @@ export default function MenuClient({
 
   // Client-side offer refresh — ensures Hot Offers tab appears even if SSR cache was empty
   useEffect(() => {
-    if (initialOffers.length > 0) return; // already have data from SSR
-    supabase.rpc('get_active_offers', { p_include_items: false, p_for_popup: false })
-      .then(({ data }) => { if (data && data.length > 0) setOffers(data); })
-      .catch(() => {});
+    if (initialOffers.length > 0) return;
+    (async () => {
+      try {
+        const { data } = await supabase.rpc('get_active_offers', { p_include_items: false, p_for_popup: false });
+        if (data && data.length > 0) setOffers(data);
+      } catch { /* non-critical */ }
+    })();
   }, []);
 
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
