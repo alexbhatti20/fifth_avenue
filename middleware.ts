@@ -51,8 +51,10 @@ const MAINTENANCE_BYPASS = [
 ];
 
 // ─── Admin-only portal paths ──────────────────────────────────────────────────
-// These require role === 'admin' in the JWT; non-admins are bounced to /portal/dashboard
-const ADMIN_ONLY_PATHS = ['/portal/employees', '/portal/audit', '/portal/backup'];
+// These require role === 'admin'; non-admins are bounced to /portal
+// NOTE: /portal/backup is intentionally excluded — it allows admin AND manager
+//       (the page's own SSR auth guard enforces that check)
+const ADMIN_ONLY_PATHS = ['/portal/employees', '/portal/audit'];
 
 // ─── JWT helpers (edge runtime: no Buffer, use atob) ─────────────────────────
 
@@ -145,9 +147,15 @@ export async function middleware(request: NextRequest) {
     }
 
     // Enforce admin-only portal routes at the edge
+    // token.role is the Supabase auth role ('authenticated'), NOT the custom employee role.
+    // Fall back to the employee_data cookie which stores the actual role (admin/manager/etc.).
     const isAdminOnly = ADMIN_ONLY_PATHS.some(p => pathname.startsWith(p));
-    if (isAdminOnly && token.role !== 'admin') {
-      return NextResponse.redirect(new URL('/portal', request.url));
+    if (isAdminOnly) {
+      const jwtIsAdmin = token.role === 'admin';
+      const cookieIsAdmin = !jwtIsAdmin && isAdminFromEmployeeData(request);
+      if (!jwtIsAdmin && !cookieIsAdmin) {
+        return NextResponse.redirect(new URL('/portal', request.url));
+      }
     }
   }
 
