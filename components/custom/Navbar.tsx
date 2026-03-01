@@ -554,45 +554,47 @@ function Navbar() {
               // Placeholder during SSR/hydration to prevent mismatch
               <div className="hidden md:block w-11 h-11" />
             )}
-            {/* Premium Cart Button */}
-            <Link href="/cart">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="relative group"
-              >
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className={`relative rounded-xl w-11 h-11 transition-all duration-300 ${
-                    !isScrolled 
-                      ? "text-white hover:text-white hover:bg-white/20 backdrop-blur-sm" 
-                      : "hover:bg-secondary"
-                  }`}
+            {/* Premium Cart Button — only for logged-in customers */}
+            {user && (
+              <Link href="/cart">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="relative group"
                 >
-                  <ShoppingCart className="h-5 w-5" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`relative rounded-xl w-11 h-11 transition-all duration-300 ${
+                      !isScrolled 
+                        ? "text-white hover:text-white hover:bg-white/20 backdrop-blur-sm" 
+                        : "hover:bg-secondary"
+                    }`}
+                  >
+                    <ShoppingCart className="h-5 w-5" />
+                    {totalItems > 0 && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className={`absolute -top-1 -right-1 text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center shadow-lg ${
+                          isScrolled 
+                            ? "bg-gradient-to-r from-primary to-orange-500 text-white" 
+                            : "bg-white text-primary"
+                        }`}
+                      >
+                        {totalItems > 99 ? '99+' : totalItems}
+                      </motion.span>
+                    )}
+                  </Button>
+                  {/* Pulse ring for items in cart */}
                   {totalItems > 0 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className={`absolute -top-1 -right-1 text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center shadow-lg ${
-                        isScrolled 
-                          ? "bg-gradient-to-r from-primary to-orange-500 text-white" 
-                          : "bg-white text-primary"
-                      }`}
-                    >
-                      {totalItems > 99 ? '99+' : totalItems}
-                    </motion.span>
+                    <span className={`absolute -top-1 -right-1 w-5 h-5 rounded-full animate-ping ${
+                      isScrolled ? "bg-primary/30" : "bg-white/30"
+                    }`} />
                   )}
-                </Button>
-                {/* Pulse ring for items in cart */}
-                {totalItems > 0 && (
-                  <span className={`absolute -top-1 -right-1 w-5 h-5 rounded-full animate-ping ${
-                    isScrolled ? "bg-primary/30" : "bg-white/30"
-                  }`} />
-                )}
-              </motion.div>
-            </Link>
+                </motion.div>
+              </Link>
+            )}
 
             {/* Premium Mobile Menu Button */}
             <Button

@@ -118,6 +118,9 @@ const nextConfig = {
     ];
   },
   
+  // Transpile packages that cause chunk 404 errors in dev
+  transpilePackages: ['lottie-react'],
+
   // Compress output
   compress: true,
   

@@ -127,19 +127,22 @@ export default function KeyboardShortcutsSettings() {
     if (!editDialog.recording) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Capture the full combo BEFORE any other handler (useKeyboardShortcuts) can
+      // intercept or stopImmediatePropagation it.
       event.preventDefault();
       event.stopPropagation();
-// Build preview of current key combo
+      event.stopImmediatePropagation();
+
+      // Build preview of current key combo
       const parts: string[] = [];
       if (event.ctrlKey) parts.push('Ctrl');
       if (event.altKey) parts.push('Alt');
       if (event.shiftKey) parts.push('Shift');
       if (event.metaKey) parts.push('Meta');
       
-      // Don't process modifier-only keys
-      const modifierKeys = ['Control', 'Alt', 'Shift', 'Meta', 'OS'];
+      // Don't process modifier-only keys — just update the live preview
+      const modifierKeys = ['Control', 'Alt', 'Shift', 'Meta', 'OS', 'AltGraph'];
       if (modifierKeys.includes(event.key)) {
-        // Just show the modifiers being pressed
         setEditDialog(prev => ({
           ...prev,
           previewKey: parts.join('+') || 'Press a key...',
@@ -178,8 +181,9 @@ export default function KeyboardShortcutsSettings() {
       }));
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    // Use capture phase so we run BEFORE useKeyboardShortcuts and browser defaults
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [editDialog.recording, editDialog.shortcut, shortcuts]);
 
   // Save shortcut
@@ -406,22 +410,28 @@ export default function KeyboardShortcutsSettings() {
             </div>
           </div>
 
-          <TabsList className="flex flex-wrap h-auto justify-start gap-1 bg-transparent p-0">
-            {globalShortcuts.length > 0 && (
-              <TabsTrigger value="global" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                Global ({globalShortcuts.length})
-              </TabsTrigger>
-            )}
-            {sortedPages.map(page => (
-              <TabsTrigger 
-                key={page} 
-                value={page}
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                {pageNames[page] || page} ({pageGroups[page].length})
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          {/* Horizontally scrollable tabs on mobile */}
+          <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide pb-2">
+            <TabsList className="inline-flex w-max sm:w-auto h-auto gap-1 bg-zinc-100/80 dark:bg-zinc-800/80 p-1 rounded-xl">
+              {globalShortcuts.length > 0 && (
+                <TabsTrigger 
+                  value="global" 
+                  className="text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700"
+                >
+                  Global ({globalShortcuts.length})
+                </TabsTrigger>
+              )}
+              {sortedPages.map(page => (
+                <TabsTrigger 
+                  key={page} 
+                  value={page}
+                  className="text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700"
+                >
+                  {pageNames[page] || page} ({pageGroups[page].length})
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           {/* Global Shortcuts Tab */}
           {globalShortcuts.length > 0 && (
@@ -443,49 +453,53 @@ export default function KeyboardShortcutsSettings() {
                         <div
                           key={shortcut.id}
                           className={cn(
-                            "flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors",
+                            "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 p-3 sm:p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors",
                             !localEnabled && "opacity-50"
                           )}
                         >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-medium">{shortcut.name}</h4>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                              <h4 className="font-medium text-sm sm:text-base">{shortcut.name}</h4>
                               {modified && (
-                                <Badge variant="secondary" className="text-xs">
+                                <Badge variant="secondary" className="text-[10px] sm:text-xs">
                                   Modified
                                 </Badge>
                               )}
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-[10px] sm:text-xs">
                                 {shortcut.category}
                               </Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 line-clamp-2">
                               {shortcut.description}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="font-mono text-xs px-3 py-1">
+                          <div className="flex items-center justify-between sm:justify-end gap-2 mt-1 sm:mt-0">
+                            <Badge variant="outline" className="font-mono text-[10px] sm:text-xs px-2.5 sm:px-3 py-1">
                               {formatKeyCombo(configuredKey)}
                             </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(shortcut)}
-                              disabled={!localEnabled}
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                            {modified && (
+                            <div className="flex items-center gap-1">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleReset(shortcut)}
+                                onClick={() => handleEdit(shortcut)}
                                 disabled={!localEnabled}
-                                title="Reset to default"
+                                className="h-8 w-8 sm:h-9 sm:w-9 p-0"
                               >
-                                <RotateCcw className="h-4 w-4" />
+                                <Edit3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               </Button>
-                            )}
+                              {modified && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleReset(shortcut)}
+                                  disabled={!localEnabled}
+                                  title="Reset to default"
+                                  className="h-8 w-8 sm:h-9 sm:w-9 p-0"
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -516,61 +530,65 @@ export default function KeyboardShortcutsSettings() {
                         <div
                           key={shortcut.id}
                           className={cn(
-                            "flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors",
+                            "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 p-3 sm:p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors",
                             !localEnabled && "opacity-50"
                           )}
                         >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-medium">{shortcut.name}</h4>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                              <h4 className="font-medium text-sm sm:text-base">{shortcut.name}</h4>
                               {modified && (
-                                <Badge variant="secondary" className="text-xs">
+                                <Badge variant="secondary" className="text-[10px] sm:text-xs">
                                   Modified
                                 </Badge>
                               )}
                               {shortcut.category === 'navigation' && (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-[10px] sm:text-xs">
                                   Navigate
                                 </Badge>
                               )}
                               {shortcut.category === 'actions' && (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-[10px] sm:text-xs">
                                   Action
                                 </Badge>
                               )}
                               {shortcut.category === 'page-specific' && (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-[10px] sm:text-xs">
                                   Page Only
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 line-clamp-2">
                               {shortcut.description}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="font-mono text-xs px-3 py-1">
+                          <div className="flex items-center justify-between sm:justify-end gap-2 mt-1 sm:mt-0">
+                            <Badge variant="outline" className="font-mono text-[10px] sm:text-xs px-2.5 sm:px-3 py-1">
                               {formatKeyCombo(configuredKey)}
                             </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(shortcut)}
-                              disabled={!localEnabled}
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                            {modified && (
+                            <div className="flex items-center gap-1">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleReset(shortcut)}
+                                onClick={() => handleEdit(shortcut)}
                                 disabled={!localEnabled}
-                                title="Reset to default"
+                                className="h-8 w-8 sm:h-9 sm:w-9 p-0"
                               >
-                                <RotateCcw className="h-4 w-4" />
+                                <Edit3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               </Button>
-                            )}
+                              {modified && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleReset(shortcut)}
+                                  disabled={!localEnabled}
+                                  title="Reset to default"
+                                  className="h-8 w-8 sm:h-9 sm:w-9 p-0"
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );

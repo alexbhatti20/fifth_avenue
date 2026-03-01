@@ -889,54 +889,116 @@ export const MobileBottomNav = memo(function MobileBottomNav({ onMenuClick }: Mo
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 safe-area-bottom">
-      <div className="flex items-center justify-around px-2 py-1">
-        {quickItems.map((item) => {
-          const isActive = pathname === item.path || 
-            (item.path !== '/portal' && pathname.startsWith(item.path));
-          
-          return (
-            <Link 
-              key={item.path} 
-              href={item.path}
-              className="flex-1"
-              prefetch={false}
-            >
-              <div className={cn(
-                'flex flex-col items-center py-2 px-1 rounded-lg transition-colors',
-                isActive ? 'text-primary' : 'text-muted-foreground'
-              )}>
-                <item.icon className={cn(
-                  'h-5 w-5 mb-0.5',
-                  isActive && 'text-primary'
-                )} />
-                <span className={cn(
-                  'text-[10px] font-medium',
-                  isActive && 'text-primary'
-                )}>
-                  {item.label}
-                </span>
-              </div>
-            </Link>
+    <>
+      {/* Mobile Bottom Nav Styles */}
+      <style>{`
+        @keyframes navGradientShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes navItemPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        @keyframes navIconBounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-2px); }
+        }
+        .mobile-bottom-nav-container {
+          background: linear-gradient(
+            135deg,
+            rgba(255,255,255,0.98) 0%,
+            rgba(254,242,242,0.98) 25%,
+            rgba(254,226,226,0.95) 50%,
+            rgba(254,242,242,0.98) 75%,
+            rgba(255,255,255,0.98) 100%
           );
-        })}
+          background-size: 400% 400%;
+          animation: navGradientShift 8s ease infinite;
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+        }
+        .dark .mobile-bottom-nav-container {
+          background: linear-gradient(
+            135deg,
+            rgba(24,24,27,0.98) 0%,
+            rgba(39,24,27,0.98) 25%,
+            rgba(55,20,25,0.95) 50%,
+            rgba(39,24,27,0.98) 75%,
+            rgba(24,24,27,0.98) 100%
+          );
+        }
+        .nav-item-active {
+          animation: navItemPulse 2s ease-in-out infinite;
+        }
+        .nav-item-active .nav-icon {
+          animation: navIconBounce 1s ease-in-out infinite;
+        }
+      `}</style>
+
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden safe-area-bottom mobile-bottom-nav-container border-t border-red-100/50 dark:border-red-900/30 shadow-[0_-4px_20px_rgba(220,38,38,0.08)]">
+        {/* Top gradient line */}
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-red-400/60 to-transparent" />
         
-        {/* More Menu Button */}
-        <button 
-          onClick={onMenuClick}
-          className="flex-1 flex flex-col items-center py-2 px-1 rounded-lg text-muted-foreground active:bg-zinc-100 dark:active:bg-zinc-800 transition-colors"
-        >
-          <div className="relative">
-            <MoreHorizontal className="h-5 w-5 mb-0.5" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-[8px] text-white flex items-center justify-center">
-                {unreadCount > 9 ? '!' : unreadCount}
-              </span>
-            )}
-          </div>
-          <span className="text-[10px] font-medium">More</span>
-        </button>
+        <div className="flex items-center justify-around px-1 py-2">
+          {quickItems.map((item) => {
+            const isActive = pathname === item.path || 
+              (item.path !== '/portal' && pathname.startsWith(item.path));
+            
+            return (
+              <Link 
+                key={item.path} 
+                href={item.path}
+                className="flex-1"
+                prefetch={false}
+              >
+                <div className={cn(
+                  'relative flex flex-col items-center py-2.5 px-2 rounded-2xl transition-all duration-300',
+                  isActive 
+                    ? 'nav-item-active bg-gradient-to-b from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30' 
+                    : 'text-zinc-500 dark:text-zinc-400 active:scale-95 active:bg-red-50 dark:active:bg-red-950/30'
+                )}>
+                  {/* Active glow effect */}
+                  {isActive && (
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-red-400/20 to-transparent" />
+                  )}
+                  <item.icon className={cn(
+                    'nav-icon h-5 w-5 mb-1 relative z-10 transition-transform',
+                    isActive ? 'text-white drop-shadow-sm' : 'group-hover:text-red-500'
+                  )} />
+                  <span className={cn(
+                    'text-[10px] font-semibold relative z-10 tracking-wide',
+                    isActive ? 'text-white' : ''
+                  )}>
+                    {item.label}
+                  </span>
+                  {/* Active indicator dot */}
+                  {isActive && (
+                    <div className="absolute -bottom-0.5 w-1 h-1 bg-white rounded-full shadow-sm" />
+                  )}
+                </div>
+              </Link>
+            );
+          })}
+          
+          {/* More Menu Button */}
+          <button 
+            onClick={onMenuClick}
+            className="flex-1 flex flex-col items-center py-2.5 px-2 rounded-2xl text-zinc-500 dark:text-zinc-400 active:scale-95 active:bg-red-50 dark:active:bg-red-950/30 transition-all duration-200"
+          >
+            <div className="relative">
+              <MoreHorizontal className="h-5 w-5 mb-1" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] bg-gradient-to-br from-red-500 to-red-600 rounded-full text-[9px] text-white font-bold flex items-center justify-center shadow-lg shadow-red-500/40 animate-pulse">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-semibold tracking-wide">More</span>
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 });

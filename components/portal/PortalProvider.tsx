@@ -840,19 +840,20 @@ export function PortalProvider({ children, initialEmployee }: PortalProviderProp
         {/* CRUD action loader — absolute so it never covers sidebar */}
         {(contentLoading || contentFading) && (
           <div
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-auto"
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-auto overflow-hidden"
             style={{
-              background: 'rgba(255, 229, 229, 0.85)',
-              backdropFilter: 'blur(4px)',
-              WebkitBackdropFilter: 'blur(4px)',
+              background: 'radial-gradient(circle at center, rgba(255,235,235,0.95) 0%, rgba(255,229,229,0.9) 100%)',
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(6px)',
               opacity: contentFading ? 0 : 1,
               transition: 'opacity 250ms ease',
             }}
           >
             <style>{`
               @keyframes portalZoiroSpin {
-                0%   { transform: rotateY(0deg); }
-                100% { transform: rotateY(360deg); }
+                0%   { transform: rotateY(0deg) scale(1); }
+                50%  { transform: rotateY(180deg) scale(1.05); }
+                100% { transform: rotateY(360deg) scale(1); }
               }
               @keyframes portalCircleRotate {
                 0%   { transform: rotate(-90deg); }
@@ -863,64 +864,200 @@ export function PortalProvider({ children, initialEmployee }: PortalProviderProp
                 50%  { stroke-dasharray: 300, 400; stroke-dashoffset: -100; }
                 100% { stroke-dasharray: 300, 400; stroke-dashoffset: -400; }
               }
+              @keyframes portalOuterPulse {
+                0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+                50% { transform: translate(-50%, -50%) scale(1.06); opacity: 1; }
+              }
+              @keyframes portalLogoPulse {
+                0%, 100% { transform: translate(-50%, -50%) scale(1); }
+                50% { transform: translate(-50%, -50%) scale(1.03); }
+              }
+              @keyframes portalGlowPulse {
+                0%, 100% { filter: drop-shadow(0 0 8px rgba(220,38,38,0.4)); }
+                50% { filter: drop-shadow(0 0 16px rgba(220,38,38,0.7)); }
+              }
+              @keyframes portalOrbit {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+              }
+              @keyframes portalFloat {
+                0%, 100% { transform: translateY(0); opacity: 0.3; }
+                50% { transform: translateY(-10px); opacity: 0.6; }
+              }
+              @keyframes portalGradientShift {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+              }
               .portal-letter {
                 display: inline-block;
                 background: linear-gradient(
                   135deg,
                   #dc2626 0%,
-                  #ff6b6b 50%,
+                  #ff6b6b 30%,
+                  #fca5a5 50%,
+                  #ff6b6b 70%,
                   #dc2626 100%
                 );
-                background-size: 200% auto;
+                background-size: 300% auto;
                 -webkit-background-clip: text;
                 background-clip: text;
                 -webkit-text-fill-color: transparent;
-                animation: portalZoiroSpin 2s ease-in-out infinite;
+                animation: portalZoiroSpin 2s ease-in-out infinite, portalGradientShift 3s ease infinite;
                 transform-origin: center;
               }
-              .portal-letter:nth-child(1) { animation-delay: 0s;   }
-              .portal-letter:nth-child(2) { animation-delay: 0.2s; }
-              .portal-letter:nth-child(3) { animation-delay: 0.4s; }
-              .portal-letter:nth-child(4) { animation-delay: 0.6s; }
-              .portal-letter:nth-child(5) { animation-delay: 0.8s; }
-              .portal-loading-circle { animation: portalCircleRotate 1.5s linear infinite; }
-              .portal-loading-circle circle { animation: portalProgressDash 1.5s ease-in-out infinite; }
+              .portal-letter:nth-child(1) { animation-delay: 0s, 0s; }
+              .portal-letter:nth-child(2) { animation-delay: 0.15s, 0.1s; }
+              .portal-letter:nth-child(3) { animation-delay: 0.3s, 0.2s; }
+              .portal-letter:nth-child(4) { animation-delay: 0.45s, 0.3s; }
+              .portal-letter:nth-child(5) { animation-delay: 0.6s, 0.4s; }
+              .portal-loading-circle { animation: portalCircleRotate 1.5s linear infinite, portalGlowPulse 2s ease-in-out infinite; }
+              .portal-loading-circle circle.portal-progress { animation: portalProgressDash 1.5s ease-in-out infinite; }
+              .portal-outer-ring { animation: portalOuterPulse 2s ease-in-out infinite; }
+              .portal-logo-container { animation: portalLogoPulse 2s ease-in-out infinite; }
+              .portal-orbit-container { animation: portalOrbit 3s linear infinite; }
+              .portal-float-particle {
+                position: absolute;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(220,38,38,0.6) 0%, rgba(220,38,38,0) 70%);
+                pointer-events: none;
+                animation: portalFloat 2s ease-in-out infinite;
+              }
+              @media (max-width: 480px) {
+                .portal-letter { animation-duration: 1.8s, 2.5s; }
+                .portal-loading-circle { animation-duration: 1.2s, 1.8s; }
+              }
             `}</style>
+            
+            {/* Floating particles */}
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="portal-float-particle"
+                style={{
+                  width: `${Math.random() * 6 + 4}px`,
+                  height: `${Math.random() * 6 + 4}px`,
+                  left: `${Math.random() * 80 + 10}%`,
+                  top: `${Math.random() * 80 + 10}%`,
+                  animationDelay: `${Math.random() * 2}s`,
+                  animationDuration: `${Math.random() * 1.5 + 1.5}s`,
+                }}
+              />
+            ))}
+            
             {/* Logo with circular progress around it */}
-            <div style={{ position: 'relative', marginBottom: 32 }}>
+            <div style={{ 
+              position: 'relative', 
+              marginBottom: 'clamp(20px, 4vh, 32px)',
+              width: 'clamp(100px, 30vw, 180px)',
+              height: 'clamp(100px, 30vw, 180px)',
+            }}>
+              {/* Outer Glow Ring */}
+              <div
+                className="portal-outer-ring"
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  width: '115%',
+                  height: '115%',
+                  borderRadius: '50%',
+                  border: '2px solid rgba(220,38,38,0.2)',
+                  boxShadow: '0 0 30px rgba(220,38,38,0.15), inset 0 0 20px rgba(220,38,38,0.1)',
+                }}
+              />
+              
+              {/* Orbiting dot */}
+              <div 
+                className="portal-orbit-container"
+                style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 'clamp(6px, 1.5vw, 10px)',
+                    height: 'clamp(6px, 1.5vw, 10px)',
+                    borderRadius: '50%',
+                    background: '#dc2626',
+                    boxShadow: '0 0 10px rgba(220,38,38,0.8)',
+                  }}
+                />
+              </div>
+              
               {/* Circular Progress Bar */}
               <svg 
                 className="portal-loading-circle" 
-                width="180" 
-                height="180" 
                 viewBox="0 0 180 180"
                 style={{
                   position: 'absolute',
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
+                  width: '100%',
+                  height: '100%',
                 }}
               >
+                {/* Background track */}
                 <circle
                   cx="90"
                   cy="90"
                   r="85"
                   fill="none"
-                  stroke="#dc2626"
+                  stroke="rgba(220,38,38,0.15)"
+                  strokeWidth="4"
+                />
+                {/* Animated progress */}
+                <circle
+                  className="portal-progress"
+                  cx="90"
+                  cy="90"
+                  r="85"
+                  fill="none"
+                  stroke="url(#portalProgressGradient)"
                   strokeWidth="6"
                   strokeLinecap="round"
                 />
+                <defs>
+                  <linearGradient id="portalProgressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#dc2626" />
+                    <stop offset="50%" stopColor="#ff6b6b" />
+                    <stop offset="100%" stopColor="#dc2626" />
+                  </linearGradient>
+                </defs>
               </svg>
               
               {/* Logo in center */}
-              <div style={{ position: 'relative', zIndex: 1 }}>
+              <div 
+                className="portal-logo-container"
+                style={{ 
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  zIndex: 1,
+                  width: '78%',
+                  height: '78%',
+                }}
+              >
                 <Image
                   src="/assets/zoiro-logo.png"
                   alt="Zoiro"
-                  width={140}
-                  height={140}
-                  priority
-                  style={{ borderRadius: '50%', boxShadow: '0 8px 32px rgba(220,38,38,0.5)' }}
+                  fill
+                  sizes="(max-width: 480px) 80px, 140px"
+                  style={{ 
+                    borderRadius: '50%', 
+                    boxShadow: '0 8px 32px rgba(220,38,38,0.5)',
+                    objectFit: 'contain',
+                  }}
                 />
               </div>
             </div>
@@ -928,9 +1065,11 @@ export function PortalProvider({ children, initialEmployee }: PortalProviderProp
             <div
               style={{
                 fontFamily: 'var(--font-bebas, "Bebas Neue", sans-serif)',
-                fontSize: 'clamp(2.5rem, 7vw, 4.5rem)',
-                letterSpacing: '0.22em',
+                fontSize: 'clamp(1.8rem, 8vw, 4.5rem)',
+                letterSpacing: 'clamp(0.1em, 2vw, 0.22em)',
                 lineHeight: 1,
+                display: 'flex',
+                gap: 'clamp(2px, 0.8vw, 6px)',
               }}
             >
               {'ZOIRO'.split('').map((letter, index) => (

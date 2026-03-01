@@ -45,7 +45,6 @@ export async function getAuthenticatedClient() {
     const accessToken = sbToken || authToken;
     
     if (!accessToken) {
-      console.warn('[SSR Auth] No access token found in cookies');
       return supabase;
     }
     
@@ -58,27 +57,19 @@ export async function getAuthenticatedClient() {
         const now = Date.now();
         
         if (expiresAt < now) {
-          console.warn('[SSR Auth] Access token expired');
           return supabase;
-        }
-        
-        // Log successful auth (in dev only)
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[SSR Auth] Authenticated client created for user:', payload.sub);
         }
       }
     } catch (e) {
       // If we can't decode, still try to use the token
-      console.warn('[SSR Auth] Could not decode token, attempting to use anyway');
     }
     
     return createAuthenticatedClient(accessToken);
   } catch (e) {
-    console.error('[SSR Auth] Error getting authenticated client:', e);
+    // Silent fallback
   }
   
   // Fall back to anonymous client
-  console.warn('[SSR Auth] Falling back to anonymous client');
   return supabase;
 }
 
@@ -540,6 +531,99 @@ export const getActiveDeals = unstable_cache(
     tags: ['deals'],
   }
 );
+
+// =============================================
+// SPECIAL OFFERS QUERIES (SSR)
+// =============================================
+
+// Get active special offers for landing page
+// Uses get_active_offers (same RPC as popup – confirmed working)
+export const getActiveOffers = unstable_cache(
+  async () => {
+    if (!isSupabaseConfigured) return [];
+
+    try {
+      const { data, error } = await supabase.rpc('get_active_offers', {
+        p_include_items: true,
+        p_for_popup: false,
+      });
+      
+      if (error) {
+        console.error('Error fetching active offers:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (err) {
+      console.error('Error in getActiveOffers:', err);
+      return [];
+    }
+  },
+  ['active-offers'],
+  {
+    revalidate: 300, // 5 minutes cache
+    tags: ['offers'],
+  }
+);
+
+// Get all special offers for admin (no cache for real-time data)
+export async function getAllSpecialOffers() {
+  if (!isSupabaseConfigured) return { success: false, offers: [] };
+
+  try {
+    const { data, error } = await supabase.rpc('get_all_special_offers');
+    
+    if (error) {
+      console.error('Error fetching all offers:', error);
+      return { success: false, offers: [], error: error.message };
+    }
+    
+    return data || { success: true, offers: [] };
+  } catch (err: any) {
+    console.error('Error in getAllSpecialOffers:', err);
+    return { success: false, offers: [], error: err.message };
+  }
+}
+
+// Get single offer details for edit page
+export async function getOfferDetails(offerId: string) {
+  if (!isSupabaseConfigured) return null;
+
+  try {
+    const { data, error } = await supabase.rpc('get_offer_details', {
+      p_offer_id: offerId,
+    });
+    
+    if (error || !data?.success) {
+      console.error('Error fetching offer details:', error || data?.error);
+      return null;
+    }
+    
+    return data.offer;
+  } catch (err) {
+    console.error('Error in getOfferDetails:', err);
+    return null;
+  }
+}
+
+// Get deals for offer selection dropdown
+export async function getDealsForOffers() {
+  if (!isSupabaseConfigured) return [];
+
+  try {
+    const { data, error } = await supabase.rpc('get_deals_for_offers');
+    
+    if (error || !data?.success) {
+      console.error('Error fetching deals for offers:', error || data?.error);
+      return [];
+    }
+    
+    return data.deals || [];
+  } catch (err) {
+    console.error('Error in getDealsForOffers:', err);
+    return [];
+  }
+}
 
 // =============================================
 // REVIEWS QUERIES
@@ -1520,6 +1604,7 @@ export interface MenuManagementData {
   items: MenuItemAdmin[];
   categories: CategoryAdmin[];
   deals: Deal[];
+  offers?: { offers: any[]; stats: any };
 }
 
 // Deal Form Data for Add/Edit pages
@@ -1589,15 +1674,16 @@ export async function getDealByIdServer(dealId: string): Promise<Deal | null> {
 
 // Get Menu Management Data (Server-Side) - NO CACHE for authenticated data
 export async function getMenuManagementDataServer(): Promise<MenuManagementData> {
-  if (!isSupabaseConfigured) return { items: [], categories: [], deals: [] };
+  if (!isSupabaseConfigured) return { items: [], categories: [], deals: [], offers: { offers: [], stats: {} } };
 
   // Get authenticated client for RPC calls
   const authClient = await getAuthenticatedClient();
 
   // Fetch all data in parallel using RPCs where available
-  const [menuDataResult, dealsResult] = await Promise.all([
+  const [menuDataResult, dealsResult, offersResult] = await Promise.all([
     authClient.rpc('get_menu_management_data'),
     authClient.rpc('get_all_deals_with_items'),
+    authClient.rpc('get_all_special_offers', { p_status: null, p_include_items: true }),
   ]);
 
   // Process menu data
@@ -1630,7 +1716,16 @@ export async function getMenuManagementDataServer(): Promise<MenuManagementData>
     })) as Deal[];
   }
 
-  return { items, categories, deals };
+  // Process offers data
+  let offers = { offers: [] as any[], stats: { total: 0, active: 0, scheduled: 0, expired: 0, draft: 0 } };
+  if (!offersResult.error && offersResult.data?.success) {
+    offers = {
+      offers: offersResult.data.offers || [],
+      stats: offersResult.data.stats || { total: 0, active: 0, scheduled: 0, expired: 0, draft: 0 },
+    };
+  }
+
+  return { items, categories, deals, offers };
 }
 
 // =============================================

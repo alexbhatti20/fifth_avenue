@@ -78,7 +78,7 @@ const itemVariants = {
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, updateQuantity, removeFromCart, clearCart, totalPrice, totalItems } = useCart();
+  const { items, updateQuantity, removeFromCart, clearCart, totalPrice, totalItems, appliedOffer, removeOffer } = useCart();
   const { user } = useAuth();
   const { toast } = useToast();
   const hasAutoFilledRef = useRef(false);
@@ -113,20 +113,23 @@ export default function CartPage() {
 
   // Fetch online payment methods on mount
   useEffect(() => {
+    const controller = new AbortController();
     const fetchPaymentMethods = async () => {
       setLoadingPaymentMethods(true);
       try {
-        const response = await fetch('/api/customer/payment-methods');
+        const response = await fetch('/api/customer/payment-methods', { signal: controller.signal });
         const data = await response.json();
         if (data.success && data.methods) {
           setOnlinePaymentMethods(data.methods);
         }
-      } catch (error) {
-        } finally {
-        setLoadingPaymentMethods(false);
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'AbortError') return; // ignore cleanup cancellation
+      } finally {
+        if (!controller.signal.aborted) setLoadingPaymentMethods(false);
       }
     };
     fetchPaymentMethods();
+    return () => controller.abort();
   }, []);
 
   // Auto-fill customer info when user is logged in
@@ -158,7 +161,19 @@ export default function CartPage() {
   }, [user]);
 
   const deliveryFee = orderType === "delivery" ? 100 : 0;
-  const discount = appliedPromo?.discount_amount || 0;
+  const promoDiscount = appliedPromo?.discount_amount || 0;
+
+  // Storewide offer discount (applied when offer has no specific items)
+  const offerDiscount = (() => {
+    if (!appliedOffer) return 0;
+    if (appliedOffer.discount_type === 'percentage') {
+      const raw = totalPrice * (appliedOffer.discount_value / 100);
+      return appliedOffer.max_discount_amount ? Math.min(raw, appliedOffer.max_discount_amount) : raw;
+    }
+    return Math.min(appliedOffer.discount_value, totalPrice);
+  })();
+
+  const discount = promoDiscount + offerDiscount;
   const tax = (totalPrice - discount) * 0.05;
   const grandTotal = totalPrice - discount + tax + deliveryFee;
 
@@ -859,6 +874,30 @@ export default function CartPage() {
                 >
                   <h2 className="text-xl font-bebas mb-4">Order Summary</h2>
 
+                  {/* Applied Offer Discount */}
+                  {appliedOffer && offerDiscount > 0 && (
+                    <div className="mb-4 p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-orange-600" />
+                          <span className="font-medium text-orange-700 dark:text-orange-300 text-sm">{appliedOffer.name}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeOffer()}
+                          className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900/30"
+                        >
+                          <X className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                      <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
+                        🔥 You save Rs. {offerDiscount.toFixed(2)}
+                        {appliedOffer.discount_type === 'percentage' && ` (${appliedOffer.discount_value}% off)`}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Promo Code */}
                   {promoApplied && appliedPromo ? (
                     <div className="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
@@ -917,16 +956,25 @@ export default function CartPage() {
                       <span className="text-muted-foreground">Subtotal</span>
                       <span>Rs. {totalPrice.toFixed(2)}</span>
                     </div>
-                    {appliedPromo && discount > 0 && (
+                    {appliedPromo && promoDiscount > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span className="flex items-center gap-1">
                           <Tag className="w-3 h-3" />
                           {appliedPromo.promo_type === 'percentage' 
-                            ? `Discount (${appliedPromo.value}%)`
-                            : `Discount (${appliedPromo.code})`
+                            ? `Promo (${appliedPromo.value}%)`
+                            : `Promo (${appliedPromo.code})`
                           }
                         </span>
-                        <span>- Rs. {discount.toFixed(2)}</span>
+                        <span>- Rs. {promoDiscount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {appliedOffer && offerDiscount > 0 && (
+                      <div className="flex justify-between text-sm text-orange-600 dark:text-orange-400">
+                        <span className="flex items-center gap-1">
+                          <Tag className="w-3 h-3" />
+                          {`Offer (${appliedOffer.discount_type === 'percentage' ? `${appliedOffer.discount_value}%` : `Rs.${appliedOffer.discount_value}`} off)`}
+                        </span>
+                        <span>- Rs. {offerDiscount.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm">

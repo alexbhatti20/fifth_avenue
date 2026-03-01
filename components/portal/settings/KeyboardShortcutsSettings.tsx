@@ -58,7 +58,6 @@ function getAllShortcuts(): KeyboardShortcut[] {
     { id: 'nav_billing', name: 'Billing', description: 'Go to billing', defaultKey: 'Ctrl+B', category: 'navigation', action: () => {} },
     { id: 'nav_inventory', name: 'Inventory', description: 'Go to inventory', defaultKey: 'Ctrl+I', category: 'navigation', action: () => {} },
     { id: 'nav_employees', name: 'Employees', description: 'Go to employees', defaultKey: 'Ctrl+E', category: 'navigation', action: () => {} },
-    { id: 'nav_customers', name: 'Customers', description: 'Go to customers', defaultKey: 'Ctrl+U', category: 'navigation', action: () => {} },
     { id: 'nav_attendance', name: 'Attendance', description: 'Go to attendance', defaultKey: 'Ctrl+Shift+A', category: 'navigation', action: () => {} },
     { id: 'nav_payroll', name: 'Payroll', description: 'Go to payroll', defaultKey: 'Ctrl+P', category: 'navigation', action: () => {} },
     { id: 'nav_reports', name: 'Reports', description: 'Go to reports', defaultKey: 'Ctrl+R', category: 'navigation', action: () => {} },
@@ -69,11 +68,17 @@ function getAllShortcuts(): KeyboardShortcut[] {
     { id: 'nav_notifications', name: 'Notifications', description: 'Go to notifications', defaultKey: 'Ctrl+N', category: 'navigation', action: () => {} },
     { id: 'nav_settings', name: 'Settings', description: 'Go to settings', defaultKey: 'Ctrl+,', category: 'navigation', action: () => {} },
     // Actions
-    { id: 'action_refresh', name: 'Refresh Page', description: 'Refresh current page', defaultKey: 'Ctrl+Shift+R', category: 'actions', action: () => {} },
-    { id: 'action_print', name: 'Print Page', description: 'Print current page', defaultKey: 'Ctrl+Shift+P', category: 'actions', action: () => {} },
+    { id: 'action_refresh', name: 'Refresh Page', description: 'Refresh current page', defaultKey: 'F5', category: 'actions', action: () => {} },
+    { id: 'orders_new', name: 'Create Order', description: 'Create new order from anywhere', defaultKey: 'Ctrl+Shift+N', category: 'actions', action: () => {} },
+    { id: 'orders_refresh', name: 'Refresh/Go to Orders', description: 'Go to orders and refresh', defaultKey: 'Alt+O', category: 'actions', action: () => {} },
+    { id: 'orders_filter', name: 'Search Orders', description: 'Go to orders and focus search', defaultKey: 'Ctrl+Shift+O', category: 'actions', action: () => {} },
+    { id: 'menu_add_item', name: 'Add Menu Item', description: 'Add menu item from anywhere', defaultKey: 'Ctrl+Alt+M', category: 'actions', action: () => {} },
+    { id: 'inventory_add', name: 'Add Inventory Item', description: 'Add inventory item from anywhere', defaultKey: 'Ctrl+Shift+I', category: 'actions', action: () => {} },
+    { id: 'tables_add', name: 'Add Table', description: 'Add table from anywhere', defaultKey: 'Ctrl+Shift+T', category: 'actions', action: () => {} },
+    { id: 'employees_add', name: 'Add Employee', description: 'Add employee from anywhere', defaultKey: 'Ctrl+Shift+E', category: 'actions', action: () => {} },
+    { id: 'customers_add', name: 'Customers', description: 'Go to customers / add new customer', defaultKey: 'Ctrl+U', category: 'actions', action: () => {} },
     // Search
-    { id: 'search_global', name: 'Global Search', description: 'Open global search', defaultKey: 'Ctrl+K', category: 'search', action: () => {} },
-    { id: 'search_orders', name: 'Search Orders', description: 'Focus order search', defaultKey: 'Ctrl+Shift+O', category: 'search', action: () => {} },
+    { id: 'search_global', name: 'Global Search', description: 'Open global search', defaultKey: 'Ctrl+Shift+F', category: 'search', action: () => {} },
     // General
     { id: 'general_help', name: 'Help', description: 'Show keyboard shortcuts', defaultKey: 'Ctrl+/', category: 'general', action: () => {} },
     { id: 'general_back', name: 'Go Back', description: 'Navigate to previous page', defaultKey: 'Alt+ArrowLeft', category: 'general', action: () => {} },
@@ -150,8 +155,14 @@ export function KeyboardShortcutsSettings() {
     if (!editDialog.recording) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Capture the full combo BEFORE any other handler can intercept it
       event.preventDefault();
       event.stopPropagation();
+      event.stopImmediatePropagation();
+
+      // Ignore modifier-only keydown events
+      const modifierKeys = ['Control', 'Alt', 'Shift', 'Meta', 'OS', 'AltGraph'];
+      if (modifierKeys.includes(event.key)) return;
 
       const keyCombo = eventToKeyCombo(event);
 
@@ -176,8 +187,9 @@ export function KeyboardShortcutsSettings() {
       }));
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    // Use capture phase so we run BEFORE useKeyboardShortcuts and browser defaults
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [editDialog.recording, editDialog.shortcut, allShortcuts]);
 
   // Save shortcut

@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { getMenuCategories, getActiveDeals, getSiteContent } from '@/lib/queries';
+import { getActiveOffers } from '@/lib/server-queries';
 import { pageMetadata, SITE_URL } from '@/lib/seo';
 import { BreadcrumbJsonLd } from '@/components/seo/JsonLd';
 import Hero from '@/components/custom/Hero';
@@ -9,6 +10,7 @@ import Reviews from '@/components/custom/Reviews';
 import LocationSection from '@/components/custom/LocationSection';
 import Footer from '@/components/custom/Footer';
 import Navbar from '@/components/custom/Navbar';
+import HeroOffersIndicator from '@/components/landing/HeroOffersIndicator';
 
 // ISR Home Page - Revalidate every 30 minutes
 export const revalidate = 1800;
@@ -34,6 +36,8 @@ export default async function Page() {
         <LocationSection />
       </main>
       <Footer />
+      {/* Fixed offers indicator – SSR fetched, shows only when offers exist */}
+      <HeroOffersIndicator />
     </>
   );
 }

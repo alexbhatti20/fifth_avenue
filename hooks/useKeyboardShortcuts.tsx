@@ -23,33 +23,31 @@ export function useKeyboardShortcuts() {
   const lastExecutionRef = useRef<{ [key: string]: number }>({});
 
   // CRITICAL: Install browser shortcut blocker FIRST - before any other effect
-  // This runs FIRST and blocks Ctrl+N, Ctrl+Shift+N, etc. immediately
+  // Uses preventDefault only (NOT stopImmediatePropagation) so that subsequent
+  // handleKeyDown listeners can still execute the mapped app shortcut action.
   useEffect(() => {
     const emergencyBlocker = (e: KeyboardEvent) => {
       if (!e.key) return;
       const key = e.key.toLowerCase();
       
-      // Block Ctrl+N (new window) - HIGHEST PRIORITY
+      // Block Ctrl+N (new window) - allow handleKeyDown to fire nav_notifications
       if (e.ctrlKey && key === 'n' && !e.altKey) {
         e.preventDefault();
         e.stopPropagation();
-        e.stopImmediatePropagation();
         return;
       }
       
-      // Block Ctrl+Shift+N (incognito) - HIGHEST PRIORITY
+      // Block Ctrl+Shift+N (incognito)
       if (e.ctrlKey && e.shiftKey && key === 'n') {
         e.preventDefault();
         e.stopPropagation();
-        e.stopImmediatePropagation();
         return;
       }
       
-      // Block Ctrl+T (new tab)
+      // Block Ctrl+T (new tab) - allow handleKeyDown to fire nav_tables
       if (e.ctrlKey && key === 't' && !e.shiftKey && !e.altKey) {
         e.preventDefault();
         e.stopPropagation();
-        e.stopImmediatePropagation();
         return;
       }
       
@@ -57,7 +55,6 @@ export function useKeyboardShortcuts() {
       if (e.ctrlKey && key === 'w' && !e.shiftKey && !e.altKey) {
         e.preventDefault();
         e.stopPropagation();
-        e.stopImmediatePropagation();
         return;
       }
     };
@@ -163,14 +160,6 @@ export function useKeyboardShortcuts() {
       action: () => router.push('/portal/employees'),
     },
     {
-      id: 'nav_customers',
-      name: 'Customers',
-      description: 'Go to customers',
-      defaultKey: 'Ctrl+U',
-      category: 'navigation',
-      action: () => router.push('/portal/customers'),
-    },
-    {
       id: 'nav_attendance',
       name: 'Attendance',
       description: 'Go to attendance',
@@ -266,22 +255,7 @@ export function useKeyboardShortcuts() {
         if (searchButton) searchButton.click();
       },
     },
-    {
-      id: 'search_orders',
-      name: 'Search Orders',
-      description: 'Focus order search',
-      defaultKey: 'Ctrl+Shift+O',
-      category: 'search',
-      action: () => {
-        if (pathname.includes('/orders')) {
-          const input = findSearchInput();
-          if (input) {
-            input.focus();
-            input.select();
-          }
-        }
-      },
-    },
+
     // General
     {
       id: 'general_help',
@@ -453,7 +427,7 @@ export function useKeyboardShortcuts() {
       id: 'menu_add_item',
       name: 'Add Menu Item (Global)',
       description: 'Add menu item from anywhere',
-      defaultKey: 'Ctrl+Shift+M',
+      defaultKey: 'Ctrl+Alt+M',
       category: 'actions',
       action: () => {
         if (!pathname.includes('/menu')) {
@@ -742,9 +716,9 @@ export function useKeyboardShortcuts() {
     // Customers Actions - Global
     {
       id: 'customers_add',
-      name: 'Add Customer (Global)',
-      description: 'Add customer from anywhere',
-      defaultKey: 'Ctrl+Shift+U',
+      name: 'Customers',
+      description: 'Go to customers / add new customer',
+      defaultKey: 'Ctrl+U',
       category: 'actions',
       action: () => {
         if (!pathname.includes('/customers')) {
@@ -981,87 +955,13 @@ export function useKeyboardShortcuts() {
     };
   }, [getShortcuts, enabled, pathname]);
 
-  // CRITICAL: Global browser shortcut blocker - ALWAYS active with highest priority
-  // This prevents browser shortcuts even when the app shortcuts are disabled
-  // Install this listener FIRST before anything else
-  useEffect(() => {
-    // Ultra-aggressive blocker - catches everything first
-    const ultraBlocker = (event: KeyboardEvent) => {
-      if (!event.key) return;
-      const key = event.key.toLowerCase();
-      const target = event.target as HTMLElement;
-      const isInputField = 
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable;
-      
-      // Block Ctrl+N and Ctrl+Shift+N specifically (new window/incognito)
-      if (event.ctrlKey && key === 'n') {
-        // Don't allow in input fields either
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-        return false;
-      }
-      
-      // Explicitly block these critical browser shortcuts
-      if (event.ctrlKey && !event.altKey && !event.shiftKey) {
-        const blockedKeys = ['n', 't', 'w', 's', 'p', 'o', 'h', 'j', 'l', 'f', 'g', 'k', 'd', 'u', 'r', 'e', 'i', 'b', 'm', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-        
-        // Allow copy/paste/cut/undo/redo/select all only in input fields
-        if (isInputField && ['c', 'v', 'x', 'z', 'y', 'a'].includes(key)) {
-          return; // Allow these in input fields
-        }
-        
-        if (blockedKeys.includes(key)) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-          return false;
-        }
-      }
-      
-      // Block ALL Ctrl+Shift combinations (including Ctrl+Shift+N)
-      if (event.ctrlKey && event.shiftKey) {
-        // Don't allow any Ctrl+Shift in input fields either for browser shortcuts
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-        return false;
-      }
-      
-      // Block F-keys
-      if (event.key.startsWith('F') && /^F\d+$/.test(event.key)) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-        return false;
-      }
-    };
-    
-    const globalBlocker = (event: KeyboardEvent) => {
-      if (shouldBlockBrowserDefault(event)) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-      }
-    };
-    
-    // Add ultra blocker first (highest priority)
-    document.addEventListener('keydown', ultraBlocker, { capture: true, passive: false });
-    window.addEventListener('keydown', ultraBlocker, { capture: true, passive: false });
-    
-    // Add general blocker as backup
-    window.addEventListener('keydown', globalBlocker, { capture: true, passive: false });
-    document.addEventListener('keydown', globalBlocker, { capture: true, passive: false });
-    
-    return () => {
-      document.removeEventListener('keydown', ultraBlocker, { capture: true } as any);
-      window.removeEventListener('keydown', ultraBlocker, { capture: true } as any);
-      window.removeEventListener('keydown', globalBlocker, { capture: true } as any);
-      document.removeEventListener('keydown', globalBlocker, { capture: true } as any);
-    };
-  }, []); // Empty deps - always active
+  // NOTE: Browser shortcut blocking is handled by:
+  // 1. emergencyBlocker (above, deps=[]) - always-first critical blocks (Ctrl+N/T/W)
+  // 2. handleKeyDown (above) - calls shouldBlockBrowserDefault() at its top and
+  //    also prevents browser defaults for any configured shortcut key
+  // The ultraBlocker that used to live here was removed because its deps=[]
+  // caused it to be registered before handleKeyDown after every route change,
+  // making stopImmediatePropagation() swallow events before shortcuts could fire.
 
   return {
     shortcuts: getShortcuts(),

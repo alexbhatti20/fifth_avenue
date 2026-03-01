@@ -35,9 +35,17 @@ export interface MenuItem {
 
 export interface CartItem extends MenuItem {
   quantity: number;
-  selectedSize?: string;      // Selected size (e.g., "Small", "Large")
-  selectedPrice?: number;     // Price for selected size
-  cartItemId?: string;        // Unique ID for cart (id + size)
+  selectedSize?: string;
+  selectedPrice?: number;
+  cartItemId?: string;
+}
+
+export interface AppliedOffer {
+  id: string;
+  name: string;
+  discount_type: 'percentage' | 'fixed_amount';
+  discount_value: number;
+  max_discount_amount?: number;
 }
 
 interface CartContextType {
@@ -49,11 +57,15 @@ interface CartContextType {
   totalItems: number;
   totalPrice: number;
   getCartItemId: (itemId: string, size?: string) => string;
+  appliedOffer: AppliedOffer | null;
+  applyOffer: (offer: AppliedOffer) => void;
+  removeOffer: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const CART_STORAGE_KEY = 'zoiro-cart';
+const OFFER_STORAGE_KEY = 'zoiro-applied-offer';
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -78,29 +90,30 @@ const generateCartItemId = (itemId: string, size?: string): string => {
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [appliedOffer, setAppliedOffer] = useState<AppliedOffer | null>(null);
 
-  // Load cart from localStorage on mount
+  // Load cart + applied offer from localStorage on mount
   useEffect(() => {
     try {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
       if (savedCart) {
         const parsedCart = JSON.parse(savedCart);
-        // Validate cart items have valid prices AND valid UUIDs
         const validCart = parsedCart.filter((item: CartItem) => 
           typeof item.price === 'number' && 
           item.price > 0 && 
           !isNaN(item.price) &&
           isValidItemId(item.id)
         );
-        // If we filtered out invalid items, save the cleaned cart
         if (validCart.length !== parsedCart.length) {
           localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(validCart));
         }
         setItems(validCart);
       }
+      const savedOffer = localStorage.getItem(OFFER_STORAGE_KEY);
+      if (savedOffer) setAppliedOffer(JSON.parse(savedOffer));
     } catch {
-      // Failed to load cart - start fresh
       localStorage.removeItem(CART_STORAGE_KEY);
+      localStorage.removeItem(OFFER_STORAGE_KEY);
     }
     setIsHydrated(true);
   }, []);
@@ -165,6 +178,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems([]);
   }, []);
 
+  const applyOffer = useCallback((offer: AppliedOffer) => {
+    setAppliedOffer(offer);
+    try { localStorage.setItem(OFFER_STORAGE_KEY, JSON.stringify(offer)); } catch {}
+  }, []);
+
+  const removeOffer = useCallback(() => {
+    setAppliedOffer(null);
+    try { localStorage.removeItem(OFFER_STORAGE_KEY); } catch {}
+  }, []);
+
   const totalItems = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items]);
   const totalPrice = useMemo(() => items.reduce((sum, item) => {
     const price = item.selectedPrice || item.price;
@@ -182,7 +205,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     totalItems,
     totalPrice,
     getCartItemId,
-  }), [items, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice, getCartItemId]);
+    appliedOffer,
+    applyOffer,
+    removeOffer,
+  }), [items, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice, getCartItemId, appliedOffer, applyOffer, removeOffer]);
 
   return (
     <CartContext.Provider value={contextValue}>

@@ -76,6 +76,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SectionHeader, usePortalAuthContext } from '@/components/portal/PortalProvider';
 import { cn } from '@/lib/utils';
 import KeyboardShortcutsSettings from '@/components/portal/KeyboardShortcutsSettings';
+import PushNotificationSettings from '@/components/portal/settings/PushNotificationSettings';
 import { toast } from 'sonner';
 import { 
   updateEmployeeProfileServer,
@@ -2110,6 +2111,9 @@ function SecuritySettings({
         </CardContent>
       </Card>
 
+      {/* Push Notifications */}
+      <PushNotificationSettings userId={employeeId} userType="employee" />
+
       {/* Disable 2FA Dialog */}
       <AlertDialog open={showDisableDialog} onOpenChange={setShowDisableDialog}>
         <AlertDialogContent>
@@ -2786,30 +2790,36 @@ export default function SettingsClient({
       />
 
       <Tabs defaultValue="personal" className="space-y-4 sm:space-y-6">
-        <TabsList className="w-full sm:w-auto h-auto flex-wrap">
-          <TabsTrigger value="personal" className="gap-1 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
-            <User className="h-3 w-3 sm:h-4 sm:w-4" /> Personal
-          </TabsTrigger>
-          <TabsTrigger value="security" className="gap-1 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
-            <Shield className="h-3 w-3 sm:h-4 sm:w-4" /> Security
-          </TabsTrigger>
-          <TabsTrigger value="keyboard" className="gap-1 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
-            <Keyboard className="h-3 w-3 sm:h-4 sm:w-4" /> Shortcuts
-          </TabsTrigger>
-          {isAdmin && (
-            <>
-              <TabsTrigger value="payment-methods" className="gap-1 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
-                <CreditCard className="h-3 w-3 sm:h-4 sm:w-4" /> Payments
-              </TabsTrigger>
-              <TabsTrigger value="website" className="gap-1 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
-                <Globe className="h-3 w-3 sm:h-4 sm:w-4" /> Website
-              </TabsTrigger>
-              <TabsTrigger value="maintenance" className="gap-1 sm:gap-2 text-xs sm:text-sm flex-1 sm:flex-none">
-                <Wrench className="h-3 w-3 sm:h-4 sm:w-4" /> Maintenance
-              </TabsTrigger>
-            </>
-          )}
-        </TabsList>
+        {/* Horizontally scrollable tabs on mobile */}
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide">
+          <TabsList className="inline-flex w-max sm:w-auto h-auto gap-1 sm:gap-0 bg-zinc-100/80 dark:bg-zinc-800/80 p-1 rounded-xl">
+            <TabsTrigger value="personal" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Personal
+            </TabsTrigger>
+            <TabsTrigger value="security" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+              <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Security
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+              <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Notifications
+            </TabsTrigger>
+            <TabsTrigger value="keyboard" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+              <Keyboard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Shortcuts
+            </TabsTrigger>
+            {isAdmin && (
+              <>
+                <TabsTrigger value="payment-methods" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+                  <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Payments
+                </TabsTrigger>
+                <TabsTrigger value="website" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+                  <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Website
+                </TabsTrigger>
+                <TabsTrigger value="maintenance" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+                  <Wrench className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Maintenance
+                </TabsTrigger>
+              </>
+            )}
+          </TabsList>
+        </div>
 
         <TabsContent value="personal">
           <PersonalSettings 
@@ -2829,6 +2839,17 @@ export default function SettingsClient({
 
         <TabsContent value="keyboard">
           <KeyboardShortcutsSettings />
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          {employee && (
+            <div className="space-y-4">
+              <PushNotificationSettings 
+                userId={employee.id}
+                userType="employee"
+              />
+            </div>
+          )}
         </TabsContent>
 
         {isAdmin && (

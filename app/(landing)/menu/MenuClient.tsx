@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -31,7 +31,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { getAuthToken } from "@/lib/cookies";
 import { isMobile, cn } from "@/lib/utils";
+
 import type { MenuItem, Category, Deal, ItemReview } from "@/lib/server-queries";
+import type { SpecialOffer } from "@/types/offers";
 
 // Floating food images - using Unsplash URLs
 const floatingFoods = [
@@ -65,6 +67,7 @@ interface MenuClientProps {
   initialCategories: Category[];
   initialMenuItems: MenuItem[];
   initialDeals: Deal[];
+  initialOffers?: SpecialOffer[];
 }
 
 // ─── Advanced Menu Item Card with image carousel ───────────────────────────
@@ -316,13 +319,15 @@ function MenuItemCard({
 export default function MenuClient({ 
   initialCategories, 
   initialMenuItems, 
-  initialDeals 
+  initialDeals,
+  initialOffers = [],
 }: MenuClientProps) {
   // Use initial data from server - no loading state needed!
   const [categories] = useState<Category[]>(initialCategories);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(initialMenuItems);
   const [deals] = useState<Deal[]>(initialDeals);
-  
+  const [offers] = useState<SpecialOffer[]>(initialOffers);
+
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileDevice, setIsMobileDevice] = useState(() => 
@@ -593,6 +598,18 @@ export default function MenuClient({
     return now >= validFrom && now <= validUntil;
   }).length;
 
+  const activeOffersCount = offers.length;
+
+  const filteredOffers = useMemo(() => {
+    if (selectedCategory !== "offers") return [];
+    return offers.filter((offer) => {
+      const matchesSearch =
+        offer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (offer.description || "").toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSearch;
+    });
+  }, [offers, selectedCategory, searchQuery]);
+
   return (
     <>
       <div className="min-h-screen bg-background pt-32">
@@ -797,6 +814,27 @@ export default function MenuClient({
                   </span>
                 )}
               </motion.button>
+              {/* === OFFERS TAB === */}
+              {activeOffersCount > 0 && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSelectedCategory("offers")}
+                  className={`px-4 sm:px-6 py-2 rounded-full font-medium whitespace-nowrap transition-all flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base ${
+                    selectedCategory === "offers"
+                      ? "bg-gradient-to-r from-red-600 via-orange-500 to-red-500 text-white shadow-[0_2px_12px_rgba(220,38,38,0.5)]"
+                      : "bg-secondary hover:bg-secondary/80"
+                  }`}
+                >
+                  <Flame className={`w-4 h-4 ${selectedCategory === "offers" ? "text-yellow-300" : "text-primary"}`} />
+                  Hot Offers
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                    selectedCategory === "offers" ? "bg-white/25 text-white" : "bg-red-500 text-white"
+                  }`}>
+                    {activeOffersCount}
+                  </span>
+                </motion.button>
+              )}
               {categories.map((category) => (
                 <motion.button
                   key={category.id}
@@ -820,12 +858,15 @@ export default function MenuClient({
             <div className="mb-6 flex items-center justify-between">
               <p className="text-muted-foreground">
                 Showing <span className="font-semibold text-foreground">
-                  {selectedCategory === "deals" ? filteredDeals.length : filteredItems.length}
-                </span> {selectedCategory === "deals" ? (filteredDeals.length === 1 ? 'deal' : 'deals') : (filteredItems.length === 1 ? 'item' : 'items')}
+                  {selectedCategory === "deals" ? filteredDeals.length : selectedCategory === "offers" ? filteredOffers.length : filteredItems.length}
+                </span> {selectedCategory === "deals" ? (filteredDeals.length === 1 ? 'deal' : 'deals') : selectedCategory === "offers" ? (filteredOffers.length === 1 ? 'offer' : 'offers') : (filteredItems.length === 1 ? 'item' : 'items')}
                 {selectedCategory === "deals" && (
                   <span> in <span className="text-primary font-medium">Special Deals</span></span>
                 )}
-                {selectedCategory !== "all" && selectedCategory !== "deals" && categories.find(c => c.id === selectedCategory) && (
+                {selectedCategory === "offers" && (
+                  <span> in <span className="bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent font-medium">🔥 Hot Offers</span></span>
+                )}
+                {selectedCategory !== "all" && selectedCategory !== "deals" && selectedCategory !== "offers" && categories.find(c => c.id === selectedCategory) && (
                   <span> in <span className="text-primary font-medium">{categories.find(c => c.id === selectedCategory)?.name}</span></span>
                 )}
                 {searchQuery && (
@@ -982,6 +1023,121 @@ export default function MenuClient({
                       );
                     })}
                   </AnimatePresence>
+                </motion.div>
+              )
+            ) : selectedCategory === "offers" ? (
+              /* ===== OFFERS GRID ===== */
+              filteredOffers.length === 0 ? (
+                <div className="text-center py-16">
+                  <Flame className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
+                  <p className="text-muted-foreground text-lg">No offers match your search.</p>
+                  <Button onClick={() => setSearchQuery("")} variant="outline" className="mt-4">Clear Search</Button>
+                </div>
+              ) : (
+                <motion.div
+                  key="offers-grid"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {filteredOffers.map((offer, idx) => {
+                    const isLava = !offer.pakistani_flags;
+                    return (
+                      <motion.div
+                        key={offer.id}
+                        variants={cardVariants}
+                        className="relative overflow-hidden rounded-3xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.25)]"
+                      >
+                        {/* lava bg */}
+                        <div
+                          className="absolute inset-0"
+                          style={{
+                            background: offer.theme_colors?.primary
+                              ? `linear-gradient(145deg, ${offer.theme_colors.primary} 0%, #7f1d1d 70%, #1a0a00 100%)`
+                              : isLava
+                              ? "linear-gradient(145deg, #dc2626 0%, #991b1b 45%, #1a0a00 100%)"
+                              : "linear-gradient(145deg, #16a34a 0%, #052e16 100%)",
+                          }}
+                        />
+                        {isLava && (
+                          <>
+                            <motion.div
+                              className="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-50 pointer-events-none"
+                              style={{ background: "radial-gradient(circle, #f97316 0%, #dc2626 60%, transparent 80%)" }}
+                              animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
+                              transition={{ duration: 6 + idx, repeat: Infinity }}
+                            />
+                          </>
+                        )}
+                        {offer.pakistani_flags && (
+                          <div className="absolute top-0 inset-x-0 flex justify-evenly px-4 pt-3 text-xl z-10">
+                            <span>🇵🇰</span><span>🇵🇰</span><span>🇵🇰</span>
+                          </div>
+                        )}
+                        <div className={`relative z-10 p-5 text-white ${offer.pakistani_flags ? "pt-11" : ""}`}>
+                          {/* Badges */}
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            <span className="inline-flex items-center gap-1 bg-white/15 border border-white/20 text-white text-[10px] rounded-full px-2 py-0.5">
+                              <Sparkles className="h-2.5 w-2.5 text-yellow-300" />
+                              {offer.event_type?.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) || "Special"}
+                            </span>
+                            <span className="inline-flex items-center gap-1 bg-amber-400/20 border border-amber-400/30 text-amber-300 text-[10px] rounded-full px-2 py-0.5">
+                              <Clock className="h-2.5 w-2.5" />
+                              {(() => {
+                                const end = new Date(offer.end_date).getTime();
+                                const diff = end - Date.now();
+                                if (diff <= 0) return "Ending soon!";
+                                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                if (days > 0) return `${days}d ${hours}h left`;
+                                return `${hours}h left`;
+                              })()}
+                            </span>
+                          </div>
+                          <h3 className="text-lg font-bold mb-1 flex items-center gap-1.5">
+                            {isLava ? <Flame className="h-4 w-4 text-orange-400" /> : <Gift className="h-4 w-4 text-yellow-300" />}
+                            {offer.name}
+                          </h3>
+                          {offer.description && (
+                            <p className="text-white/65 text-xs mb-3 line-clamp-2">{offer.description}</p>
+                          )}
+                          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl mb-4 border text-sm ${
+                            isLava ? "bg-orange-500/25 border-orange-400/30" : "bg-white/15 border-white/25"
+                          }`}>
+                            <Percent className="h-3.5 w-3.5 text-yellow-300" />
+                            <span className="font-extrabold">
+                              {offer.discount_type === "percentage"
+                                ? `${offer.discount_value}% OFF`
+                                : `Rs ${offer.discount_value} OFF`}
+                            </span>
+                            {offer.min_order_amount && (
+                              <span className="text-white/50 text-xs">min Rs {offer.min_order_amount}</span>
+                            )}
+                          </div>
+                          {/* Items count */}
+                          {offer.items && offer.items.length > 0 && (
+                            <p className="text-white/50 text-xs mb-3 flex items-center gap-1">
+                              <Tag className="h-3 w-3" /> {offer.items.length} item{offer.items.length > 1 ? "s" : ""} included
+                            </p>
+                          )}
+                          <Link href="/menu" onClick={() => setSelectedCategory("all")}>
+                            <motion.div
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              className={`w-full py-2.5 px-4 rounded-xl font-bold text-center flex items-center justify-center gap-2 text-sm ${
+                                isLava
+                                  ? "bg-gradient-to-r from-orange-400 via-red-500 to-red-600 text-white shadow-[0_3px_12px_rgba(220,38,38,0.5)]"
+                                  : "bg-white/90 text-green-800"
+                              }`}
+                            >
+                              <Flame className="h-4 w-4" /> Order Now
+                            </motion.div>
+                          </Link>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </motion.div>
               )
             ) : filteredItems.length === 0 ? (

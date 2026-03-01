@@ -32,8 +32,11 @@ import {
   ChevronRight,
   Images,
   TrendingDown,
+  Gift,
+  Bell,
 } from 'lucide-react';
 import { PortalLoader } from '@/components/portal/PortalLoader';
+import OffersTab from '@/components/portal/menu/OffersTab';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -177,6 +180,7 @@ function MenuItemCard({
   onDelete,
   onToggleAvailability,
   onToggleFeatured,
+  onSendNotification,
   isSelectMode = false,
   isSelected = false,
   onToggleSelect,
@@ -186,6 +190,7 @@ function MenuItemCard({
   onDelete: (id: string) => void;
   onToggleAvailability: (id: string, value: boolean) => void;
   onToggleFeatured: (id: string, value: boolean) => void;
+  onSendNotification: (item: MenuItem) => void;
   isSelectMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
@@ -336,6 +341,9 @@ function MenuItemCard({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigator.clipboard.writeText(item.id)}>
                     <Copy className="h-4 w-4 mr-2" /> Copy ID
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onSendNotification(item)}>
+                    <Bell className="h-4 w-4 mr-2" /> Send Notification
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-destructive" onClick={() => onDelete(item.id)}>
@@ -1533,6 +1541,9 @@ export default function MenuClient({ initialData }: MenuClientProps) {
     setSelectedItems(new Set());
   };
 
+  // Ref to prevent duplicate/concurrent menu data fetches
+  const isMenuFetchingRef = useRef(false);
+
   const fetchDeals = useCallback(async () => {
     setIsDealsLoading(true);
     try {
@@ -1559,34 +1570,32 @@ export default function MenuClient({ initialData }: MenuClientProps) {
   // NO useEffect for deals on mount - we use SSR data
 
   const fetchData = useCallback(async () => {
-    // Skip if we have SSR data on first load
-    if (initialData && items.length > 0 && !isLoading) {
-      return;
-    }
-    
+    // Prevent concurrent/duplicate fetches
+    if (isMenuFetchingRef.current) return;
+    isMenuFetchingRef.current = true;
     setIsLoading(true);
     try {
-      // Use RPC for data fetching (SSR already fetched, this is for refresh only)
       const { data, error } = await getAuthenticatedClient().rpc('get_menu_management_data');
-      
       if (!error && data) {
         setItems(data.items || []);
         setCategories(data.categories || []);
       }
-      // Note: No fallback to direct queries - RPC is required for security
     } catch (error) {
       toast.error('Failed to load menu data');
     } finally {
       setIsLoading(false);
+      isMenuFetchingRef.current = false;
     }
-  }, [initialData, items.length, isLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    // Only fetch if no SSR data
+    // Only fetch if no SSR data was provided
     if (!initialData) {
       fetchData();
     }
-  }, [fetchData, initialData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filteredItems = items.filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1642,6 +1651,38 @@ export default function MenuClient({ initialData }: MenuClientProps) {
     } catch (error: any) {
       toast.error(error.message || 'Failed to save item');
       throw error;
+    }
+  };
+
+  const handleSendNotification = async (item: MenuItem) => {
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/push/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          userType: 'customer',
+          title: `🍽️ ${item.name} is available!`,
+          body: item.description
+            ? `${item.description.slice(0, 100)}${item.description.length > 100 ? '…' : ''}`
+            : `Order ${item.name} now at Zoiro Broast!`,
+          notificationType: 'menu_item',
+          referenceId: item.id,
+          image: item.images?.[0] || undefined,
+        }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        toast.success(`Notification sent to ${result.sent ?? 0} customer${result.sent !== 1 ? 's' : ''}`);
+      } else {
+        toast.error(result.message || 'Failed to send notification');
+      }
+    } catch {
+      toast.error('Failed to send push notification');
     }
   };
 
@@ -1760,11 +1801,17 @@ export default function MenuClient({ initialData }: MenuClientProps) {
       />
 
       <Tabs defaultValue="items" className="space-y-4 sm:space-y-6">
-        <TabsList className="w-full sm:w-auto h-auto flex-wrap">
-          <TabsTrigger value="items" className="text-xs sm:text-sm flex-1 sm:flex-none">Menu Items</TabsTrigger>
-          <TabsTrigger value="categories" className="text-xs sm:text-sm flex-1 sm:flex-none">Categories</TabsTrigger>
-          <TabsTrigger value="deals" className="text-xs sm:text-sm flex-1 sm:flex-none">Deals & Combos</TabsTrigger>
-        </TabsList>
+        {/* Horizontally scrollable tabs on mobile */}
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide">
+          <TabsList className="inline-flex w-max sm:w-auto h-auto gap-1 sm:gap-0 bg-zinc-100/80 dark:bg-zinc-800/80 p-1 rounded-xl">
+            <TabsTrigger value="items" className="text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">Menu Items</TabsTrigger>
+            <TabsTrigger value="categories" className="text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">Categories</TabsTrigger>
+            <TabsTrigger value="deals" className="text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">Deals & Combos</TabsTrigger>
+            <TabsTrigger value="offers" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+              <Gift className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Offers
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="items" className="space-y-4">
           {/* Select Mode Toolbar */}
@@ -1854,6 +1901,7 @@ export default function MenuClient({ initialData }: MenuClientProps) {
                     onDelete={setDeleteItemId}
                     onToggleAvailability={handleToggleAvailability}
                     onToggleFeatured={handleToggleFeatured}
+                    onSendNotification={handleSendNotification}
                     isSelectMode={isSelectMode}
                     isSelected={selectedItems.has(item.id)}
                     onToggleSelect={toggleSelectItem}
@@ -1874,6 +1922,14 @@ export default function MenuClient({ initialData }: MenuClientProps) {
           <DataTableWrapper isLoading={isDealsLoading} isEmpty={false} emptyMessage="">
             <DealsManager deals={deals} onUpdate={fetchDeals} />
           </DataTableWrapper>
+        </TabsContent>
+
+        <TabsContent value="offers">
+          <OffersTab 
+            menuItems={items} 
+            initialOffers={initialData?.offers?.offers || []}
+            initialStats={initialData?.offers?.stats}
+          />
         </TabsContent>
       </Tabs>
 

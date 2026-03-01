@@ -18,6 +18,11 @@ const Footer = dynamic(() => import("@/components/custom/Footer"), {
   ),
 });
 
+// Offer popup - loads after page
+const OfferPopup = dynamic(() => import("@/components/landing/OfferPopup"), {
+  ssr: false,
+});
+
 interface LandingLayoutProps {
   children: ReactNode;
 }
@@ -28,6 +33,7 @@ function LandingLayout({ children }: LandingLayoutProps) {
       <Navbar />
       {children}
       <Footer />
+      <OfferPopup />
     </>
   );
 }

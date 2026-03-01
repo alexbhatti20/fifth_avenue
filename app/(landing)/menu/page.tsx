@@ -4,8 +4,10 @@
 // =============================================
 
 import { Metadata } from "next";
-import { getMenuData } from "@/lib/server-queries";
+import { getMenuData, getActiveOffers } from "@/lib/server-queries";
 import MenuClient from "./MenuClient";
+import type { SpecialOffer } from "@/types/offers";
+import HeroOffersIndicator from "@/components/landing/HeroOffersIndicator";
 
 // SEO Metadata - Optimized for top search queries
 export const metadata: Metadata = {
@@ -27,15 +29,27 @@ export const metadata: Metadata = {
 
 // This runs on the SERVER - data fetching is HIDDEN from browser
 export default async function MenuPage() {
-  // Fetch all menu data on the server (hidden from Network tab)
-  const { categories, items, deals } = await getMenuData();
+  // Fetch all menu data + active offers on the server (hidden from Network tab)
+  const [{ categories, items, deals }, rawOffers] = await Promise.all([
+    getMenuData(),
+    getActiveOffers(),
+  ]);
+
+  const offers: SpecialOffer[] = Array.isArray(rawOffers)
+    ? (rawOffers as SpecialOffer[])
+    : ((rawOffers as any)?.offers ?? []);
 
   // Pass data to client component for interactivity
   return (
-    <MenuClient
-      initialCategories={categories}
-      initialMenuItems={items}
-      initialDeals={deals}
-    />
+    <>
+      <MenuClient
+        initialCategories={categories}
+        initialMenuItems={items}
+        initialDeals={deals}
+        initialOffers={offers}
+      />
+      {/* Fixed offers indicator (self-contained, fetches its own data client-side) */}
+      <HeroOffersIndicator />
+    </>
   );
 }
