@@ -131,12 +131,20 @@ function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHoveredLink, setIsHoveredLink] = useState<string | null>(null);
+
+  // Notify OfferPopup to hide/show when drawer toggles
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('zoiro:drawer', { detail: isMobileMenuOpen }));
+  }, [isMobileMenuOpen]);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [animationLoaded, setAnimationLoaded] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const [userType, setUserType] = useState<string | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const isLandingPage = pathname === '/';
+  // Transparent gradient header only on landing page before scrolling
+  const useTransparentNav = isLandingPage && !isScrolled;
   const router = useRouter();
   const { totalItems } = useCart();
   const { user, signOut, fastSignOut, isBanned, banReason } = useAuth();
@@ -258,19 +266,19 @@ function Navbar() {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        isScrolled
-          ? "bg-background/80 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] border-b border-white/10 py-1"
-          : "bg-gradient-to-r from-primary via-primary/95 to-orange-600 py-0"
+        useTransparentNav
+          ? "bg-gradient-to-r from-primary via-primary/95 to-orange-600 py-0"
+          : "bg-background/95 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.07)] border-b border-border/50 py-1"
       }`}
     >
       {/* Animated gradient border at bottom when scrolled */}
-      {isScrolled && (
+      {!useTransparentNav && (
         <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
       )}
       
-      {/* Premium glass effect overlay */}
-      <div className={`absolute inset-0 transition-opacity duration-500 ${
-        isScrolled ? "opacity-0" : "opacity-100"
+      {/* Premium glass effect overlay — landing page only */}
+      <div className={`absolute inset-0 transition-opacity duration-500 pointer-events-none ${
+        useTransparentNav ? "opacity-100" : "opacity-0"
       }`}>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.1)_0%,transparent_50%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(249,115,22,0.2)_0%,transparent_50%)]" />
@@ -293,7 +301,7 @@ function Navbar() {
               >
                 {/* Glow effect behind logo */}
                 <div className={`absolute inset-0 rounded-2xl blur-xl transition-opacity duration-300 ${
-                  isScrolled ? "bg-primary/30 opacity-0 group-hover:opacity-100" : "bg-white/20 opacity-50"
+                  !useTransparentNav ? "bg-primary/30 opacity-0 group-hover:opacity-100" : "bg-white/20 opacity-50"
                 }`} />
                 <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-2xl overflow-hidden shadow-xl ring-2 ring-white/20 group-hover:ring-white/40 transition-all duration-300">
                   <Image 
@@ -310,12 +318,12 @@ function Navbar() {
               {/* Logo Text with enhanced styling */}
               <div className="flex flex-col leading-none">
                 <span className={`text-2xl md:text-3xl font-bebas tracking-wider transition-all duration-300 ${
-                  isScrolled ? "text-primary" : "text-white drop-shadow-lg"
+                  useTransparentNav ? "text-white drop-shadow-lg" : "text-primary"
                 }`}>
                   ZOIRO
                 </span>
                 <span className={`text-[8px] md:text-[10px] font-semibold tracking-[0.25em] uppercase transition-all duration-300 ${
-                  isScrolled ? "text-muted-foreground" : "text-white/80"
+                  useTransparentNav ? "text-white/80" : "text-muted-foreground"
                 }`}>
                   Premium Broast
                 </span>
@@ -330,7 +338,7 @@ function Navbar() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2, duration: 0.4 }}
               className={`flex items-center gap-1 px-2 py-1.5 rounded-2xl transition-all duration-300 ${
-                isScrolled 
+                !useTransparentNav 
                   ? "bg-secondary/50 backdrop-blur-sm border border-border/50" 
                   : "bg-white/10 backdrop-blur-md border border-white/20"
               }`}
@@ -340,7 +348,7 @@ function Navbar() {
                   key={link.path}
                   link={link}
                   isActive={pathname === link.path}
-                  isScrolled={isScrolled}
+                  isScrolled={!useTransparentNav}
                   isHovered={isHoveredLink === link.path}
                   onMouseEnter={() => setIsHoveredLink(link.path)}
                   onMouseLeave={() => setIsHoveredLink(null)}
@@ -362,11 +370,11 @@ function Navbar() {
                 >
                   {/* Glow effect */}
                   <div className={`absolute -inset-1 rounded-full blur-lg transition-all duration-300 opacity-0 group-hover:opacity-100 ${
-                    isScrolled ? "bg-primary/40" : "bg-white/30"
+                    !useTransparentNav ? "bg-primary/40" : "bg-white/30"
                   }`} />
                   <Button 
                     className={`relative rounded-full px-6 py-2.5 font-bold text-sm transition-all duration-300 overflow-hidden ${
-                      isScrolled 
+                      !useTransparentNav 
                         ? "bg-gradient-to-r from-primary via-primary to-orange-500 hover:shadow-lg hover:shadow-primary/25 text-white border-0" 
                         : "bg-white hover:bg-white/95 text-primary shadow-xl"
                     }`}
@@ -389,10 +397,10 @@ function Navbar() {
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-2xl transition-all duration-300 ${
-                    !isScrolled
+                    useTransparentNav
                       ? "text-white hover:bg-white/15 backdrop-blur-sm"
                       : "text-foreground hover:bg-secondary/80"
-                  } ${isUserMenuOpen ? (isScrolled ? "bg-secondary" : "bg-white/20") : ""}`}
+                  } ${isUserMenuOpen ? (useTransparentNav ? "bg-white/20" : "bg-secondary") : ""}`}
                 >
                   {/* Premium User Avatar with animated ring */}
                   <div className="relative">
@@ -402,7 +410,7 @@ function Navbar() {
                         : "opacity-0"
                     }`} style={{ animationDuration: "3s" }} />
                     <div className={`relative w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ring-2 transition-all duration-300 ${
-                      isScrolled 
+                        !useTransparentNav 
                         ? "bg-gradient-to-br from-primary to-orange-500 text-white ring-primary/30" 
                         : "bg-white text-primary ring-white/50"
                     }`}>
@@ -420,7 +428,7 @@ function Navbar() {
                     <span className="font-semibold text-sm max-w-[100px] truncate leading-tight">
                       {user.name?.split(' ')[0] || 'User'}
                     </span>
-                    <span className={`text-[10px] leading-tight ${isScrolled ? "text-muted-foreground" : "text-white/70"}`}>
+                    <span className={`text-[10px] leading-tight ${!useTransparentNav ? "text-muted-foreground" : "text-white/70"}`}>
                       {userType === 'admin' ? 'Administrator' : userType === 'employee' ? 'Staff Member' : 'Premium Member'}
                     </span>
                   </div>
@@ -519,7 +527,7 @@ function Navbar() {
                     variant="ghost"
                     size="icon"
                     className={`rounded-xl w-11 h-11 transition-all duration-300 ${
-                      !isScrolled
+                      useTransparentNav
                         ? "text-white hover:text-white hover:bg-white/20 backdrop-blur-sm"
                         : "hover:bg-secondary"
                     }`}
@@ -544,7 +552,7 @@ function Navbar() {
                     variant="ghost" 
                     size="icon" 
                     className={`relative rounded-xl w-11 h-11 transition-all duration-300 ${
-                      !isScrolled 
+                      useTransparentNav 
                         ? "text-white hover:text-white hover:bg-white/20 backdrop-blur-sm" 
                         : "hover:bg-secondary"
                     }`}
@@ -555,7 +563,7 @@ function Navbar() {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         className={`absolute -top-1 -right-1 text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center shadow-lg ${
-                          isScrolled 
+                          !useTransparentNav 
                             ? "bg-gradient-to-r from-primary to-orange-500 text-white" 
                             : "bg-white text-primary"
                         }`}
@@ -567,7 +575,7 @@ function Navbar() {
                   {/* Pulse ring for items in cart */}
                   {totalItems > 0 && (
                     <span className={`absolute -top-1 -right-1 w-5 h-5 rounded-full animate-ping ${
-                      isScrolled ? "bg-primary/30" : "bg-white/30"
+                      !useTransparentNav ? "bg-primary/30" : "bg-white/30"
                     }`} />
                   )}
                 </motion.div>
@@ -579,7 +587,7 @@ function Navbar() {
               variant="ghost"
               size="icon"
               className={`md:hidden rounded-xl w-11 h-11 transition-all duration-300 ${
-                !isScrolled 
+                useTransparentNav 
                   ? "text-white hover:text-white hover:bg-white/20 backdrop-blur-sm" 
                   : "hover:bg-secondary"
               }`}
@@ -604,12 +612,13 @@ function Navbar() {
       <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
         <SheetContent
           side="right"
-          className="w-[85vw] max-w-[340px] p-0 flex flex-col bg-background/98 backdrop-blur-2xl border-l border-border/40"
+          aria-describedby={undefined}
+          className="w-[85vw] max-w-[340px] p-0 flex flex-col bg-gradient-to-br from-red-50 via-orange-50 to-rose-50 border-l border-red-200/60"
         >
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
 
           {/* ── Drawer Header: logo + close ── */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-red-200/60 bg-gradient-to-r from-primary/5 via-orange-500/5 to-primary/5">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md ring-1 ring-border/30">
                 <Image src="/assets/zoiro-logo.png" alt="ZOIRO" width={36} height={36} className="object-cover" />
@@ -623,7 +632,7 @@ function Navbar() {
 
           {/* ── Customer card ── */}
           {user && (
-            <div className="mx-4 mt-4 p-4 bg-gradient-to-br from-primary/15 via-orange-500/8 to-primary/5 rounded-2xl border border-primary/10 relative overflow-hidden flex-shrink-0">
+            <div className="mx-4 mt-4 p-4 bg-white/70 rounded-2xl border border-red-200/50 relative overflow-hidden flex-shrink-0 shadow-sm">
               <div className="absolute top-0 right-0 w-20 h-20 bg-orange-500/10 rounded-full blur-2xl" />
               <div className="relative flex items-center gap-3">
                 <div className="relative flex-shrink-0">
@@ -661,7 +670,7 @@ function Navbar() {
                   className={`flex items-center gap-3 py-3 px-3.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
                     isActive
                       ? 'text-primary bg-primary/10'
-                      : 'text-foreground hover:bg-secondary/70'
+                      : 'text-foreground hover:bg-white/60'
                   }`}
                 >
                   {isActive && <span className="w-1 h-5 bg-gradient-to-b from-primary to-orange-500 rounded-full" />}
@@ -690,7 +699,7 @@ function Navbar() {
                     key={item.href}
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 py-3 px-3.5 rounded-xl text-sm font-semibold text-foreground hover:bg-secondary/70 transition-all duration-150"
+                    className="flex items-center gap-3 py-3 px-3.5 rounded-xl text-sm font-semibold text-foreground hover:bg-white/60 transition-all duration-150"
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${item.color.replace('text-', 'bg-').replace('500', '100')}`}>
                       <item.icon className={`h-4 w-4 ${item.color}`} />
@@ -712,7 +721,7 @@ function Navbar() {
           </div>
 
           {/* ── CTA footer ── */}
-          <div className="px-4 pb-6 pt-3 space-y-2 border-t border-border/40 flex-shrink-0">
+          <div className="px-4 pb-6 pt-3 space-y-2 border-t border-red-200/60 flex-shrink-0">
             <Link href="/menu" onClick={() => setIsMobileMenuOpen(false)}>
               <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:opacity-90 rounded-xl py-5 text-sm font-bold shadow-md shadow-primary/25">
                 <Flame className="w-4 h-4 mr-2 text-orange-200" />

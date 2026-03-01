@@ -180,12 +180,15 @@ async function sendBulkPushNotifications(
     }
 
     // Create a single combined notification for all offers
-    const offerNames = offers.slice(0, 3).map(o => o.name).join(', ');
-    const moreText = offers.length > 3 ? ` and ${offers.length - 3} more!` : '';
+    const offerNames = offers.slice(0, 3).map(o => {
+      const disc = o.discount_type === 'percentage' ? `${o.discount_value}% off` : `Rs ${o.discount_value} off`;
+      return `${o.name} (${disc})`;
+    }).join(', ');
+    const moreText = offers.length > 3 ? ` and ${offers.length - 3} more` : '';
     
     const payload = JSON.stringify({
-      title: `🎁 ${offers.length} Special Offers!`,
-      body: `${offerNames}${moreText}`,
+      title: `${offers.length} Special Offer${offers.length > 1 ? 's' : ''} at Zoiro!`,
+      body: `${offerNames}${moreText}. Tap to order now!`,
       icon: '/assets/zoiro-logo.png',
       badge: '/assets/zoiro-logo.png',
       tag: `zoiro-bulk-offers-${Date.now()}`,

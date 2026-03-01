@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, useAnimation } from "framer-motion";
 import { Flame, Tag } from "lucide-react";
 import Link from "next/link";
@@ -11,6 +11,14 @@ import Link from "next/link";
  */
 export default function HeroOffersIndicatorClient({ count }: { count: number }) {
   const shakeControls = useAnimation();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Hide when mobile nav drawer opens
+  useEffect(() => {
+    const handler = (e: Event) => setIsDrawerOpen((e as CustomEvent<boolean>).detail);
+    window.addEventListener('zoiro:drawer', handler);
+    return () => window.removeEventListener('zoiro:drawer', handler);
+  }, []);
 
   // Vibrate / shake loop every 5 seconds
   useEffect(() => {
@@ -28,7 +36,7 @@ export default function HeroOffersIndicatorClient({ count }: { count: number }) 
     return () => clearInterval(id);
   }, [count, shakeControls]);
 
-  if (count === 0) return null;
+  if (count === 0 || isDrawerOpen) return null;
 
   return (
     <motion.div

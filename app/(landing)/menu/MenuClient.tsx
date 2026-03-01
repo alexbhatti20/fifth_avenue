@@ -78,6 +78,7 @@ interface MenuItemCardProps {
   isItemFavorite: boolean;
   isToggling: boolean;
   categoryName?: string;
+  priority?: boolean;
   onOpen: () => void;
   onToggleFavorite: (e: React.MouseEvent) => void;
   onAddToCart: () => void;
@@ -91,6 +92,7 @@ function MenuItemCard({
   isItemFavorite,
   isToggling,
   categoryName,
+  priority = false,
   onOpen,
   onToggleFavorite,
   onAddToCart,
@@ -141,6 +143,8 @@ function MenuItemCard({
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="object-cover transition-transform duration-500 group-hover:scale-105"
+              loading={priority && imgIdx === 0 ? "eager" : "lazy"}
+              priority={priority && imgIdx === 0}
             />
           </motion.div>
         </AnimatePresence>
@@ -342,9 +346,16 @@ export default function MenuClient({
 
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isMobileDevice, setIsMobileDevice] = useState(() => 
-    typeof window !== 'undefined' ? isMobile() : false
-  );
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+
+  // Set after mount to avoid SSR/client hydration mismatch
+  useEffect(() => {
+    setIsMobileDevice(isMobile());
+    const onResize = () => setIsMobileDevice(isMobile());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -1168,7 +1179,7 @@ export default function MenuClient({
                 animate="visible"
               >
                 <AnimatePresence mode="popLayout">
-                  {filteredItems.map((item) => {
+                  {filteredItems.map((item, index) => {
                     const quantity = getCartQuantity(item.id);
                     const isItemFavorite = isFavorite(item.id, 'menu_item');
                     const isToggling = togglingFavorites.has(item.id);
@@ -1181,6 +1192,7 @@ export default function MenuClient({
                         isItemFavorite={isItemFavorite}
                         isToggling={isToggling}
                         categoryName={categoryName}
+                        priority={index === 0}
                         onOpen={() => openItemDetail(item)}
                         onToggleFavorite={(e) => handleToggleFavorite(e, item.id, 'menu_item', item.name)}
                         onAddToCart={() => handleAddToCart(item)}

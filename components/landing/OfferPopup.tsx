@@ -27,6 +27,7 @@ export default function OfferPopup({ onClose }: OfferPopupProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isMobile, setIsMobile] = useState(true);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const totalTimeRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const { addToCart, applyOffer } = useCart();
@@ -39,6 +40,13 @@ export default function OfferPopup({ onClose }: OfferPopupProps) {
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Hide popup when the mobile nav drawer opens
+  useEffect(() => {
+    const handler = (e: Event) => setIsDrawerOpen((e as CustomEvent<boolean>).detail);
+    window.addEventListener('zoiro:drawer', handler);
+    return () => window.removeEventListener('zoiro:drawer', handler);
   }, []);
 
   // Check auth on mount
@@ -143,7 +151,7 @@ export default function OfferPopup({ onClose }: OfferPopupProps) {
     await handleOfferClick(offer);
 
     let addedCount = 0;
-    const names: string[] = [];
+    const summaryLines: string[] = [];
 
     // Helper: resolve a safe price (never 0)
     const safePrice = (offerPrice: number, originalPrice: number) =>
@@ -183,7 +191,12 @@ export default function OfferPopup({ onClose }: OfferPopupProps) {
           resolvedSize,
           offerPrice
         );
-        names.push(`${menuItem?.name ?? 'Item'}${resolvedSize ? ` (${resolvedSize})` : ''}`);
+        const itemName = menuItem?.name ?? 'Item';
+        const sizeSuffix = resolvedSize ? ` (${resolvedSize})` : '';
+        const priceLine = item.original_price > offerPrice
+          ? `${itemName}${sizeSuffix}: Rs.${item.original_price} → Rs.${offerPrice}`
+          : `${itemName}${sizeSuffix}: Rs.${offerPrice}`;
+        summaryLines.push(priceLine);
         addedCount++;
       });
     }
@@ -200,22 +213,27 @@ export default function OfferPopup({ onClose }: OfferPopupProps) {
             name: deal.deal?.name ?? 'Deal',
             slug: deal.deal?.slug,
             price,
-            originalPrice: deal.original_price,
+            originalPrice: deal.original_price > price ? deal.original_price : undefined,
             image: deal.deal?.image,
             is_available: true,
           },
           undefined,
           price
         );
-        names.push(deal.deal?.name ?? 'Deal');
+        const dealLine = deal.original_price > price
+          ? `${deal.deal?.name ?? 'Deal'}: Rs.${deal.original_price} → Rs.${price}`
+          : `${deal.deal?.name ?? 'Deal'}: Rs.${price}`;
+        summaryLines.push(dealLine);
         addedCount++;
       });
     }
 
     if (addedCount > 0) {
+      const shownLines = summaryLines.slice(0, 3);
+      const extra = summaryLines.length > 3 ? ` +${summaryLines.length - 3} more` : '';
       toast({
         title: `🛒 ${addedCount} item${addedCount > 1 ? 's' : ''} added to cart!`,
-        description: names.slice(0, 3).join(', ') + (names.length > 3 ? ` +${names.length - 3} more` : ''),
+        description: shownLines.join('\n') + extra,
       });
     } else if (offer.discount_type === 'percentage' || offer.discount_type === 'fixed_amount') {
       // Storewide discount — apply to cart total
@@ -273,7 +291,7 @@ export default function OfferPopup({ onClose }: OfferPopupProps) {
           animate={{ opacity: 1, x: 0, y: 0 }}
           exit={{ opacity: 0, x: -60 }}
           transition={{ type: 'spring', damping: 22, stiffness: 280 }}
-          className="fixed top-4 left-4 z-[100] w-[calc(100vw-2rem)] max-w-[320px] sm:max-w-[340px]"
+          className={cn('fixed top-4 left-4 z-[100] w-[calc(100vw-2rem)] max-w-[320px] sm:max-w-[340px] transition-opacity duration-200', isDrawerOpen && 'opacity-0 pointer-events-none')}
         >
           <div
             className="relative rounded-2xl shadow-2xl overflow-hidden border border-white/20"

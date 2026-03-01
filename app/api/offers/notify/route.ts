@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Offer ID required' }, { status: 400 });
     }
 
-    // Get offer details
+    // Get offer details + included items
     const { data: offer, error: offerError } = await supabase
       .from('special_offers')
       .select('*')
@@ -206,6 +206,37 @@ export async function POST(request: NextRequest) {
     if (offerError || !offer) {
       return NextResponse.json({ error: 'Offer not found' }, { status: 404 });
     }
+
+    // Fetch offer items with names + prices for the push body
+    const { data: offerItems } = await supabase
+      .from('special_offer_items')
+      .select('offer_price, original_price, menu_items(name)')
+      .eq('offer_id', offerId)
+      .limit(3);
+
+    // Build a phone-safe push notification body
+    const buildPushBody = (): string => {
+      if (offerItems && offerItems.length > 0) {
+        const lines = offerItems.map((it: { offer_price: number; original_price: number; menu_items: { name: string }[] }) => {
+          const name = it.menu_items?.[0]?.name ?? 'Item';
+          const orig = it.original_price;
+          const disc = it.offer_price;
+          if (orig > disc) {
+            return `${name}: Rs ${orig} -> Rs ${disc}`;
+          }
+          return `${name}: Rs ${disc}`;
+        });
+        const suffix = offer.discount_type === 'percentage'
+          ? ` (${offer.discount_value}% off)`
+          : ` (Rs ${offer.discount_value} off)`;
+        return lines.join(' | ') + suffix;
+      }
+      // Storewide / no items
+      if (offer.description) return offer.description;
+      return offer.discount_type === 'percentage'
+        ? `${offer.discount_value}% off your order - limited time!`
+        : `Rs ${offer.discount_value} off your order - limited time!`;
+    };
 
     const results = {
       email: { sent: 0, failed: 0 },
@@ -269,8 +300,8 @@ export async function POST(request: NextRequest) {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          title: `🎁 ${offer.name}`,
-          body: offer.description || `${offer.discount_type === 'percentage' ? `${offer.discount_value}%` : `Rs ${offer.discount_value}`} off - Limited time!`,
+          title: offer.name,
+          body: buildPushBody(),
           notificationType: 'new_offer',
           userType: 'customer',
           data: { offerId: offer.id, slug: offer.slug },

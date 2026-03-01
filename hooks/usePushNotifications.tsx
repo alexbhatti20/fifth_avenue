@@ -13,7 +13,6 @@ import {
 interface UsePushNotificationsOptions {
   userId?: string;
   userType?: 'employee' | 'customer';
-  autoSubscribe?: boolean;
 }
 
 interface UsePushNotificationsReturn {
@@ -30,7 +29,7 @@ interface UsePushNotificationsReturn {
 export function usePushNotifications(
   options: UsePushNotificationsOptions = {}
 ): UsePushNotificationsReturn {
-  const { userId, userType = 'employee', autoSubscribe = false } = options;
+  const { userId, userType = 'employee' } = options;
 
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('unsupported');
@@ -62,17 +61,6 @@ export function usePushNotifications(
 
     checkStatus();
   }, []);
-
-  // Auto-subscribe if enabled and user is logged in
-  useEffect(() => {
-    if (autoSubscribe && userId && isSupported && !isSubscribed && !isLoading) {
-      subscribeToPush(userId, userType).then((result) => {
-        if (result.success) {
-          setIsSubscribed(true);
-        }
-      });
-    }
-  }, [autoSubscribe, userId, userType, isSupported, isSubscribed, isLoading]);
 
   const subscribe = useCallback(async (): Promise<boolean> => {
     if (!userId) {

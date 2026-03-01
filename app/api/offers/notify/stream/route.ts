@@ -214,19 +214,19 @@ function buildPushPayload(offer: {
   deals?: { name: string; originalPrice?: number; discountedPrice?: number }[]; // deals with before/after
 }) {
   const flags = offer.pakistani_flags ? '\uD83C\uDDF5\uD83C\uDDF0 ' : '';
-  const title = `${flags}\uD83C\uDF81 ${offer.name}`;
+  const title = offer.pakistani_flags ? `\uD83C\uDDF5\uD83C\uDDF0 ${offer.name}` : offer.name;
 
   const allItems = offer.items ?? [];
   const allDeals = offer.deals ?? [];
   const hasItems = allItems.length > 0 || allDeals.length > 0;
 
-  // Format a single item/deal as "Name Rs 350 → Rs 280"
+  // Format a single item/deal as "Name Rs 350 -> Rs 280"
   const formatItemPrice = (name: string, original?: number, discounted?: number): string => {
     if (original && discounted && discounted < original) {
-      return `${name} Rs\u202f${original}\u2192Rs\u202f${Math.round(discounted)}`;
+      return `${name}: Rs ${original} -> Rs ${Math.round(discounted)}`;
     }
     if (original) {
-      return `${name} Rs\u202f${original}`;
+      return `${name}: Rs ${original}`;
     }
     return name;
   };
@@ -254,9 +254,9 @@ function buildPushPayload(offer: {
   const discountSuffix = (() => {
     switch (offer.discount_type) {
       case 'percentage':    return offer.discount_value > 0 ? ` at ${offer.discount_value}% OFF` : '';
-      case 'fixed_amount':  return offer.discount_value > 0 ? ` \u2014 save Rs\u202f${offer.discount_value}` : '';
+      case 'fixed_amount':  return offer.discount_value > 0 ? ` - save Rs ${offer.discount_value}` : '';
       case 'bundle_price':  return ' at a bundle price';
-      case 'buy_x_get_y':   return ' \u2014 buy more get free';
+      case 'buy_x_get_y':   return ' - buy more get free';
       default: return '';
     }
   })();
@@ -275,29 +275,29 @@ function buildPushPayload(offer: {
     // If prices were shown in the lines, skip the redundant suffix
     const hasPrices = allLines.some(l => l.includes('Rs'));
     body = hasPrices
-      ? `${preview}${extra} \uD83D\uDD25`
-      : `${preview}${extra}${discountSuffix}! \uD83D\uDD25`;
+      ? `${preview}${extra}`
+      : `${preview}${extra}${discountSuffix}!`;
   } else {
     // Fallback: discount-type only (storewide)
     switch (offer.discount_type) {
       case 'percentage':
         body = offer.discount_value > 0
-          ? `${offer.discount_value}% OFF your order! Limited time only. \uD83D\uDD25`
-          : 'Special offer live now \u2014 tap to order! \uD83D\uDD25';
+          ? `${offer.discount_value}% OFF your order - limited time only!`
+          : 'Special offer live now - tap to order!';
         break;
       case 'fixed_amount':
         body = offer.discount_value > 0
-          ? `Save Rs\u202f${offer.discount_value} on your order! Limited time. \uD83C\uDF89`
-          : 'Special savings available now! \uD83C\uDF89';
+          ? `Save Rs ${offer.discount_value} on your order - limited time!`
+          : 'Special savings available now!';
         break;
       case 'bundle_price':
-        body = 'Bundle deal \u2014 order more, save more! \uD83D\uDED2';
+        body = 'Bundle deal - order more, save more!';
         break;
       case 'buy_x_get_y':
-        body = 'Buy more, get items FREE! \uD83C\uDF81';
+        body = 'Buy more, get items FREE!';
         break;
       default:
-        body = 'Check out this special offer! \u2728';
+        body = 'Check out this special offer!';
     }
   }
 
