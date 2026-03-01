@@ -694,7 +694,15 @@ export default function CartPage() {
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                            <p className="text-primary font-bold text-sm sm:text-base">Rs. {item.price}</p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-primary font-bold text-sm sm:text-base">Rs. {item.price}</p>
+                              {item.originalPrice && item.originalPrice > item.price && (
+                                <p className="text-muted-foreground text-xs sm:text-sm line-through">Rs. {item.originalPrice}</p>
+                              )}
+                              {item.selectedSize && (
+                                <span className="text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{item.selectedSize}</span>
+                              )}
+                            </div>
                             
                             {/* Bottom row: Quantity Controls & Subtotal */}
                             <div className="flex items-center justify-between mt-auto pt-2">

@@ -82,6 +82,8 @@ export interface SpecialOfferItem {
     images?: string[];
     description?: string;
     price?: number;
+    has_variants?: boolean;
+    size_variants?: Array<{ size: string; price: number; is_available: boolean }>;
   };
   original_price: number;
   offer_price: number;

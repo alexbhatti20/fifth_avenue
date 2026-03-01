@@ -843,21 +843,23 @@ export default function Hero() {
 
       {/* ===== ANIMATED LINES - Disabled on low-end ===== */}
       {!isLowEndDevice && (
-        <svg className="absolute inset-0 w-full h-full pointer-events-none z-[2] hidden lg:block" preserveAspectRatio="none">
-          <motion.line
-            x1="0" y1="20%" x2="15%" y2="20%"
+        <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none z-[2] hidden lg:block" preserveAspectRatio="none">
+          <motion.path
+            d="M0,20 L15,20"
             stroke="hsl(var(--primary))"
-            strokeWidth="1"
+            strokeWidth="0.3"
             strokeOpacity="0.3"
+            fill="none"
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
             transition={{ duration: 2, delay: 1 }}
           />
-          <motion.line
-            x1="85%" y1="80%" x2="100%" y2="80%"
+          <motion.path
+            d="M85,80 L100,80"
             stroke="hsl(var(--primary))"
-            strokeWidth="1"
+            strokeWidth="0.3"
             strokeOpacity="0.3"
+            fill="none"
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
             transition={{ duration: 2, delay: 1.2 }}

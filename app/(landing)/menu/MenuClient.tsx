@@ -33,6 +33,7 @@ import { getAuthToken } from "@/lib/cookies";
 import { isMobile, cn } from "@/lib/utils";
 
 import type { MenuItem, Category, Deal, ItemReview } from "@/lib/server-queries";
+import { supabase } from "@/lib/supabase";
 import type { SpecialOffer } from "@/types/offers";
 
 // Floating food images - using Unsplash URLs
@@ -326,7 +327,15 @@ export default function MenuClient({
   const [categories] = useState<Category[]>(initialCategories);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(initialMenuItems);
   const [deals] = useState<Deal[]>(initialDeals);
-  const [offers] = useState<SpecialOffer[]>(initialOffers);
+  const [offers, setOffers] = useState<SpecialOffer[]>(initialOffers);
+
+  // Client-side offer refresh — ensures Hot Offers tab appears even if SSR cache was empty
+  useEffect(() => {
+    if (initialOffers.length > 0) return; // already have data from SSR
+    supabase.rpc('get_active_offers', { p_include_items: false, p_for_popup: false })
+      .then(({ data }) => { if (data && data.length > 0) setOffers(data); })
+      .catch(() => {});
+  }, []);
 
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
