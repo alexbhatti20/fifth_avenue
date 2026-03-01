@@ -95,6 +95,7 @@ const DEFAULT_FORM_DATA: OfferFormData = {
   popup_auto_close_seconds: 5,
   min_order_amount: '',
   notify_via_push: false,
+  notify_via_email: false,
   auto_notify_on_start: false,
   target_type: 'storewide',
 };
@@ -144,6 +145,7 @@ export default function OfferFormClient({ menuItems, deals, mode, initialOffer }
         min_order_amount: initialOffer.min_order_amount?.toString() || '',
         max_discount_amount: initialOffer.max_discount_amount?.toString(),
         notify_via_push: initialOffer.notify_via_push || false,
+        notify_via_email: initialOffer.notify_via_email || false,
         auto_notify_on_start: initialOffer.auto_notify_on_start || false,
         // Infer target_type from existing items/deals, default to storewide
         target_type: initialOffer.items?.length > 0 ? 'menu_items' : 'storewide',
