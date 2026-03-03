@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -45,6 +47,8 @@ import {
   deleteRestaurantTableAction,
   updateTableStatusAction,
   releaseTableAction,
+  getOnlineBookingSettingAction,
+  toggleOnlineBookingAction,
 } from '@/lib/actions';
 
 // Import modular components
@@ -111,6 +115,28 @@ export default function TablesClient({
   const [tableIdToDelete, setTableIdToDelete] = useState<string | null>(null);
   const [tableNumberToDelete, setTableNumberToDelete] = useState<number | null>(null);
   const [isDeletePending, startDeleteTransition] = useTransition();
+
+  // Online Booking Toggle (admin/manager only)
+  const [bookingEnabled, setBookingEnabled] = useState(false);
+  const [isBookingToggling, setIsBookingToggling] = useState(false);
+
+  useEffect(() => {
+    if (!isAdminOrManager) return;
+    getOnlineBookingSettingAction().then((s) => setBookingEnabled(s.enabled));
+  }, [isAdminOrManager]);
+
+  const handleToggleBooking = async (val: boolean) => {
+    setIsBookingToggling(true);
+    setBookingEnabled(val); // optimistic
+    const res = await toggleOnlineBookingAction(val);
+    setIsBookingToggling(false);
+    if (res.success) {
+      toast.success(`Online booking ${val ? 'enabled' : 'disabled'}`);
+    } else {
+      setBookingEnabled(!val); // revert
+      toast.error(res.error ?? 'Failed to update booking setting');
+    }
+  };
 
   // Patch a single table in state without touching the others
   const patchTable = useCallback((id: string, updates: Partial<WaiterTable>) => {
@@ -339,17 +365,42 @@ export default function TablesClient({
       <div className="mb-4 sm:mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
               <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500" />
-              Tables Management
+              <span className="bg-gradient-to-r from-red-600 via-orange-500 to-red-600 bg-clip-text text-transparent animate-gradient-x bg-[length:200%_auto]">
+                Tables Management
+              </span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
               {isAdminOrManager
-                ? 'Manage tables â€” tap â‹® on any table for options'
-                : 'Tap available tables to start taking orders â€” tap â‹® for more options'}
+                ? 'Manage tables – tap ⋮ on any table for options'
+                : 'Tap available tables to start taking orders – tap ⋮ for more options'}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Online Booking Toggle — admin/manager only */}
+            {isAdminOrManager && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+                <Switch
+                  id="booking-toggle"
+                  checked={bookingEnabled}
+                  onCheckedChange={handleToggleBooking}
+                  disabled={isBookingToggling}
+                  className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-red-600 data-[state=checked]:to-orange-500"
+                />
+                <Label
+                  htmlFor="booking-toggle"
+                  className="text-xs font-semibold cursor-pointer select-none"
+                >
+                  <span className={bookingEnabled
+                    ? 'bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent'
+                    : 'text-slate-500 dark:text-slate-400'
+                  }>
+                    {bookingEnabled ? 'Booking ON' : 'Booking OFF'}
+                  </span>
+                </Label>
+              </div>
+            )}
             <Button
               variant="outline"
               size="sm"

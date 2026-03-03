@@ -4040,3 +4040,249 @@ export async function sendTableToBillingAction(orderId: string): Promise<{
     return { success: false, error: error.message || 'Failed to send to billing' };
   }
 }
+
+// =============================================
+// ONLINE TABLE BOOKING SERVER ACTIONS
+// All calls use SECURITY DEFINER RPCs — hidden from browser
+// =============================================
+
+export interface TableForBooking {
+  id: string;
+  table_number: number;
+  capacity: number;
+  status: string;
+  section?: string;
+  floor: number;
+  current_customers: number;
+  reserved_by?: string | null;
+  reservation_time?: string | null;
+  reservation_notes?: string | null;
+  reservation_id?: string | null;
+  reserved_by_name?: string | null;
+  reserved_by_phone?: string | null;
+  reservation_date?: string | null;
+  arrival_time?: string | null;
+  party_size?: number | null;
+  auto_release_at?: string | null;
+}
+
+export interface OnlineBookingSetting {
+  enabled: boolean;
+  max_advance_days: number;
+  min_notice_hours: number;
+  auto_release_minutes: number;
+}
+
+/** Public — fetches all tables + booking setting (auto-releases expired) */
+export async function getTablesForBookingAction(): Promise<{
+  success: boolean;
+  tables: TableForBooking[];
+  booking_enabled: boolean;
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase.rpc('get_tables_for_booking');
+    if (error) throw error;
+    return {
+      success: true,
+      tables: data?.tables ?? [],
+      booking_enabled: data?.booking_enabled ?? false,
+    };
+  } catch (e: any) {
+    return { success: false, tables: [], booking_enabled: false, error: e.message };
+  }
+}
+
+/** Public — get just the booking setting (lightweight) */
+export async function getOnlineBookingSettingAction(): Promise<OnlineBookingSetting> {
+  try {
+    const { data } = await supabase.rpc('get_online_booking_setting');
+    return data ?? { enabled: false, max_advance_days: 14, min_notice_hours: 1, auto_release_minutes: 10 };
+  } catch {
+    return { enabled: false, max_advance_days: 14, min_notice_hours: 1, auto_release_minutes: 10 };
+  }
+}
+
+/** Customer action — create a table reservation */
+export async function createTableReservationAction(params: {
+  tableId: string;
+  customerId?: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  reservationDate: string; // 'YYYY-MM-DD'
+  arrivalTime: string;     // 'HH:MM'
+  partySize: number;
+  preOrderItems?: { name: string; price: number; quantity: number }[];
+  notes?: string;
+}): Promise<{
+  success: boolean;
+  reservation_id?: string;
+  table_number?: number;
+  arrival_time?: string;
+  auto_release_at?: string;
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase.rpc('create_table_reservation', {
+      p_table_id: params.tableId,
+      p_customer_id: params.customerId ?? null,
+      p_customer_name: params.customerName,
+      p_customer_phone: params.customerPhone,
+      p_customer_email: params.customerEmail ?? null,
+      p_reservation_date: params.reservationDate,
+      p_arrival_time: params.arrivalTime,
+      p_party_size: params.partySize,
+      p_pre_order_items: JSON.stringify(params.preOrderItems ?? []),
+      p_notes: params.notes ?? null,
+    });
+    if (error) throw error;
+    if (!data?.success) throw new Error(data?.error ?? 'Reservation failed');
+    revalidatePath('/book-online');
+    return {
+      success: true,
+      reservation_id: data.reservation_id,
+      table_number: data.table_number,
+      arrival_time: data.arrival_time,
+      auto_release_at: data.auto_release_at,
+    };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+/** Customer or admin — cancel a reservation */
+export async function cancelTableReservationAction(reservationId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase.rpc('cancel_table_reservation', {
+      p_reservation_id: reservationId,
+    });
+    if (error) throw error;
+    revalidatePath('/book-online');
+    revalidatePath('/portal/tables');
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+/** Admin / Manager only — toggle online booking on/off */
+export async function toggleOnlineBookingAction(enabled: boolean): Promise<{
+  success: boolean;
+  enabled?: boolean;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('toggle_online_booking', { p_enabled: enabled });
+    if (error) throw error;
+    revalidatePath('/portal/tables');
+    revalidatePath('/book-online');
+    return { success: true, enabled: data?.enabled };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+/** Admin / Manager — fetch all reservations with optional filters */
+export async function getAdminReservationsAction(params?: {
+  status?: string;
+  date?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{
+  success: boolean;
+  reservations: AdminReservation[];
+  total: number;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('get_all_reservations_for_admin', {
+      p_status: params?.status ?? null,
+      p_date: params?.date ?? null,
+      p_limit: params?.limit ?? 50,
+      p_offset: params?.offset ?? 0,
+    });
+    if (error) throw error;
+    return {
+      success: true,
+      reservations: data?.reservations ?? [],
+      total: data?.total ?? 0,
+    };
+  } catch (e: any) {
+    return { success: false, reservations: [], total: 0, error: e.message };
+  }
+}
+
+export interface AdminReservation {
+  id: string;
+  table_id: string;
+  table_number: number;
+  capacity: number;
+  section?: string | null;
+  customer_id?: string | null;
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string | null;
+  reservation_date: string;
+  arrival_time: string;
+  party_size: number;
+  pre_order_items: any[];
+  notes?: string | null;
+  status: 'confirmed' | 'pending' | 'arrived' | 'cancelled' | 'expired';
+  auto_release_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Admin / Manager — update reservation status and optionally edit fields */
+export async function updateReservationStatusAction(params: {
+  reservationId: string;
+  status: 'confirmed' | 'pending' | 'arrived' | 'cancelled' | 'expired';
+  notes?: string;
+  arrivalTime?: string;     // 'HH:MM'
+  reservationDate?: string; // 'YYYY-MM-DD'
+  partySize?: number;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('update_reservation_status', {
+      p_reservation_id: params.reservationId,
+      p_status: params.status,
+      p_notes: params.notes ?? null,
+      p_arrival_time: params.arrivalTime ?? null,
+      p_reservation_date: params.reservationDate ?? null,
+      p_party_size: params.partySize ?? null,
+    });
+    if (error) throw error;
+    if (!data?.success) throw new Error(data?.error ?? 'Update failed');
+    revalidatePath('/portal/bookings');
+    revalidatePath('/portal/tables');
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+/** Admin / Manager — permanently delete a cancelled or expired reservation */
+export async function deleteReservationAction(reservationId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('delete_reservation', {
+      p_reservation_id: reservationId,
+    });
+    if (error) throw error;
+    if (!data?.success) throw new Error(data?.error ?? 'Delete failed');
+    revalidatePath('/portal/bookings');
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}

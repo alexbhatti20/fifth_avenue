@@ -33,6 +33,7 @@ import {
   MoreHorizontal,
   MessageSquare,
   HardDriveDownload,
+  CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -89,6 +90,7 @@ const iconMap: Record<string, any> = {
   Star,
   MessageSquare,
   HardDriveDownload,
+  CalendarDays,
 };
 
 // Navigation items with role-based visibility
@@ -98,6 +100,7 @@ interface NavItem {
   icon: keyof typeof iconMap;
   pageKey?: PageKey; // Maps to permission system
   badge?: number;
+  external?: boolean; // Opens in new tab
 }
 
 const navItems: NavItem[] = [
@@ -136,6 +139,12 @@ const navItems: NavItem[] = [
     path: '/portal/tables', 
     icon: 'LayoutGrid',
     pageKey: 'tables',
+  },
+  { 
+    label: 'Bookings', 
+    path: '/portal/bookings', 
+    icon: 'CalendarDays',
+    pageKey: 'bookings',
   },
   { 
     label: 'Billing', 
@@ -320,7 +329,7 @@ export function PortalSidebar({ collapsed, onCollapse }: PortalSidebarProps) {
               (item.path !== '/portal' && pathname.startsWith(item.path));
 
             return (
-              <Link key={item.path} href={item.path} prefetch={false}>
+              <Link key={item.path} href={item.path} prefetch={false} target={item.external ? '_blank' : undefined} rel={item.external ? 'noopener noreferrer' : undefined}>
                 <div
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-150',
@@ -539,7 +548,7 @@ export const PortalAppbar = memo(function PortalAppbar({ sidebarCollapsed, onMen
                       {notification.message}
                     </span>
                     <span className="text-[10px] text-muted-foreground mt-1">
-                      {new Date(notification.created_at).toLocaleTimeString()}
+                      {new Date(notification.created_at).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true })}
                     </span>
                   </DropdownMenuItem>
                 ))
@@ -637,7 +646,12 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
   }, [onClose]);
 
   // Enhanced navigation handler that ensures drawer closes
-  const handleNavigate = useCallback((path: string) => {
+  const handleNavigate = useCallback((path: string, external?: boolean) => {
+    if (external) {
+      window.open(path, '_blank', 'noopener,noreferrer');
+      onClose();
+      return;
+    }
     // Close drawer immediately
     onClose();
     // Navigate after brief delay to ensure smooth close animation
@@ -743,14 +757,14 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
                 return (
                   <div
                     key={item.path}
-                    onClick={() => handleNavigate(item.path)}
+                    onClick={() => handleNavigate(item.path, item.external)}
                     className="cursor-pointer"
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        handleNavigate(item.path);
+                        handleNavigate(item.path, item.external);
                       }
                     }}
                   >
@@ -801,14 +815,14 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
                   return (
                     <div
                       key={item.path}
-                      onClick={() => handleNavigate(item.path)}
+                      onClick={() => handleNavigate(item.path, item.external)}
                       className="cursor-pointer"
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
-                          handleNavigate(item.path);
+                          handleNavigate(item.path, item.external);
                         }
                       }}
                     >

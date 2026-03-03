@@ -1471,7 +1471,7 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
                   ? 'View your assigned orders and make deliveries'
                   : 'Manage all delivery orders in real-time'}
                 <span className="ml-2 opacity-60">
-                  • Updated: {lastUpdate.toLocaleTimeString()}
+                  • Updated: {lastUpdate.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true })}
                 </span>
               </p>
             </div>

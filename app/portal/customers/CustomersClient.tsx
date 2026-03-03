@@ -25,6 +25,7 @@ import {
   TrendingUp,
   ArrowUpRight,
   FileText,
+  CalendarDays,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -434,6 +435,7 @@ function CustomerDetailDialog({
   onOpenChange: (open: boolean) => void;
   customerId: string | null;
 }) {
+  const router = useRouter();
   const [customer, setCustomer] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -629,6 +631,25 @@ function CustomerDetailDialog({
                 </CardContent>
               </Card>
             )}
+
+            {/* Book a Table — opens portal bookings page pre-filled with this customer */}
+            <div className="flex gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  const params = new URLSearchParams({
+                    name:  customer.customer_name  ?? '',
+                    phone: customer.customer_phone ?? '',
+                    email: customer.customer_email ?? '',
+                  });
+                  router.push(`/portal/bookings?${params.toString()}`);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 shadow-md shadow-red-900/20 transition-all duration-200 hover:shadow-lg"
+              >
+                <CalendarDays className="h-4 w-4" />
+                Book a Table for This Customer
+              </button>
+            </div>
 
             {/* Member Info */}
             <div className="text-sm text-muted-foreground pt-2 border-t">

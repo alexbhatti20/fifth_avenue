@@ -605,6 +605,7 @@ export default function BillingClient({ initialStats, initialPendingOrders, init
                         {new Date(order.created_at).toLocaleTimeString('en-US', {
                           hour: '2-digit',
                           minute: '2-digit',
+                          hour12: true,
                         })}
                       </div>
                     </div>

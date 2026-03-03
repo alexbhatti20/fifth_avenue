@@ -160,6 +160,10 @@ export interface RestaurantTable {
   reserved_by?: string;
   reservation_time?: string;
   reservation_notes?: string;
+  // From table_reservations join (returned by get_tables_for_waiter RPC)
+  reserved_by_name?: string;
+  reservation_party_size?: number;
+  reservation_arrival_time?: string;
   created_at: string;
   updated_at: string;
   current_order?: Partial<Order>;

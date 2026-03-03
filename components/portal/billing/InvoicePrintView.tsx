@@ -251,6 +251,7 @@ export const InvoicePrintView = forwardRef<HTMLDivElement, InvoicePrintViewProps
       return new Date(date).toLocaleTimeString('en-PK', {
         hour: '2-digit',
         minute: '2-digit',
+        hour12: true,
       });
     };
 
@@ -471,6 +472,7 @@ export function CompactInvoiceCard({ invoice, onClick }: CompactInvoiceCardProps
     return new Date(date).toLocaleTimeString('en-PK', {
       hour: '2-digit',
       minute: '2-digit',
+      hour12: true,
     });
   };
 

@@ -4,8 +4,16 @@ import { memo, useMemo, useState, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, Timer, ShoppingCart, Star, User, Receipt, Sparkles, Zap, Clock,
-  Edit2, Trash2, MoreVertical, CheckCircle2, AlertCircle, Coffee, Send
+  Edit2, Trash2, MoreVertical, CheckCircle2, AlertCircle, Coffee, Send,
+  Phone, StickyNote, CalendarDays
 } from 'lucide-react';
+
+/** Convert HH:MM or HH:MM:SS (24-h) string → 12-h h:mm AM/PM */
+function fmt12h(time: string): string {
+  const [h, m] = time.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${period}`;
+}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -444,38 +452,127 @@ function WaiterTableCardV2Component({
                 )}
               </motion.div>
             )}
-          </div>
 
-          {/* Current Order Card */}
-          <AnimatePresence>
-            {table.current_order && (
+            {/* Reservation Info — shown when status is reserved */}
+            {table.status === 'reserved' && (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-3"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-1.5 px-2 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 text-left space-y-1"
               >
-                <div className={cn(
-                  'p-2.5 rounded-lg border bg-white/60 dark:bg-black/20 backdrop-blur-sm',
-                  style.border
-                )}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Zap className={cn('h-3.5 w-3.5', style.accent)} />
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                        #{table.current_order.order_number}
-                      </span>
-                    </div>
-                    <span className={cn('text-sm font-bold', style.accent)}>
-                      Rs. {table.current_order.total?.toLocaleString()}
-                    </span>
+                {table.reserved_by_name && (
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                    <User className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">{table.reserved_by_name}</span>
                   </div>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                    {table.current_order.items_count} items
-                  </p>
+                )}
+                {/* Phone — stored in reserved_by field for some RPCs */}
+                {(table as any).reserved_by_phone && (
+                  <div className="flex items-center gap-1.5 text-[10px] text-amber-600 dark:text-amber-500">
+                    <Phone className="h-3 w-3 flex-shrink-0" />
+                    <span>{(table as any).reserved_by_phone}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 text-[10px] text-amber-600 dark:text-amber-500">
+                  {(table.reservation_arrival_time ?? table.reservation_time) && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {table.reservation_arrival_time
+                        ? fmt12h(table.reservation_arrival_time)
+                        : new Date(table.reservation_time!).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                    </span>
+                  )}
+                  {table.reservation_party_size && (
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {table.reservation_party_size} guests
+                    </span>
+                  )}
                 </div>
+                {(table as any).reservation_date && (
+                  <div className="flex items-center gap-1.5 text-[10px] text-amber-600 dark:text-amber-500">
+                    <CalendarDays className="h-3 w-3 flex-shrink-0" />
+                    <span>{(table as any).reservation_date}</span>
+                  </div>
+                )}
+                {table.reservation_notes && (
+                  <div className="flex items-start gap-1.5 text-[10px] text-amber-600 dark:text-amber-500">
+                    <StickyNote className="h-3 w-3 flex-shrink-0 mt-0.5" />
+                    <span className="line-clamp-2">{table.reservation_notes}</span>
+                  </div>
+                )}
               </motion.div>
             )}
+          </div>
+
+          {/* Current Order Card — only shown when table is occupied */}
+          <AnimatePresence>
+            {table.status === 'occupied' && table.current_order && (() => {
+              const ord = table.current_order;
+              // Extract short ref: last segment of ORD-YYYYMMDD-000043 → #43
+              const shortRef = (() => {
+                const parts = (ord.order_number ?? '').split('-');
+                const last = parts[parts.length - 1];
+                return '#' + (last ? String(parseInt(last, 10)) : ord.order_number);
+              })();
+              const elapsed = occupiedDuration;
+              const elapsedLabel = elapsed < 60
+                ? `${elapsed}m ago`
+                : `${Math.floor(elapsed / 60)}h ${elapsed % 60}m ago`;
+              // Status badge colour
+              const statusCfg: Record<string, { bg: string; text: string; dot: string; label: string }> = {
+                pending:    { bg: 'bg-amber-100 dark:bg-amber-900/40',    text: 'text-amber-700 dark:text-amber-400',   dot: 'bg-amber-500',   label: 'Pending' },
+                confirmed:  { bg: 'bg-blue-100 dark:bg-blue-900/40',     text: 'text-blue-700 dark:text-blue-400',    dot: 'bg-blue-500',    label: 'Confirmed' },
+                preparing:  { bg: 'bg-orange-100 dark:bg-orange-900/40', text: 'text-orange-700 dark:text-orange-400',dot: 'bg-orange-500',  label: 'Preparing' },
+                ready:      { bg: 'bg-emerald-100 dark:bg-emerald-900/40',text: 'text-emerald-700 dark:text-emerald-400',dot: 'bg-emerald-500',label: 'Ready' },
+                delivered:  { bg: 'bg-teal-100 dark:bg-teal-900/40',    text: 'text-teal-700 dark:text-teal-400',    dot: 'bg-teal-500',    label: 'Delivered' },
+                completed:  { bg: 'bg-slate-100 dark:bg-slate-800',      text: 'text-slate-600 dark:text-slate-400',  dot: 'bg-slate-400',   label: 'Completed' },
+                cancelled:  { bg: 'bg-red-100 dark:bg-red-900/40',       text: 'text-red-700 dark:text-red-400',      dot: 'bg-red-500',     label: 'Cancelled' },
+              };
+              const sc = statusCfg[ord.status as string] ?? statusCfg.confirmed;
+              return (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-3"
+                >
+                  <div className={cn(
+                    'rounded-xl border overflow-hidden',
+                    style.border
+                  )}>
+                    {/* Header row */}
+                    <div className="flex items-center justify-between px-2.5 pt-2 pb-1.5 bg-white/70 dark:bg-black/30">
+                      <div className="flex items-center gap-1.5">
+                        <Zap className={cn('h-3 w-3 flex-shrink-0', style.accent)} />
+                        <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 tracking-wide">{shortRef}</span>
+                      </div>
+                      <span className={cn('text-sm font-extrabold', style.accent)}>
+                        Rs.&nbsp;{ord.total?.toLocaleString()}
+                      </span>
+                    </div>
+                    {/* Detail row */}
+                    <div className="flex items-center justify-between px-2.5 pb-2 bg-white/50 dark:bg-black/20 gap-2">
+                      {/* Status badge */}
+                      <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold leading-none', sc.bg, sc.text)}>
+                        <span className={cn('h-1.5 w-1.5 rounded-full inline-block', sc.dot)} />
+                        {sc.label}
+                      </span>
+                      {/* Items */}
+                      <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
+                        <ShoppingCart className="h-3 w-3" />{ord.items_count} item{ord.items_count !== 1 ? 's' : ''}
+                      </span>
+                      {/* Elapsed */}
+                      {elapsed > 0 && (
+                        <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                          <Timer className="h-3 w-3" />{elapsedLabel}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })()}
           </AnimatePresence>
 
           {/* Assigned Waiter */}

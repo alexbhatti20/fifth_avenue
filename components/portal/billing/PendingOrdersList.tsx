@@ -147,6 +147,7 @@ function BillableOrderCard({ order, onGenerateBill }: BillableOrderCardProps) {
                   {new Date(order.created_at).toLocaleTimeString('en-US', {
                     hour: '2-digit',
                     minute: '2-digit',
+                    hour12: true,
                   })}
                 </div>
                 {order.customer_loyalty_points && order.customer_loyalty_points > 0 && (

@@ -21,6 +21,7 @@ export const ALL_PAGES = {
   kitchen: { path: '/portal/kitchen', label: 'Kitchen', icon: 'ChefHat' },
   delivery: { path: '/portal/delivery', label: 'Delivery', icon: 'Truck' },
   tables: { path: '/portal/tables', label: 'Tables', icon: 'LayoutGrid' },
+  bookings: { path: '/portal/bookings', label: 'Bookings', icon: 'CalendarDays' },
   billing: { path: '/portal/billing', label: 'Billing', icon: 'Receipt' },
   employees: { path: '/portal/employees', label: 'Employees', icon: 'Users' },
   customers: { path: '/portal/customers', label: 'Customers', icon: 'UserCog' },
@@ -60,7 +61,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<EmployeeRole, {
     // All pages except employee management and website settings
     pages: [
       ...GENERAL_PAGES,
-      'menu', 'orders', 'kitchen', 'delivery', 'tables', 'billing',
+      'menu', 'orders', 'kitchen', 'delivery', 'tables', 'bookings', 'billing',
       'inventory', 'reports', 'perks', 'reviews', 'messages', 'deals', 'notifications', 'customers',
       'backup',
     ],
@@ -115,12 +116,18 @@ export const EXTRA_PERMISSIONS = [
   { key: 'access_kitchen', label: 'Kitchen Access', category: 'Page Access', page: 'kitchen' },
   { key: 'access_delivery', label: 'Delivery Access', category: 'Page Access', page: 'delivery' },
   { key: 'access_tables', label: 'Tables Access', category: 'Page Access', page: 'tables' },
+  { key: 'access_bookings', label: 'Bookings Access', category: 'Page Access', page: 'bookings' },
   { key: 'access_billing', label: 'Billing Access', category: 'Page Access', page: 'billing' },
   { key: 'access_inventory', label: 'Inventory Access', category: 'Page Access', page: 'inventory' },
+  { key: 'access_customers', label: 'Customers Access', category: 'Page Access', page: 'customers' },
   { key: 'access_reports', label: 'Reports Access', category: 'Page Access', page: 'reports' },
   { key: 'access_perks', label: 'Perks & Loyalty Access', category: 'Page Access', page: 'perks' },
   { key: 'access_reviews', label: 'Reviews Access', category: 'Page Access', page: 'reviews' },
-  { key: 'access_customers', label: 'Customers Access', category: 'Page Access', page: 'customers' },
+  { key: 'access_messages', label: 'Messages Access', category: 'Page Access', page: 'messages' },
+  { key: 'access_notifications', label: 'Notifications Access', category: 'Page Access', page: 'notifications' },
+  { key: 'access_deals', label: 'Deals & Promotions Access', category: 'Page Access', page: 'deals' },
+  { key: 'access_audit', label: 'Audit Log Access', category: 'Page Access', page: 'audit' },
+  { key: 'access_payroll', label: 'Payroll Access', category: 'Page Access', page: 'payroll' },
   { key: 'access_backup', label: 'Database Backup Access', category: 'Page Access', page: 'backup' },
   
   // Order Filters
@@ -141,6 +148,12 @@ export const EXTRA_PERMISSIONS = [
   { key: 'view_tables', label: 'View Tables', category: 'Tables' },
   { key: 'manage_tables', label: 'Manage Tables', category: 'Tables' },
   { key: 'assign_tables', label: 'Assign Tables', category: 'Tables' },
+
+  // Bookings
+  { key: 'view_bookings', label: 'View Reservations', category: 'Bookings' },
+  { key: 'manage_bookings', label: 'Create / Edit / Cancel Reservations', category: 'Bookings' },
+  { key: 'delete_bookings', label: 'Delete Reservations', category: 'Bookings' },
+  { key: 'toggle_booking_system', label: 'Enable / Disable Online Booking', category: 'Bookings' },
   
   // Billing
   { key: 'process_payments', label: 'Process Payments', category: 'Billing' },
@@ -253,7 +266,7 @@ export function getSidebarItems(permissions: UserPermissions) {
 export const PERMISSIONS_CACHE_KEY = 'user_permissions';
 export const PERMISSIONS_CACHE_EXPIRY = 'user_permissions_expiry';
 export const PERMISSIONS_CACHE_VERSION_KEY = 'user_permissions_version';
-export const PERMISSIONS_CACHE_VERSION = '2'; // bumped: added backup page
+export const PERMISSIONS_CACHE_VERSION = '4'; // bumped: added bookings + missing page-access permissions
 export const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 /**

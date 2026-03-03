@@ -4687,3 +4687,65 @@ export async function getContactMessageByIdServer(messageId: string): Promise<Co
   }
 }
 
+// =============================================
+// ONLINE TABLE BOOKING QUERIES (Server-Side)
+// =============================================
+
+export interface TableForBookingSSR {
+  id: string;
+  table_number: number;
+  capacity: number;
+  status: string;
+  section?: string | null;
+  floor: number;
+  current_customers: number;
+  reserved_by?: string | null;
+  reservation_time?: string | null;
+  reservation_notes?: string | null;
+  reservation_id?: string | null;
+  reserved_by_name?: string | null;
+  reserved_by_phone?: string | null;
+  reservation_date?: string | null;
+  arrival_time?: string | null;
+  party_size?: number | null;
+  auto_release_at?: string | null;
+}
+
+export interface OnlineBookingSettingSSR {
+  enabled: boolean;
+  max_advance_days: number;
+  min_notice_hours: number;
+  auto_release_minutes: number;
+}
+
+/** Public SSR — get booking toggle setting */
+export async function getOnlineBookingSettingServer(): Promise<OnlineBookingSettingSSR> {
+  if (!isSupabaseConfigured) {
+    return { enabled: false, max_advance_days: 14, min_notice_hours: 1, auto_release_minutes: 10 };
+  }
+  try {
+    const { data } = await supabase.rpc('get_online_booking_setting');
+    return data ?? { enabled: false, max_advance_days: 14, min_notice_hours: 1, auto_release_minutes: 10 };
+  } catch {
+    return { enabled: false, max_advance_days: 14, min_notice_hours: 1, auto_release_minutes: 10 };
+  }
+}
+
+/** Public SSR — fetch all tables with booking availability, auto-releases expired reservations */
+export async function getTablesForBookingServer(): Promise<{
+  tables: TableForBookingSSR[];
+  booking_enabled: boolean;
+}> {
+  if (!isSupabaseConfigured) return { tables: [], booking_enabled: false };
+  try {
+    const { data, error } = await supabase.rpc('get_tables_for_booking');
+    if (error) throw error;
+    return {
+      tables: data?.tables ?? [],
+      booking_enabled: data?.booking_enabled ?? false,
+    };
+  } catch (e) {
+    console.error('[SSR] getTablesForBookingServer error:', e);
+    return { tables: [], booking_enabled: false };
+  }
+}

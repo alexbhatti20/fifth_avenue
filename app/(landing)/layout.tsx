@@ -1,5 +1,6 @@
 import { ReactNode, Suspense } from "react";
 import dynamic from "next/dynamic";
+import { getOnlineBookingSettingServer } from "@/lib/server-queries";
 
 // Dynamically import heavy components with loading states
 const Navbar = dynamic(() => import("@/components/custom/Navbar"), {
@@ -23,10 +24,12 @@ interface LandingLayoutProps {
   children: ReactNode;
 }
 
-export default function LandingLayout({ children }: LandingLayoutProps) {
+export default async function LandingLayout({ children }: LandingLayoutProps) {
+  const bookingSetting = await getOnlineBookingSettingServer();
+
   return (
     <>
-      <Navbar />
+      <Navbar bookingEnabled={bookingSetting.enabled} />
       {children}
       <Footer />
       <Suspense fallback={null}>

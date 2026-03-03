@@ -886,7 +886,7 @@ function OrderCard({
           
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-zinc-100 dark:border-zinc-800">
             <span>{order.total_items || order.items.length} items</span>
-            <span>{new Date(order.created_at).toLocaleTimeString()}</span>
+            <span>{new Date(order.created_at).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
           </div>
 
           {/* View Details Button */}

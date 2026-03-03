@@ -9,7 +9,7 @@ import {
   Menu, X, ShoppingCart, User, Sparkles, Phone, 
   LogOut, Settings, Package, Heart, Award, CreditCard,
   MapPin, ChevronDown, Bell, History, Flame, Star,
-  ArrowRight, Crown, LayoutGrid, Users, ClipboardList
+  ArrowRight, Crown, LayoutGrid, Users, ClipboardList, CalendarDays
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -127,7 +127,7 @@ const NavLink = memo(function NavLink({
   );
 });
 
-function Navbar() {
+function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHoveredLink, setIsHoveredLink] = useState<string | null>(null);
@@ -360,6 +360,31 @@ function Navbar() {
 
           {/* Right Side Actions - Premium Styling */}
           <div className="flex items-center gap-2 md:gap-3">
+            {/* Book a Table Button - Desktop */}
+            {bookingEnabled && (
+            <div className="hidden lg:block">
+              <Link href="/book-online" prefetch={true}>
+                <motion.div
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="relative group"
+                >
+                  <Button
+                    variant="outline"
+                    className={`relative rounded-full px-5 py-2.5 font-semibold text-sm transition-all duration-300 border-2 ${
+                      !useTransparentNav
+                        ? 'border-primary/40 text-primary hover:bg-primary/5 hover:border-primary'
+                        : 'border-white/60 text-white hover:bg-white/15 hover:border-white'
+                    }`}
+                  >
+                    <CalendarDays className="w-4 h-4 mr-1.5" />
+                    Book a Table
+                  </Button>
+                </motion.div>
+              </Link>
+            </div>
+            )}
+
             {/* Order Now Button - Desktop with premium hover effect */}
             <div className="hidden lg:block">
               <Link href="/menu" prefetch={true}>
@@ -729,6 +754,14 @@ function Navbar() {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
+            {bookingEnabled && (
+            <Link href="/book-online" onClick={() => setIsMobileMenuOpen(false)}>
+              <Button variant="outline" className="w-full rounded-xl py-5 text-sm font-bold border-2 border-primary/40 text-primary hover:bg-primary/5">
+                <CalendarDays className="w-4 h-4 mr-2" />
+                Book a Table
+              </Button>
+            </Link>
+            )}
             {!user && (
               <Link href="/auth" onClick={() => setIsMobileMenuOpen(false)}>
                 <Button variant="outline" className="w-full rounded-xl py-5 text-sm font-bold border-2">
