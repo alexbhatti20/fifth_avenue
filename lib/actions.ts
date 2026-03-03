@@ -3983,7 +3983,7 @@ export async function getTableCurrentOrderAction(tableId: string): Promise<{
         total: orderData.total || 0,
         notes: orderData.notes,
         created_at: orderData.created_at,
-        customer: orderData.customers || null,
+        customer: Array.isArray(orderData.customers) ? (orderData.customers[0] ?? null) : (orderData.customers || null),
         items,
         table_number: tableData.table_number,
         customer_count: orderData.customer_count || 1,
