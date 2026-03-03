@@ -39,7 +39,7 @@ export interface Category {
   name: string;
   slug: string;
   icon?: string;
-  items_count: number;
+  items_count?: number;
 }
 
 export interface CartItem {
