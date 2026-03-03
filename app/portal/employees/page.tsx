@@ -7,7 +7,6 @@ import { getEmployeesPaginatedServer } from '@/lib/server-queries';
 import EmployeesClient from './EmployeesClient';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 30;
 
 export default async function EmployeesPage() {
   // Fetch all employees on the server (hidden from browser)

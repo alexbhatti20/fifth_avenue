@@ -81,7 +81,8 @@ export default function OffersTab({ menuItems, initialOffers, initialStats }: Of
   const router = useRouter();
   const [offers, setOffers] = useState<SpecialOffer[]>(initialOffers || []);
   const [stats, setStats] = useState(initialStats || { total: 0, active: 0, scheduled: 0, expired: 0, draft: 0 });
-  const [isLoading, setIsLoading] = useState(true);
+  // Only show loading if no SSR data provided
+  const [isLoading, setIsLoading] = useState(!initialOffers || initialOffers.length === 0);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
@@ -127,10 +128,15 @@ export default function OffersTab({ menuItems, initialOffers, initialStats }: Of
     }
   }, []);
 
-  // Always fetch fresh data on mount
+  // Only fetch on mount if no SSR data was provided
   useEffect(() => {
+    // Skip if we already have SSR data
+    if (initialOffers && initialOffers.length > 0) {
+      setIsLoading(false);
+      return;
+    }
     loadOffers();
-  }, [loadOffers]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter offers
   const filteredOffers = offers.filter(offer => {

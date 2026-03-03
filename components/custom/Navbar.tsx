@@ -541,7 +541,7 @@ function Navbar() {
               <div className="hidden md:block w-11 h-11" />
             )}
             {/* Premium Cart Button — only for logged-in customers */}
-            {user && (
+            {hasMounted && user && (
               <Link href="/cart">
                 <motion.div
                   whileHover={{ scale: 1.05 }}

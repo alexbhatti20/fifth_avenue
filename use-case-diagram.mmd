@@ -1,0 +1,119 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#E3F2FD',
+    'primaryTextColor': '#1565C0',
+    'lineColor': '#37474F',
+    'fontSize': '12px'
+  }
+}}%%
+
+flowchart TB
+    subgraph ACTORS["👥 SYSTEM ACTORS"]
+        direction LR
+        C[("👤 Customer")]
+        W[("🍽️ Waiter")]
+        K[("👨‍🍳 Kitchen")]
+        B[("💳 Billing")]
+        R[("🛵 Rider")]
+        M[("📋 Manager")]
+        A[("🔑 Admin")]
+    end
+
+    subgraph SYSTEM["🍗 ZOIRO BROAST HUB SYSTEM"]
+        direction TB
+        
+        subgraph CUSTOMER_UC["Customer Features"]
+            UC1(Browse Menu)
+            UC2(Add to Cart)
+            UC3(Place Order)
+            UC4(Track Order)
+            UC5(Pay)
+            UC6(Earn Points)
+            UC7(Write Review)
+        end
+
+        subgraph ACCOUNT_UC["Account"]
+            UC9(Register)
+            UC10(Login/OTP)
+            UC12(Enable 2FA)
+        end
+
+        subgraph WAITER_UC["Table Service"]
+            UC14(View Tables)
+            UC15(Take Order)
+            UC16(Table Exchange)
+            UC17(View Tips)
+        end
+
+        subgraph KITCHEN_UC["Kitchen"]
+            UC18(Order Queue)
+            UC19(Mark Preparing)
+            UC20(Mark Ready)
+            UC21(Check Stock)
+        end
+
+        subgraph BILLING_UC["Billing"]
+            UC22(Generate Bill)
+            UC23(Process Payment)
+            UC26(Print Receipt)
+        end
+
+        subgraph DELIVERY_UC["Delivery"]
+            UC27(View Deliveries)
+            UC28(Accept Delivery)
+            UC29(Update Status)
+            UC30(Mark Delivered)
+        end
+
+        subgraph MGMT_UC["Management"]
+            UC31(Sales Reports)
+            UC33(Manage Menu)
+            UC35(Inventory)
+        end
+
+        subgraph ADMIN_UC["Administration"]
+            UC37(Add Employee)
+            UC38(Manage Roles)
+            UC40(Payroll)
+            UC41(Audit Logs)
+            UC42(DB Backup)
+            UC43(Loyalty Program)
+        end
+
+        UC45(Attendance)
+    end
+
+    %% Customer Connections
+    C --> UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC7 & UC9 & UC10 & UC12
+
+    %% Waiter Connections
+    W --> UC10 & UC14 & UC15 & UC16 & UC17 & UC45
+
+    %% Kitchen Connections
+    K --> UC10 & UC18 & UC19 & UC20 & UC21 & UC45
+
+    %% Billing Connections
+    B --> UC10 & UC22 & UC23 & UC26 & UC45
+
+    %% Rider Connections
+    R --> UC10 & UC27 & UC28 & UC29 & UC30 & UC45
+
+    %% Manager Connections
+    M --> UC10 & UC31 & UC33 & UC35 & UC42 & UC45
+
+    %% Admin Connections
+    A --> UC10 & UC31 & UC33 & UC35 & UC37 & UC38 & UC40 & UC41 & UC42 & UC43
+
+    %% Styling
+    classDef actorStyle fill:#C8E6C9,stroke:#2E7D32,stroke-width:2px
+    classDef usecaseStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:1px
+    classDef adminStyle fill:#FFCDD2,stroke:#C62828,stroke-width:1px
+    classDef mgmtStyle fill:#B2DFDB,stroke:#00695C,stroke-width:1px
+
+    class C,W,K,B,R,M,A actorStyle
+    class UC1,UC2,UC3,UC4,UC5,UC6,UC7,UC9,UC10,UC12 usecaseStyle
+    class UC14,UC15,UC16,UC17,UC18,UC19,UC20,UC21 usecaseStyle
+    class UC22,UC23,UC26,UC27,UC28,UC29,UC30 usecaseStyle
+    class UC31,UC33,UC35,UC45 mgmtStyle
+    class UC37,UC38,UC40,UC41,UC42,UC43 adminStyle

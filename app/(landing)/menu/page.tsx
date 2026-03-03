@@ -48,8 +48,8 @@ export default async function MenuPage() {
         initialDeals={deals}
         initialOffers={offers}
       />
-      {/* Fixed offers indicator (self-contained, fetches its own data client-side) */}
-      <HeroOffersIndicator />
+      {/* Fixed offers indicator - pass count to avoid redundant fetch */}
+      <HeroOffersIndicator initialCount={offers.length} />
     </>
   );
 }

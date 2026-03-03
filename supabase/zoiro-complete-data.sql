@@ -368,10 +368,10 @@ VALUES
   ('c1000000-0000-0000-0000-000000000004', 'Wings', 'wings', 'Lord of Wings - Crispy Chicken Wings', 'https://images.unsplash.com/photo-1608039755401-742074f0548d?w=800', 4, true),
   ('c1000000-0000-0000-0000-000000000005', 'Shawarma', 'shawarma', 'Lebanese Style Shawarma', 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800', 5, true),
   ('c1000000-0000-0000-0000-000000000006', 'Appetizers', 'appetizers', 'Starters and Snacks', 'https://images.unsplash.com/photo-1562967914-608f82629710?w=800', 6, true),
-  ('c1000000-0000-0000-0000-000000000007', 'Nuggets', 'nuggets', 'Arabian Fillet Nuggets', 'https://images.unsplash.com/photo-1585325701165-351af660e4ee?w=800', 7, true),
+  ('c1000000-0000-0000-0000-000000000007', 'Nuggets', 'nuggets', 'Arabian Fillet Nuggets', 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=800&q=80', 7, true),
   ('c1000000-0000-0000-0000-000000000008', 'Sauces & Dips', 'sauces-dips', 'Delicious Dipping Sauces', 'https://images.unsplash.com/photo-1472476443507-c7a5948772fc?w=800', 8, true),
   ('c1000000-0000-0000-0000-000000000009', 'Drinks', 'drinks', 'Refreshing Beverages', 'https://images.unsplash.com/photo-1437418747212-8d9709afab22?w=800', 9, true),
-  ('c1000000-0000-0000-0000-000000000010', 'Extras', 'extras', 'Extra Items and Add-ons', 'https://images.unsplash.com/photo-1630384060421-cb20aed28116?w=800', 10, true);
+  ('c1000000-0000-0000-0000-000000000010', 'Extras', 'extras', 'Extra Items and Add-ons', 'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=800&q=80&fm=webp', 10, true);
 
 -- =====================================================
 -- 3. MENU ITEMS
@@ -630,7 +630,7 @@ VALUES
     'loaded-fries',
     'Crispy fries loaded with cheese and special toppings.',
     500,
-    '["https://images.unsplash.com/photo-1630384060421-cb20aed28116?w=800"]',
+    '["https://images.unsplash.com/photo-1585109649139-366815a0d713?w=800&q=80&fm=webp"]',
     true,
     true,
     12,
@@ -662,7 +662,7 @@ VALUES
     'arabian-fillet-nuggets',
     '5 pieces of premium Arabian style chicken fillet nuggets.',
     490,
-    '["https://images.unsplash.com/photo-1585325701165-351af660e4ee?w=800"]',
+    '["https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=800&q=80"]',
     true,
     true,
     12,

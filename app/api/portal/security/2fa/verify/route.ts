@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import * as speakeasy from "speakeasy";
 import { cookies } from "next/headers";
+import { signCookieValue } from "@/lib/cookie-signing";
 
 // POST /api/portal/security/2fa/verify - Verify 2FA token during login
 export async function POST(request: NextRequest) {
@@ -135,14 +136,15 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Set employee_data cookie for maintenance mode admin bypass check
+    // Set employee_data cookie (HMAC-signed) for maintenance mode admin bypass check
     const employeeData = JSON.stringify({
       id: employee.id,
       role: employee.role, // 'admin' or 'employee'
       name: employee.name,
     });
-    response.cookies.set('employee_data', encodeURIComponent(employeeData), {
-      httpOnly: false, // Readable by middleware
+    const signedValue = await signCookieValue(encodeURIComponent(employeeData));
+    response.cookies.set('employee_data', signedValue, {
+      httpOnly: false, // Must be readable by edge middleware
       secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,

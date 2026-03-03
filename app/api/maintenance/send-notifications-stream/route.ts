@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { createAuthenticatedClient } from '@/lib/supabase';
 import { sendMaintenanceNotification } from '@/lib/brevo';
+import { verifyCookieValue } from '@/lib/cookie-signing';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -19,16 +20,19 @@ async function getAuthenticatedAdminClient() {
   let authUserId: string | null = null;
   let isAdminFromCookie = false;
   
-  // Check employee_data for admin role (quick check)
+  // Check employee_data for admin role (must be HMAC-signed)
   const employeeData = cookieStore.get('employee_data')?.value;
   if (employeeData) {
     try {
-      const parsed = JSON.parse(decodeURIComponent(employeeData));
-      if (parsed.role === 'admin') {
-        isAdminFromCookie = true;
+      const verified = await verifyCookieValue(employeeData);
+      if (verified) {
+        const parsed = JSON.parse(decodeURIComponent(verified));
+        if (parsed.role === 'admin') {
+          isAdminFromCookie = true;
+        }
       }
     } catch (e) {
-      console.error('Failed to parse employee_data:', e);
+      console.error('Failed to verify employee_data:', e);
     }
   }
   

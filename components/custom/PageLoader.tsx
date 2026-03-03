@@ -89,6 +89,7 @@ export default function PageLoader() {
             fill
             sizes="60px"
             style={{ objectFit: 'contain' }}
+            priority
           />
         </div>
       </div>

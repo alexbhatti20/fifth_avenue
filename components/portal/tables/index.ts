@@ -10,4 +10,6 @@ export { WaiterTableCardV2 } from './WaiterTableCardV2';
 export { MenuItemCard } from './MenuItemCard';
 export { CartItemRow } from './CartItemRow';
 export { TakeOrderDialog } from './TakeOrderDialog';
+export { TakeOrderDialogAdvanced } from './TakeOrderDialogAdvanced';
+export { AddTableDialog } from './AddTableDialog';
 export { WaiterHistory } from './WaiterHistory';

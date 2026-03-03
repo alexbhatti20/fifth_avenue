@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/jwt';
+import { verifyCookieValue } from '@/lib/cookie-signing';
 
 interface MaintenanceGuardResult {
   isMaintenanceMode: boolean;
@@ -38,11 +39,14 @@ export async function checkMaintenanceMode(): Promise<MaintenanceGuardResult> {
       const authToken = cookieStore.get('auth_token')?.value || cookieStore.get('sb-access-token')?.value;
       const employeeData = cookieStore.get('employee_data')?.value;
 
-      // Check employee_data cookie first
+      // Check employee_data cookie first (must be HMAC-signed)
       if (employeeData) {
         try {
-          const parsed = JSON.parse(employeeData);
-          isAdmin = parsed.role === 'admin';
+          const verified = await verifyCookieValue(employeeData);
+          if (verified) {
+            const parsed = JSON.parse(verified);
+            isAdmin = parsed.role === 'admin';
+          }
         } catch {}
       }
 

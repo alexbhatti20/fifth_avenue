@@ -2956,3 +2956,1087 @@ export async function cleanupExpiredPromosAction(): Promise<{
     return { success: false, error: error.message || 'Failed to cleanup expired promos' };
   }
 }
+
+// =============================================
+// WAITER TABLES SERVER ACTIONS
+// SSR-authenticated actions for waiter functionality
+// =============================================
+
+export interface WaiterOrderHistoryItem {
+  id: string;
+  order_id?: string;
+  order_number: string;
+  invoice_number?: string;
+  table_number: number;
+  customer_name?: string;
+  customer_phone?: string;
+  is_registered_customer: boolean;
+  customer_count?: number;
+  items?: any[];
+  total_items: number;
+  subtotal?: number;
+  tax?: number;
+  total: number;
+  tip_amount: number;
+  payment_method?: string;
+  payment_status?: string;
+  order_status?: string;
+  order_taken_at: string;
+  order_completed_at?: string;
+}
+
+export interface WaiterOrderStats {
+  total_orders?: number;
+  orders_today: number;
+  orders_this_week?: number;
+  total_sales?: number;
+  sales_today: number;
+  total_tips?: number;
+  tips_today: number;
+  avg_order_value?: number;
+  total_customers?: number;
+  customers_today: number;
+}
+
+// Refresh waiter tables (SSR authenticated)
+export async function refreshWaiterTablesAction(): Promise<{
+  success: boolean;
+  tables?: any[];
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('get_tables_for_waiter');
+
+    if (error) throw error;
+
+    if (data?.success && data?.tables) {
+      return { success: true, tables: data.tables };
+    }
+
+    // Fallback to direct query if RPC doesn't return expected structure
+    const { data: tablesData, error: tablesError } = await client
+      .from('restaurant_tables')
+      .select('*')
+      .order('table_number');
+
+    if (tablesError) throw tablesError;
+
+    return { success: true, tables: tablesData || [] };
+  } catch (error: any) {
+    console.error('[Server Action] refreshWaiterTablesAction error:', error);
+    return { success: false, error: error.message || 'Failed to refresh tables' };
+  }
+}
+
+// Refresh waiter order history (SSR authenticated)
+export async function refreshWaiterOrderHistoryAction(options: {
+  date?: string | null;
+  limit?: number;
+  offset?: number;
+} = {}): Promise<{
+  success: boolean;
+  history?: WaiterOrderHistoryItem[];
+  stats?: WaiterOrderStats | null;
+  total_count?: number;
+  has_more?: boolean;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('get_waiter_order_history', {
+      p_date: options.date || null,
+      p_limit: options.limit || 20,
+      p_offset: options.offset || 0,
+    });
+
+    if (error) throw error;
+
+    if (data?.success) {
+      return {
+        success: true,
+        history: data.history || [],
+        stats: data.stats || null,
+        total_count: data.total_count || 0,
+        has_more: data.has_more || false,
+      };
+    }
+
+    return {
+      success: false,
+      history: [],
+      stats: null,
+      total_count: 0,
+      has_more: false,
+      error: data?.error || 'Unknown error',
+    };
+  } catch (error: any) {
+    console.error('[Server Action] refreshWaiterOrderHistoryAction error:', error);
+    return { success: false, error: error.message || 'Failed to refresh order history' };
+  }
+}
+
+// Claim table for waiter (SSR authenticated)
+export async function claimTableForWaiterAction(tableId: string): Promise<{
+  success: boolean;
+  table_number?: number;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('claim_table_for_waiter', {
+      p_table_id: tableId,
+    });
+
+    if (error) throw error;
+
+    if (!data?.success) {
+      return { success: false, error: data?.error || 'Failed to claim table' };
+    }
+
+    revalidatePath('/portal/tables');
+    return { success: true, table_number: data.table_number };
+  } catch (error: any) {
+    console.error('[Server Action] claimTableForWaiterAction error:', error);
+    return { success: false, error: error.message || 'Failed to claim table' };
+  }
+}
+
+// =============================================
+// MENU & ORDER SERVER ACTIONS (Waiter)
+// SSR authenticated actions for order creation
+// =============================================
+
+export interface MenuItemForOrder {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  images: string[];
+  category_id: string;
+  category_name: string;
+  status: string;
+  is_featured: boolean;
+  has_variants: boolean;
+  size_variants: { size: string; price: number; is_available: boolean }[] | null;
+}
+
+export interface MenuCategoryForOrder {
+  id: string;
+  name: string;
+  slug: string;
+  image_url: string | null;
+  display_order: number;
+}
+
+export interface DealForOrder {
+  id: string;
+  name: string;
+  description: string;
+  original_price: number;
+  deal_price: number;
+  images: string[];
+  deal_items: any[];
+}
+
+export interface MenuDataForOrder {
+  categories: MenuCategoryForOrder[];
+  items: MenuItemForOrder[];
+  deals: DealForOrder[];
+}
+
+// Get menu data for ordering (SSR authenticated)
+export async function getMenuForOrderingAction(): Promise<{
+  success: boolean;
+  data?: MenuDataForOrder;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    // Try the RPC first
+    const { data: rpcData, error: rpcError } = await client.rpc('get_menu_for_ordering');
+    
+    if (!rpcError && rpcData?.success) {
+      return {
+        success: true,
+        data: {
+          categories: rpcData.categories || [],
+          items: rpcData.items || [],
+          deals: rpcData.deals || [],
+        },
+      };
+    }
+
+    // Fallback to direct queries with correct table names
+    const [categoriesResult, itemsResult, dealsResult] = await Promise.all([
+      client
+        .from('menu_categories')
+        .select('id, name, slug, image_url, display_order')
+        .eq('is_visible', true)
+        .order('display_order'),
+      client
+        .from('menu_items')
+        .select('id, name, description, price, images, category_id, is_available, is_featured, has_variants, size_variants, menu_categories(name)')
+        .eq('is_available', true),
+      client
+        .from('deals')
+        .select('id, name, description, original_price, discounted_price, images, applicable_items, discount_percentage, discount_amount, code, deal_type, is_featured')
+        .eq('is_active', true)
+        .gte('valid_until', new Date().toISOString()),
+    ]);
+
+    const categories = categoriesResult.data || [];
+    const items = (itemsResult.data || []).map((item: any) => ({
+      ...item,
+      status: item.is_available ? 'available' : 'unavailable',
+      category_name: item.menu_categories?.name || '',
+    }));
+    const deals = (dealsResult.data || []).map((deal: any) => ({
+      ...deal,
+      deal_price: deal.discounted_price, // Map to expected field name
+      deal_items: deal.applicable_items || [],
+    }));
+
+    return {
+      success: true,
+      data: { categories, items, deals },
+    };
+  } catch (error: any) {
+    console.error('[Server Action] getMenuForOrderingAction error:', error);
+    return { success: false, error: error.message || 'Failed to fetch menu' };
+  }
+}
+
+export interface CustomerLookupResult {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string;
+  loyalty_points: number;
+  total_orders: number;
+  total_spent: number;
+}
+
+export interface CustomerPromoCode {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  promo_type: string;
+  value: number;
+  max_discount: number | null;
+  expires_at: string | null;
+  is_active: boolean;
+}
+
+export interface CustomerFullDetails {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  loyalty_points: number;
+  total_orders: number;
+  total_spent: number;
+  avg_order_value: number;
+  last_order_date: string | null;
+  promo_codes: CustomerPromoCode[];
+  membership_tier: string;
+}
+
+export interface CustomerOrderSummary {
+  id: string;
+  order_number: string;
+  order_type: string;
+  status: string;
+  items: { name: string; price: number; quantity: number }[];
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  payment_method: string;
+  payment_status: string;
+  table_number: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export async function getCustomerOrderHistoryAction(
+  customerId: string
+): Promise<{ success: boolean; orders: CustomerOrderSummary[]; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client
+      .from('orders')
+      .select(
+        'id, order_number, order_type, status, items, subtotal, tax, discount, total, payment_method, payment_status, table_number, notes, created_at'
+      )
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false })
+      .limit(25);
+    if (error) throw error;
+    return { success: true, orders: (data ?? []) as CustomerOrderSummary[] };
+  } catch (e: any) {
+    console.error('[Server Action] getCustomerOrderHistoryAction error:', e);
+    return { success: false, orders: [], error: e.message };
+  }
+}
+
+// Lookup customer by phone/email (SSR authenticated)
+export async function lookupCustomerAction(params: {
+  phone?: string | null;
+  email?: string | null;
+  name?: string | null;
+}): Promise<{
+  success: boolean;
+  found: boolean;
+  customer?: CustomerLookupResult;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    // Try the RPC first
+    const { data, error } = await client.rpc('lookup_customer', {
+      p_phone: params.phone || null,
+      p_email: params.email || null,
+      p_name: params.name || null,
+    });
+
+    if (error) throw error;
+
+    if (data?.found) {
+      return {
+        success: true,
+        found: true,
+        customer: data.customer,
+      };
+    }
+
+    return {
+      success: true,
+      found: false,
+    };
+  } catch (error: any) {
+    console.error('[Server Action] lookupCustomerAction error:', error);
+    return { success: false, found: false, error: error.message || 'Failed to lookup customer' };
+  }
+}
+
+// Enhanced customer lookup with promo codes and full details (SSR authenticated)
+export async function getCustomerFullDetailsAction(params: {
+  phone?: string | null;
+  email?: string | null;
+  customer_id?: string | null;
+  name?: string | null;
+}): Promise<{
+  success: boolean;
+  found: boolean;
+  customer?: CustomerFullDetails;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+
+    // customer_order_history view has all stats + linked customer_id
+    // Columns: customer_id, customer_name, customer_phone, customer_email,
+    //          total_orders, total_spent, last_order_date, loyalty_points, loyalty_tier
+    const STATS_SELECT =
+      'customer_id, customer_name, customer_phone, customer_email, total_orders, total_spent, last_order_date, loyalty_points, loyalty_tier';
+
+    let row: any = null;
+
+    if (params.customer_id) {
+      const { data } = await client
+        .from('customer_order_history')
+        .select(STATS_SELECT)
+        .eq('customer_id', params.customer_id)
+        .maybeSingle();
+      row = data;
+
+      // Might not have an order yet — fall back to customers table
+      if (!row) {
+        const { data: c } = await client
+          .from('customers')
+          .select('id, name, email, phone')
+          .eq('id', params.customer_id)
+          .maybeSingle();
+        if (c) {
+          row = {
+            customer_id: c.id,
+            customer_name: c.name,
+            customer_email: c.email,
+            customer_phone: c.phone,
+            total_orders: 0,
+            total_spent: 0,
+            last_order_date: null,
+            loyalty_points: 0,
+            loyalty_tier: 'bronze',
+          };
+        }
+      }
+    } else if (params.phone) {
+      const raw = params.phone;
+      const digits = raw.replace(/\D/g, '');
+      const last10 = digits.slice(-10);
+
+      // 1. Exact match
+      const { data: exact } = await client
+        .from('customer_order_history')
+        .select(STATS_SELECT)
+        .eq('customer_phone', raw)
+        .maybeSingle();
+      row = exact;
+
+      // 2. Suffix match for different phone formats (+92 vs 0 prefix, etc.)
+      if (!row && last10.length >= 10) {
+        const { data: fuzzy } = await client
+          .from('customer_order_history')
+          .select(STATS_SELECT)
+          .ilike('customer_phone', `%${last10}`)
+          .limit(1)
+          .maybeSingle();
+        row = fuzzy ?? null;
+      }
+    } else if (params.email) {
+      const { data } = await client
+        .from('customer_order_history')
+        .select(STATS_SELECT)
+        .ilike('customer_email', params.email.trim())
+        .maybeSingle();
+      row = data;
+    } else if (params.name) {
+      const { data } = await client
+        .from('customer_order_history')
+        .select(STATS_SELECT)
+        .ilike('customer_name', `%${params.name.trim()}%`)
+        .order('total_orders', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      row = data;
+    } else {
+      return { success: true, found: false };
+    }
+
+    if (!row) return { success: true, found: false };
+
+    // Fetch active, unused promo codes
+    const { data: promoCodes } = await client
+      .from('customer_promo_codes')
+      .select('id, code, name, description, promo_type, value, max_discount, expires_at, is_active')
+      .eq('customer_id', row.customer_id)
+      .eq('is_used', false)
+      .eq('is_active', true)
+      .or(`expires_at.is.null,expires_at.gte.${new Date().toISOString()}`)
+      .order('expires_at', { ascending: true, nullsFirst: false });
+
+    const totalOrders = Number(row.total_orders) || 0;
+    const totalSpent = Number(row.total_spent) || 0;
+
+    return {
+      success: true,
+      found: true,
+      customer: {
+        id: row.customer_id,
+        name: row.customer_name || 'Customer',
+        email: row.customer_email || null,
+        phone: row.customer_phone || null,
+        loyalty_points: Number(row.loyalty_points) || 0,
+        total_orders: totalOrders,
+        total_spent: totalSpent,
+        avg_order_value: totalOrders > 0 ? Math.round(totalSpent / totalOrders) : 0,
+        last_order_date: row.last_order_date || null,
+        membership_tier: row.loyalty_tier || 'bronze',
+        promo_codes: promoCodes || [],
+      },
+    };
+  } catch (error: any) {
+    console.error('[Server Action] getCustomerFullDetailsAction error:', error);
+    return { success: false, found: false, error: error.message || 'Failed to get customer details' };
+  }
+}
+
+export interface CreateOrderParams {
+  table_id: string;
+  customer_count: number;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  customer_id?: string;
+  items: {
+    item_id?: string;
+    deal_id?: string;
+    quantity: number;
+    unit_price: number;
+    size_variant?: string;
+    notes?: string;
+  }[];
+  notes?: string;
+  payment_method?: string;
+  send_email?: boolean;
+}
+
+// Create a new order (SSR authenticated)
+export async function createOrderAction(params: CreateOrderParams): Promise<{
+  success: boolean;
+  order_id?: string;
+  order_number?: string;
+  table_number?: number;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data, error } = await client.rpc('create_table_order', {
+      p_table_id: params.table_id,
+      p_customer_count: params.customer_count,
+      p_customer_name: params.customer_name || null,
+      p_customer_phone: params.customer_phone || null,
+      p_customer_email: params.customer_email || null,
+      p_customer_id: params.customer_id || null,
+      p_items: params.items,
+      p_notes: params.notes || null,
+      p_payment_method: params.payment_method || 'cash',
+      p_send_email: params.send_email ?? true,
+    });
+
+    if (error) throw error;
+
+    if (!data?.success) {
+      return { success: false, error: data?.error || 'Failed to create order' };
+    }
+
+    revalidatePath('/portal/tables');
+    revalidatePath('/portal/orders');
+    
+    return {
+      success: true,
+      order_id: data.order_id,
+      order_number: data.order_number,
+      table_number: data.table_number,
+    };
+  } catch (error: any) {
+    console.error('[Server Action] createOrderAction error:', error);
+    return { success: false, error: error.message || 'Failed to create order' };
+  }
+}
+
+// Add items to existing order (SSR authenticated)
+export async function addItemsToOrderAction(params: {
+  order_id: string;
+  items: {
+    item_id?: string;
+    deal_id?: string;
+    quantity: number;
+    unit_price: number;
+    size_variant?: string;
+    notes?: string;
+  }[];
+}): Promise<{
+  success: boolean;
+  new_total?: number;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data, error } = await client.rpc('add_items_to_order', {
+      p_order_id: params.order_id,
+      p_items: params.items,
+    });
+
+    if (error) throw error;
+
+    if (!data?.success) {
+      return { success: false, error: data?.error || 'Failed to add items' };
+    }
+
+    revalidatePath('/portal/tables');
+    revalidatePath('/portal/orders');
+    
+    return {
+      success: true,
+      new_total: data.new_total,
+    };
+  } catch (error: any) {
+    console.error('[Server Action] addItemsToOrderAction error:', error);
+    return { success: false, error: error.message || 'Failed to add items to order' };
+  }
+}
+
+// Create waiter dine-in order (SSR authenticated) - used by TakeOrderDialog
+export async function createWaiterDineInOrderAction(params: {
+  table_id: string;
+  items: { id: string; name: string; price: number; quantity: number }[];
+  customer_count: number;
+  customer_id?: string | null;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  customer_email?: string | null;
+  notes?: string | null;
+  payment_method?: string;
+  send_email?: boolean;
+}): Promise<{
+  success: boolean;
+  order_id?: string;
+  order_number?: string;
+  table_number?: number;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    
+    const { data, error } = await client.rpc('create_waiter_dine_in_order', {
+      p_table_id: params.table_id,
+      p_items: params.items,
+      p_customer_count: params.customer_count,
+      p_customer_id: params.customer_id || null,
+      p_customer_name: params.customer_name || null,
+      p_customer_phone: params.customer_phone || null,
+      p_customer_email: params.customer_email || null,
+      p_notes: params.notes || null,
+      p_payment_method: params.payment_method || 'cash',
+      p_send_email: params.send_email ?? true,
+    });
+
+    if (error) throw error;
+
+    if (!data?.success) {
+      return { success: false, error: data?.error || 'Failed to create order' };
+    }
+
+    revalidatePath('/portal/tables');
+    revalidatePath('/portal/orders');
+    
+    return {
+      success: true,
+      order_id: data.order_id,
+      order_number: data.order_number,
+      table_number: data.table_number,
+    };
+  } catch (error: any) {
+    console.error('[Server Action] createWaiterDineInOrderAction error:', error);
+    return { success: false, error: error.message || 'Failed to create order' };
+  }
+}
+
+// =============================================
+// TABLE CRUD SERVER ACTIONS (Admin/Manager)
+// =============================================
+
+export interface CreateTableData {
+  table_number: number;
+  capacity: number;
+  section?: string;
+  floor?: number;
+  position?: { x: number; y: number } | null;
+}
+
+export interface UpdateTableData {
+  table_id: string;
+  table_number?: number;
+  capacity?: number;
+  section?: string;
+  floor?: number;
+  status?: string;
+  position?: { x: number; y: number } | null;
+}
+
+// Create a new restaurant table (Admin/Manager only)
+export async function createRestaurantTableAction(data: CreateTableData): Promise<{
+  success: boolean;
+  table_id?: string;
+  table_number?: number;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('create_restaurant_table', {
+      p_table_number: data.table_number,
+      p_capacity: data.capacity,
+      p_section: data.section || null,
+      p_floor: data.floor || 1,
+      p_position: data.position || null,
+    });
+
+    if (error) throw error;
+
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to create table' };
+    }
+
+    revalidatePath('/portal/tables');
+    return { success: true, table_id: result.table_id, table_number: result.table_number };
+  } catch (error: any) {
+    console.error('[Server Action] createRestaurantTableAction error:', error);
+    return { success: false, error: error.message || 'Failed to create table' };
+  }
+}
+
+// Update a restaurant table (Admin/Manager only)
+export async function updateRestaurantTableAction(data: UpdateTableData): Promise<{
+  success: boolean;
+  table_id?: string;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('update_restaurant_table', {
+      p_table_id: data.table_id,
+      p_table_number: data.table_number || null,
+      p_capacity: data.capacity || null,
+      p_section: data.section || null,
+      p_floor: data.floor || null,
+      p_status: data.status || null,
+      p_position: data.position || null,
+    });
+
+    if (error) throw error;
+
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to update table' };
+    }
+
+    revalidatePath('/portal/tables');
+    return { success: true, table_id: result.table_id };
+  } catch (error: any) {
+    console.error('[Server Action] updateRestaurantTableAction error:', error);
+    return { success: false, error: error.message || 'Failed to update table' };
+  }
+}
+
+// Delete a restaurant table (Admin/Manager only)
+export async function deleteRestaurantTableAction(tableId: string): Promise<{
+  success: boolean;
+  table_number?: number;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('delete_restaurant_table', {
+      p_table_id: tableId,
+    });
+
+    if (error) throw error;
+
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to delete table' };
+    }
+
+    revalidatePath('/portal/tables');
+    return { success: true, table_number: result.table_number };
+  } catch (error: any) {
+    console.error('[Server Action] deleteRestaurantTableAction error:', error);
+    return { success: false, error: error.message || 'Failed to delete table' };
+  }
+}
+
+// Bulk delete restaurant tables (Admin/Manager only)
+export async function bulkDeleteRestaurantTablesAction(tableIds: string[]): Promise<{
+  success: boolean;
+  deleted_count?: number;
+  skipped_count?: number;
+  skipped_tables?: string[];
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('bulk_delete_restaurant_tables', {
+      p_table_ids: tableIds,
+    });
+
+    if (error) throw error;
+
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to delete tables' };
+    }
+
+    revalidatePath('/portal/tables');
+    return {
+      success: true,
+      deleted_count: result.deleted_count,
+      skipped_count: result.skipped_count,
+      skipped_tables: result.skipped_tables,
+      message: result.message,
+    };
+  } catch (error: any) {
+    console.error('[Server Action] bulkDeleteRestaurantTablesAction error:', error);
+    return { success: false, error: error.message || 'Failed to delete tables' };
+  }
+}
+
+// Get a single restaurant table (for editing)
+export async function getRestaurantTableAction(tableId: string): Promise<{
+  success: boolean;
+  table?: any;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('get_restaurant_table', {
+      p_table_id: tableId,
+    });
+
+    if (error) throw error;
+
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to get table' };
+    }
+
+    return { success: true, table: result.table };
+  } catch (error: any) {
+    console.error('[Server Action] getRestaurantTableAction error:', error);
+    return { success: false, error: error.message || 'Failed to get table' };
+  }
+}
+
+// Update table status (waiter/admin/manager)
+export async function updateTableStatusAction(tableId: string, status: string): Promise<{
+  success: boolean;
+  new_status?: string;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('update_table_status', {
+      p_table_id: tableId,
+      p_status: status,
+    });
+
+    if (error) throw error;
+
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to update status' };
+    }
+
+    revalidatePath('/portal/tables');
+    return { success: true, new_status: result.new_status };
+  } catch (error: any) {
+    console.error('[Server Action] updateTableStatusAction error:', error);
+    return { success: false, error: error.message || 'Failed to update status' };
+  }
+}
+
+// Release table (waiter/admin/manager)
+export async function releaseTableAction(tableId: string, setToCleaning: boolean = false): Promise<{
+  success: boolean;
+  table_number?: number;
+  new_status?: string;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('release_table_waiter', {
+      p_table_id: tableId,
+      p_set_to_cleaning: setToCleaning,
+    });
+
+    if (error) throw error;
+
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to release table' };
+    }
+
+    revalidatePath('/portal/tables');
+    return { success: true, table_number: result.table_number, new_status: result.new_status };
+  } catch (error: any) {
+    console.error('[Server Action] releaseTableAction error:', error);
+    return { success: false, error: error.message || 'Failed to release table' };
+  }
+}
+
+// =============================================
+// TABLE ORDER DETAILS & BILLING ACTIONS
+// =============================================
+
+export interface TableOrderItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  notes?: string | null;
+  size_variant?: string | null;
+}
+
+export interface TableOrderDetails {
+  order_id: string;
+  order_number: string;
+  status: string;
+  payment_status: string;
+  subtotal: number;
+  tax_amount: number;
+  discount_amount: number;
+  total: number;
+  notes?: string | null;
+  created_at: string;
+  customer?: {
+    id?: string;
+    name?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    loyalty_points?: number;
+    membership_tier?: string;
+  } | null;
+  items: TableOrderItem[];
+  table_number: number;
+  customer_count: number;
+}
+
+// Get full order details for a table (waiter/admin/manager)
+export async function getTableCurrentOrderAction(tableId: string): Promise<{
+  success: boolean;
+  order?: TableOrderDetails;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+
+    // Get the table and its current order
+    const { data: tableData, error: tableError } = await client
+      .from('restaurant_tables')
+      .select('table_number, current_order_id')
+      .eq('id', tableId)
+      .single();
+
+    if (tableError) throw tableError;
+    if (!tableData?.current_order_id) {
+      return { success: false, error: 'No active order for this table' };
+    }
+
+    const orderId = tableData.current_order_id;
+
+    // Try the billing RPC which has full order details
+    const { data: billingData, error: billingError } = await client.rpc('get_order_for_billing', {
+      p_order_id: orderId,
+    });
+
+    if (!billingError && billingData?.success && billingData?.order) {
+      const order = billingData.order;
+      return {
+        success: true,
+        order: {
+          order_id: order.id || orderId,
+          order_number: order.order_number,
+          status: order.status,
+          payment_status: order.payment_status || 'pending',
+          subtotal: order.subtotal || order.total || 0,
+          tax_amount: order.tax_amount || 0,
+          discount_amount: order.discount_amount || 0,
+          total: order.total || 0,
+          notes: order.notes,
+          created_at: order.created_at,
+          customer: order.customer || null,
+          items: (order.items || []).map((item: any) => ({
+            id: item.id || item.menu_item_id,
+            name: item.name || item.item_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price || item.price,
+            total_price: item.total_price || item.quantity * (item.unit_price || item.price || 0),
+            notes: item.notes,
+            size_variant: item.size_variant,
+          })),
+          table_number: tableData.table_number,
+          customer_count: order.customer_count || 1,
+        },
+      };
+    }
+
+    // Fallback: direct query
+    const { data: orderData, error: orderError } = await client
+      .from('orders')
+      .select(`
+        id, order_number, status, payment_status, subtotal, tax_amount, discount_amount, total,
+        notes, created_at, customer_count,
+        customers(id, name, phone, email, loyalty_points, membership_tier),
+        order_items(id, quantity, unit_price, total_price, notes, size_variant,
+          menu_items(name),
+          deals(name)
+        )
+      `)
+      .eq('id', orderId)
+      .single();
+
+    if (orderError) throw orderError;
+
+    const items = (orderData.order_items || []).map((oi: any) => ({
+      id: oi.id,
+      name: oi.menu_items?.name || oi.deals?.name || 'Unknown Item',
+      quantity: oi.quantity,
+      unit_price: oi.unit_price,
+      total_price: oi.total_price || oi.quantity * oi.unit_price,
+      notes: oi.notes,
+      size_variant: oi.size_variant,
+    }));
+
+    return {
+      success: true,
+      order: {
+        order_id: orderData.id,
+        order_number: orderData.order_number,
+        status: orderData.status,
+        payment_status: orderData.payment_status || 'pending',
+        subtotal: orderData.subtotal || orderData.total || 0,
+        tax_amount: orderData.tax_amount || 0,
+        discount_amount: orderData.discount_amount || 0,
+        total: orderData.total || 0,
+        notes: orderData.notes,
+        created_at: orderData.created_at,
+        customer: orderData.customers || null,
+        items,
+        table_number: tableData.table_number,
+        customer_count: orderData.customer_count || 1,
+      },
+    };
+  } catch (error: any) {
+    console.error('[Server Action] getTableCurrentOrderAction error:', error);
+    return { success: false, error: error.message || 'Failed to get order details' };
+  }
+}
+
+// Send table bill to billing counter as pending (waiter/admin/manager)
+export async function sendTableToBillingAction(orderId: string): Promise<{
+  success: boolean;
+  order_number?: string;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+
+    // Mark the order as billing_requested by adding a note/updating billing status
+    // We update payment_status to 'pending' (it should already be, but confirm it)
+    // and add to notes that billing was requested
+    const { data: orderData, error: fetchError } = await client
+      .from('orders')
+      .select('order_number, notes, payment_status')
+      .eq('id', orderId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const billingNote = `[BILLING REQUESTED: ${new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' })}]`;
+    const updatedNotes = orderData.notes
+      ? `${orderData.notes}\n${billingNote}`
+      : billingNote;
+
+    const { error: updateError } = await client
+      .from('orders')
+      .update({
+        notes: updatedNotes,
+        payment_status: 'pending',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+
+    if (updateError) throw updateError;
+
+    revalidatePath('/portal/billing');
+    revalidatePath('/portal/tables');
+
+    return { success: true, order_number: orderData.order_number };
+  } catch (error: any) {
+    console.error('[Server Action] sendTableToBillingAction error:', error);
+    return { success: false, error: error.message || 'Failed to send to billing' };
+  }
+}

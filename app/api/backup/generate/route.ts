@@ -110,23 +110,20 @@ export async function POST(req: NextRequest) {
 
     const authClient = createAuthenticatedClient(token);
 
-    // Verify employee role via RPC
+    // Verify employee role — use Supabase Auth to cryptographically validate the token
+    // before trusting any claims. Manual JWT decode is intentionally avoided here.
     let employeeRole: string | null = null;
     try {
-      const tokenParts = token.split('.');
-      if (tokenParts.length === 3) {
-        const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
-        const authUserId = payload.sub;
-        if (authUserId) {
-          const { data } = await authClient.rpc('get_employee_by_auth_user', {
-            p_auth_user_id: authUserId,
-          });
-          const emp = (data as { success?: boolean; data?: { role?: string } })?.data;
-          employeeRole = emp?.role ?? null;
-        }
+      const { data: { user: verifiedUser }, error: authVerifyErr } = await authClient.auth.getUser(token);
+      if (!authVerifyErr && verifiedUser?.id) {
+        const { data } = await authClient.rpc('get_employee_by_auth_user', {
+          p_auth_user_id: verifiedUser.id,
+        });
+        const emp = (data as { success?: boolean; data?: { role?: string } })?.data;
+        employeeRole = emp?.role ?? null;
       }
     } catch {
-      /* ignore decode errors */
+      /* verification errors fall through to the 403 below */
     }
 
     if (!employeeRole || !['admin', 'manager'].includes(employeeRole)) {

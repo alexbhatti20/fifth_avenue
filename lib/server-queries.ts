@@ -34,6 +34,7 @@ import type {
 // Creates an authenticated Supabase client using JWT from cookies
 // Required for RPC calls that need authenticated role
 // =============================================
+import { cache } from 'react';
 
 export async function getAuthenticatedClient() {
   try {
@@ -101,9 +102,11 @@ export async function getSSRUserType(): Promise<'customer' | 'employee' | 'admin
 }
 
 /**
- * Get current employee for SSR - uses auth token from cookies
+ * Get current employee for SSR - uses auth token from cookies.
+ * Wrapped with React.cache() so multiple server components in the same
+ * render pass share a single DB round-trip (deduplication within one request).
  */
-export async function getSSRCurrentEmployee() {
+export const getSSRCurrentEmployee = cache(async function getSSRCurrentEmployee() {
   try {
     const client = await getAuthenticatedClient();
     const cookieStore = await cookies();
@@ -142,7 +145,7 @@ export async function getSSRCurrentEmployee() {
     console.error('[SSR] getSSRCurrentEmployee error:', e);
     return null;
   }
-}
+});
 
 /**
  * Get current customer for SSR - uses auth token from cookies
@@ -244,6 +247,10 @@ export interface MenuItem {
   size_variants?: SizeVariant[];
   tags?: string[];
   menu_categories?: { id: string; name: string; slug: string } | { id: string; name: string; slug: string }[];
+  // New fields for piece count and serving info
+  piece_count?: number | null;
+  serves_count?: number | null;
+  includes?: string | null;
 }
 
 export interface Category {
@@ -560,6 +567,35 @@ export const getActiveOffers = unstable_cache(
     }
   },
   ['active-offers'],
+  {
+    revalidate: 300, // 5 minutes cache
+    tags: ['offers'],
+  }
+);
+
+// Get popup offers (SSR) - uses p_for_popup: true
+export const getPopupOffers = unstable_cache(
+  async () => {
+    if (!isSupabaseConfigured) return [];
+
+    try {
+      const { data, error } = await supabase.rpc('get_active_offers', {
+        p_include_items: true,
+        p_for_popup: true,
+      });
+      
+      if (error) {
+        console.error('Error fetching popup offers:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (err) {
+      console.error('Error in getPopupOffers:', err);
+      return [];
+    }
+  },
+  ['popup-offers'],
   {
     revalidate: 300, // 5 minutes cache
     tags: ['offers'],
@@ -958,6 +994,100 @@ export async function getSalesAnalyticsServer(
 // =============================================
 // WAITER QUERIES
 // =============================================
+
+export interface WaiterOrderHistoryItem {
+  id: string;
+  order_id: string;
+  order_number: string;
+  invoice_number?: string;
+  table_number: number;
+  customer_name?: string;
+  customer_phone?: string;
+  is_registered_customer: boolean;
+  customer_count: number;
+  items: any[];
+  total_items: number;
+  subtotal: number;
+  tax: number;
+  total: number;
+  tip_amount: number;
+  payment_method?: string;
+  payment_status: string;
+  order_status: string;
+  order_taken_at: string;
+  order_completed_at?: string;
+}
+
+export interface WaiterOrderStats {
+  total_orders: number;
+  orders_today: number;
+  orders_this_week: number;
+  total_sales: number;
+  sales_today: number;
+  total_tips: number;
+  tips_today: number;
+  avg_order_value: number;
+  total_customers: number;
+  customers_today: number;
+}
+
+export interface WaiterOrderHistoryResult {
+  success: boolean;
+  history: WaiterOrderHistoryItem[];
+  stats: WaiterOrderStats | null;
+  total_count: number;
+  has_more: boolean;
+  error?: string;
+}
+
+/**
+ * Get waiter order history - SSR authenticated version
+ * Each waiter only gets their own orders via get_employee_id() in the RPC
+ */
+export async function getWaiterOrderHistoryServer(
+  options: { date?: string; limit?: number; offset?: number } = {}
+): Promise<WaiterOrderHistoryResult> {
+  if (!isSupabaseConfigured) {
+    return { success: false, history: [], stats: null, total_count: 0, has_more: false, error: 'Not configured' };
+  }
+
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('get_waiter_order_history', {
+      p_date: options.date || null,
+      p_limit: options.limit || 20,
+      p_offset: options.offset || 0,
+    });
+
+    if (error) {
+      console.error('[SSR] Error fetching waiter order history:', error);
+      return { success: false, history: [], stats: null, total_count: 0, has_more: false, error: error.message };
+    }
+
+    // Handle RPC response
+    if (data?.success) {
+      return {
+        success: true,
+        history: data.history || [],
+        stats: data.stats || null,
+        total_count: data.total_count || 0,
+        has_more: data.has_more || false,
+      };
+    }
+
+    return { 
+      success: false, 
+      history: [], 
+      stats: null, 
+      total_count: 0, 
+      has_more: false, 
+      error: data?.error || 'Unknown error' 
+    };
+  } catch (e: any) {
+    console.error('[SSR] getWaiterOrderHistoryServer error:', e);
+    return { success: false, history: [], stats: null, total_count: 0, has_more: false, error: e.message };
+  }
+}
 
 export async function getWaiterDashboardServer(employeeId: string) {
   if (!isSupabaseConfigured) return null;
@@ -1479,6 +1609,103 @@ export async function getTablesForWaiterServer(): Promise<WaiterTableType[]> {
   }
 
   return [];
+}
+
+/**
+ * Fetch a single table by ID server-side (authenticated).
+ * Used by the take-order SSR page.
+ */
+export async function getTableByIdServer(tableId: string): Promise<WaiterTableType | null> {
+  if (!isSupabaseConfigured) return null;
+  try {
+    const tables = await getTablesForWaiterServer();
+    return tables.find((t) => t.id === tableId) ?? null;
+  } catch (e) {
+    console.error('[SSR] getTableByIdServer error:', e);
+    return null;
+  }
+}
+
+export interface MenuDataForSSR {
+  categories: { id: string; name: string; slug: string }[];
+  items: {
+    id: string;
+    name: string;
+    description?: string;
+    price: number;
+    category_id: string;
+    category_name?: string;
+    is_available: boolean;
+    is_featured?: boolean;
+    images?: string[];
+  }[];
+  deals: {
+    id: string;
+    name: string;
+    description?: string;
+    deal_price: number;
+    original_price: number;
+    images?: string[];
+    is_active: boolean;
+  }[];
+}
+
+/**
+ * Fetch menu data for ordering server-side (authenticated RPC, no client JS).
+ * Used by the take-order SSR page so the menu is HTML-rendered on first load.
+ */
+export async function getMenuForOrderingServer(): Promise<MenuDataForSSR> {
+  const empty: MenuDataForSSR = { categories: [], items: [], deals: [] };
+  if (!isSupabaseConfigured) return empty;
+  try {
+    const client = await getAuthenticatedClient();
+
+    // Try RPC first
+    const { data, error } = await client.rpc('get_menu_for_ordering');
+    if (!error && data?.success) {
+      return {
+        categories: data.categories || [],
+        items: data.items || [],
+        deals: (data.deals || []).map((d: any) => ({
+          ...d,
+          deal_price: d.deal_price ?? d.discounted_price ?? d.original_price,
+        })),
+      };
+    }
+
+    // Fallback — direct table queries
+    const [catRes, itemRes, dealRes] = await Promise.all([
+      client
+        .from('menu_categories')
+        .select('id, name, slug')
+        .eq('is_visible', true)
+        .order('display_order'),
+      client
+        .from('menu_items')
+        .select('id, name, description, price, images, category_id, is_available, is_featured, menu_categories(name)')
+        .eq('is_available', true),
+      client
+        .from('deals')
+        .select('id, name, description, original_price, discounted_price, images, is_active')
+        .eq('is_active', true)
+        .gte('valid_until', new Date().toISOString()),
+    ]);
+
+    return {
+      categories: catRes.data || [],
+      items: (itemRes.data || []).map((it: any) => ({
+        ...it,
+        category_name: (it.menu_categories as any)?.name || '',
+      })),
+      deals: (dealRes.data || []).map((d: any) => ({
+        ...d,
+        deal_price: d.discounted_price ?? d.original_price,
+      })),
+    };
+  } catch (e) {
+    console.error('[SSR] getMenuForOrderingServer error:', e);
+    return empty;
+  }
 }
 
 // =============================================

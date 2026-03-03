@@ -14,10 +14,11 @@ import Image from 'next/image';
 
 interface OfferPopupProps {
   onClose?: () => void;
+  initialOffers?: SpecialOffer[];
 }
 
-export default function OfferPopup({ onClose }: OfferPopupProps) {
-  const [offers, setOffers] = useState<SpecialOffer[]>([]);
+export default function OfferPopup({ onClose, initialOffers = [] }: OfferPopupProps) {
+  const [offers, setOffers] = useState<SpecialOffer[]>(initialOffers);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -57,15 +58,34 @@ export default function OfferPopup({ onClose }: OfferPopupProps) {
   }, []);
 
   // Load active offers with a 3-second delay so page loads first
+  // Skip fetch if SSR provided initialOffers
   useEffect(() => {
-    const loadOffers = async () => {
-      // Check if user has seen popup in this session
-      const seen = sessionStorage.getItem('zoiro_offer_popup_seen');
-      if (seen) {
-        setHasSeenPopup(true);
-        return;
-      }
+    // Check if user has seen popup in this session
+    const seen = sessionStorage.getItem('zoiro_offer_popup_seen');
+    if (seen) {
+      setHasSeenPopup(true);
+      return;
+    }
 
+    // If we have SSR offers, use them directly without fetching
+    if (initialOffers.length > 0) {
+      // Show popup with a 3-second delay for better UX
+      const timer = setTimeout(() => {
+        setIsVisible(true);
+        // Desktop starts expanded, mobile starts collapsed
+        setIsCollapsed(window.innerWidth < 640);
+        const autoClose = initialOffers[0]?.popup_auto_close_seconds || 8;
+        if (autoClose > 0) {
+          setTimeLeft(autoClose);
+          totalTimeRef.current = autoClose;
+          startTimeRef.current = Date.now();
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+
+    // Fallback: fetch client-side if no SSR data (shouldn't happen normally)
+    const loadOffers = async () => {
       try {
         const { data, error } = await supabase.rpc('get_active_offers', {
           p_include_items: true,
@@ -95,7 +115,7 @@ export default function OfferPopup({ onClose }: OfferPopupProps) {
     };
 
     loadOffers();
-  }, []);
+  }, [initialOffers]);
 
   // Auto-close countdown — pause when collapsed
   useEffect(() => {

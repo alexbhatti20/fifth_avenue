@@ -1,0 +1,750 @@
+% ============================================================
+% ZOIRO BROAST HUB - SYSTEM DOCUMENTATION
+% Working Methodology & Functional Architecture
+% ============================================================
+% To convert to Word: pandoc methodology.tex -o methodology.docx
+% Or use online LaTeX to Word converters
+% ============================================================
+
+\documentclass[12pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{tocloft}
+
+% Colors
+\definecolor{primary}{RGB}{74,144,226}
+\definecolor{secondary}{RGB}{80,200,120}
+\definecolor{accent}{RGB}{255,143,0}
+
+% Header/Footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textcolor{primary}{Zoiro Broast Hub}}
+\fancyhead[R]{\textcolor{gray}{System Documentation}}
+\fancyfoot[C]{\thepage}
+
+% Title formatting
+\titleformat{\section}{\Large\bfseries\color{primary}}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries\color{secondary}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{accent}}{\thesubsubsection}{1em}{}
+
+% ============================================================
+\begin{document}
+
+% Title Page
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    
+    {\Huge\bfseries\textcolor{primary}{ZOIRO BROAST HUB}}\\[0.5cm]
+    {\Large Restaurant Management System}\\[2cm]
+    
+    {\LARGE\bfseries System Documentation}\\[0.5cm]
+    {\large Working Methodology \& Functional Architecture}\\[3cm]
+    
+    \begin{tabular}{ll}
+        \textbf{Document Type:} & Technical Documentation \\
+        \textbf{Version:} & 1.0 \\
+        \textbf{Date:} & March 2026 \\
+        \textbf{Platform:} & Web Application (Next.js) \\
+        \textbf{Database:} & Supabase (PostgreSQL) \\
+    \end{tabular}
+    
+    \vfill
+    
+    {\large\textit{Online Food Ordering \& Restaurant Operations Platform}}
+    
+\end{titlepage}
+
+% Table of Contents
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Executive Summary}
+% ============================================================
+
+Zoiro Broast Hub is a comprehensive restaurant management system that enables online food ordering, kitchen operations, delivery management, and complete business administration. The system supports multiple user roles with role-based access control (RBAC) to ensure secure and efficient operations.
+
+\subsection{Key Features}
+\begin{itemize}
+    \item Online food ordering with real-time tracking
+    \item Multi-role employee portal
+    \item Kitchen display system
+    \item Delivery rider management
+    \item Table reservation and dine-in service
+    \item Loyalty program with tiered rewards
+    \item Inventory and payroll management
+    \item Comprehensive reporting and analytics
+\end{itemize}
+
+% ============================================================
+\section{Working Methodology}
+% ============================================================
+
+\subsection{Development Approach}
+
+The system follows an \textbf{Agile Development Methodology} with iterative sprints focusing on continuous delivery and user feedback integration.
+
+\subsubsection{Technology Stack}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Layer} & \textbf{Technology} \\
+\midrule
+Frontend & Next.js 14, React 18, TypeScript \\
+Styling & Tailwind CSS, shadcn/ui \\
+Backend & Next.js Server Actions, API Routes \\
+Database & Supabase (PostgreSQL) \\
+Authentication & JWT, OTP, Google OAuth \\
+Caching & Redis (Upstash) \\
+Email & Brevo (Sendinblue) \\
+Hosting & Vercel \\
+\bottomrule
+\end{tabular}
+\caption{Technology Stack}
+\end{table}
+
+\subsubsection{Architecture Pattern}
+
+The system implements a \textbf{Multi-Layer Architecture}:
+
+\begin{enumerate}
+    \item \textbf{Presentation Layer:} React components with server-side rendering
+    \item \textbf{Business Logic Layer:} Server actions and API routes
+    \item \textbf{Data Access Layer:} Supabase client with RPC functions
+    \item \textbf{Database Layer:} PostgreSQL with Row Level Security (RLS)
+\end{enumerate}
+
+\subsection{Data Flow Architecture}
+
+\begin{verbatim}
++------------------+
+|   Client Request |
++--------+---------+
+         |
+         v
++------------------+
+|   Next.js Edge   |
+|   (ISR Cache)    |
++--------+---------+
+         |
+         v
++------------------+
+|   Redis Cache    |
+|   (Upstash)      |
++--------+---------+
+         |
+         v
++------------------+
+|   Supabase DB    |
+|   (PostgreSQL)   |
++------------------+
+\end{verbatim}
+
+\subsection{Rendering Strategy}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Content Type} & \textbf{Strategy} & \textbf{Revalidation} \\
+\midrule
+Landing Page & ISR & 30 minutes \\
+Menu Pages & ISR & 1 hour \\
+Portal Dashboard & SSR & Real-time \\
+Order Tracking & Client-side & WebSocket \\
+\bottomrule
+\end{tabular}
+\caption{Rendering Strategies}
+\end{table}
+
+% ============================================================
+\section{System Actors (User Roles)}
+% ============================================================
+
+The system supports \textbf{7 distinct user roles}, each with specific permissions and responsibilities.
+
+\subsection{Role Hierarchy}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}clp{8cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Role} & \textbf{Description} \\
+\midrule
+1 & \textbf{Customer} & Online visitors who browse menu, place orders, track deliveries, and earn loyalty points \\
+2 & \textbf{Admin} & Restaurant owner with full system access including employee management, payroll, and system settings \\
+3 & \textbf{Manager} & Operations supervisor handling reports, inventory, menu, deals, and staff oversight \\
+4 & \textbf{Waiter} & Table service staff managing dine-in orders, table assignments, and earning tips \\
+5 & \textbf{Kitchen Staff} & Food preparation team viewing order queue, marking order status, and checking ingredients \\
+6 & \textbf{Billing Staff} & Payment processing team handling invoices, receipts, refunds, and cash management \\
+7 & \textbf{Delivery Rider} & Delivery personnel accepting orders, updating delivery status, and collecting payments \\
+\bottomrule
+\end{tabular}
+\caption{System User Roles}
+\end{table}
+
+\subsection{Permission Matrix}
+
+\begin{longtable}{@{}l|ccccccc@{}}
+\toprule
+\textbf{Feature} & \textbf{Cust} & \textbf{Admin} & \textbf{Mgr} & \textbf{Wait} & \textbf{Kit} & \textbf{Bill} & \textbf{Rider} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Feature} & \textbf{Cust} & \textbf{Admin} & \textbf{Mgr} & \textbf{Wait} & \textbf{Kit} & \textbf{Bill} & \textbf{Rider} \\
+\midrule
+\endhead
+Browse Menu & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+Place Order & \checkmark & - & - & \checkmark & - & - & - \\
+Track Order & \checkmark & - & - & - & - & - & - \\
+View Dashboard & - & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+Manage Menu & - & \checkmark & \checkmark & - & - & - & - \\
+Kitchen Queue & - & \checkmark & \checkmark & - & \checkmark & - & - \\
+Process Payments & - & \checkmark & - & - & - & \checkmark & - \\
+Manage Deliveries & - & \checkmark & \checkmark & - & - & - & \checkmark \\
+Employee CRUD & - & \checkmark & - & - & - & - & - \\
+View Reports & - & \checkmark & \checkmark & - & - & - & - \\
+Manage Tables & - & \checkmark & \checkmark & \checkmark & - & - & - \\
+Inventory & - & \checkmark & \checkmark & - & \checkmark & - & - \\
+Payroll & - & \checkmark & - & - & - & - & - \\
+Audit Logs & - & \checkmark & - & - & - & - & - \\
+DB Backup & - & \checkmark & \checkmark & - & - & - & - \\
+Attendance & - & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+\bottomrule
+\caption{Feature Permission Matrix by Role}
+\end{longtable}
+
+% ============================================================
+\section{Use Case Diagram}
+% ============================================================
+
+The Use Case Diagram illustrates all interactions between actors and the system features.
+
+\subsection{Diagram Overview}
+
+\begin{center}
+\textit{[Insert use-case-diagram.puml rendered image here]}
+\end{center}
+
+\subsection{Use Case Categories}
+
+\subsubsection{Customer Use Cases}
+\begin{itemize}
+    \item Browse Menu - View categories, items, prices
+    \item Add to Cart - Select items, sizes, quantities
+    \item Place Order - Checkout with delivery/pickup/dine-in
+    \item Track Order - Real-time status updates
+    \item Pay - Cash, card, or online payment
+    \item Earn Points - Loyalty program participation
+    \item Write Review - Rate food and service
+    \item Favorites - Save preferred items
+\end{itemize}
+
+\subsubsection{Account Use Cases}
+\begin{itemize}
+    \item Register - Email/phone signup with OTP
+    \item Login/OTP - Secure login with verification
+    \item Google Login - OAuth authentication
+    \item 2FA - Two-factor authentication
+    \item Reset Password - Secure password recovery
+\end{itemize}
+
+\subsubsection{Table Service Use Cases (Waiter)}
+\begin{itemize}
+    \item View Tables - See assigned tables
+    \item Take Order - Create dine-in orders
+    \item Table Exchange - Request table swaps
+    \item Attendance - Check in/out
+    \item View Tips - See earnings
+\end{itemize}
+
+\subsubsection{Kitchen Use Cases}
+\begin{itemize}
+    \item View Queue - Pending orders list
+    \item Mark Preparing - Update order status
+    \item Mark Ready - Food ready for service
+    \item Check Stock - Ingredient availability
+\end{itemize}
+
+\subsubsection{Billing Use Cases}
+\begin{itemize}
+    \item Generate Bill - Create invoices
+    \item Process Payment - Accept cash/card
+    \item Apply Discount - Manual discounts
+    \item Refund - Process returns
+    \item Print Receipt - Generate receipts
+\end{itemize}
+
+\subsubsection{Delivery Use Cases (Rider)}
+\begin{itemize}
+    \item View Deliveries - Assigned orders
+    \item Accept Delivery - Take delivery request
+    \item Update Status - On the way/arrived
+    \item Mark Delivered - Complete delivery
+\end{itemize}
+
+\subsubsection{Management Use Cases}
+\begin{itemize}
+    \item Sales Reports - Revenue analytics
+    \item Monitor Orders - Real-time dashboard
+    \item Manage Menu - Add/edit items
+    \item Manage Deals - Create promotions
+    \item Inventory - Stock management
+    \item Reviews - Customer feedback
+\end{itemize}
+
+\subsubsection{Admin Use Cases}
+\begin{itemize}
+    \item Add Employee - Create staff accounts
+    \item Manage Roles - Assign permissions
+    \item Block/Unblock - Control access
+    \item Payroll - Process salaries
+    \item Audit Logs - View activity
+    \item DB Backup - Data protection
+    \item Loyalty Program - Configure rewards
+    \item Customers - Manage database
+\end{itemize}
+
+% ============================================================
+\section{Activity Diagram}
+% ============================================================
+
+The Activity Diagram shows the complete order flow process involving all 7 roles.
+
+\subsection{Diagram Overview}
+
+\begin{center}
+\textit{[Insert activity-diagram.puml rendered image here]}
+\end{center}
+
+\subsection{Process Phases}
+
+\subsubsection{Phase 1: Customer Ordering}
+\begin{enumerate}
+    \item Customer visits website
+    \item Browses menu categories
+    \item Views item details
+    \item Adds items to cart
+    \item Applies promo code (optional)
+    \item Selects order type (Delivery/Walk-in/Dine-in)
+    \item Chooses payment method
+    \item Completes checkout
+\end{enumerate}
+
+\subsubsection{Phase 2: Order Processing}
+\begin{enumerate}
+    \item System generates order number
+    \item Email confirmation sent
+    \item Push notification sent
+    \item Kitchen staff alerted
+    \item Manager monitors dashboard
+\end{enumerate}
+
+\subsubsection{Phase 3: Kitchen Preparation}
+\begin{enumerate}
+    \item Kitchen receives order alert
+    \item Checks ingredient availability
+    \item Starts cooking (status: PREPARING)
+    \item Customer receives notification
+    \item Completes cooking
+    \item Quality check performed
+    \item Marks order as READY
+\end{enumerate}
+
+\subsubsection{Phase 4: Order Fulfillment}
+
+\textbf{A) Home Delivery:}
+\begin{enumerate}
+    \item System assigns nearest rider
+    \item Rider accepts delivery
+    \item Picks up order from restaurant
+    \item Status updated: ON THE WAY
+    \item Customer tracks rider on map
+    \item Rider arrives and delivers
+    \item Collects cash if applicable
+    \item Marks as DELIVERED
+\end{enumerate}
+
+\textbf{B) Walk-in Pickup:}
+\begin{enumerate}
+    \item Billing staff announces order
+    \item Customer presents confirmation
+    \item Payment processed (if cash)
+    \item Receipt printed
+    \item Order handed over
+\end{enumerate}
+
+\textbf{C) Dine-in Service:}
+\begin{enumerate}
+    \item Waiter retrieves order from kitchen
+    \item Serves at customer's table
+    \item Customer enjoys meal
+    \item Bill requested
+    \item Billing staff calculates total
+    \item Payment processed
+    \item Receipt provided
+    \item Waiter clears table, records tips
+\end{enumerate}
+
+\subsubsection{Phase 5: Post-Order Activities}
+\begin{enumerate}
+    \item System calculates loyalty points
+    \item Points awarded to customer
+    \item Customer may write review
+    \item System updates analytics
+    \item Manager reviews reports
+    \item Inventory levels checked
+    \item Low stock alerts generated
+\end{enumerate}
+
+\subsubsection{Phase 6: Admin Activities}
+\begin{enumerate}
+    \item Admin views system activity
+    \item Checks audit logs
+    \item Manages employee accounts
+    \item Processes monthly payroll
+    \item Approves payments
+    \item Performs database backup
+\end{enumerate}
+
+% ============================================================
+\section{Class Diagram}
+% ============================================================
+
+The Class Diagram represents all business entities and their relationships.
+
+\subsection{Diagram Overview}
+
+\begin{center}
+\textit{[Insert class-diagram.puml rendered image here]}
+\end{center}
+
+\subsection{Entity Groups}
+
+\subsubsection{People Entities}
+
+\textbf{Customer}
+\begin{itemize}
+    \item Attributes: Name, Email, Phone, Address
+    \item Loyalty: Points, Tier (Bronze/Silver/Gold/Platinum)
+    \item History: Orders, Favorites, Reviews
+\end{itemize}
+
+\textbf{Employee}
+\begin{itemize}
+    \item Identification: Employee ID, Name, Email, Phone
+    \item Work Info: Role, Status, Salary, Hire Date
+    \item Security: 2FA, Permissions, Last Login
+    \item Performance: Tips, Orders Taken
+\end{itemize}
+
+\textbf{Employee Roles}
+\begin{itemize}
+    \item Admin - Full system access
+    \item Manager - Operations management
+    \item Waiter - Table service
+    \item Kitchen Staff - Food preparation
+    \item Billing Staff - Payment processing
+    \item Delivery Rider - Order delivery
+    \item Other - Custom permissions
+\end{itemize}
+
+\subsubsection{Menu Entities}
+
+\textbf{Category}
+\begin{itemize}
+    \item Attributes: Name, Description, Display Order, Image
+    \item Examples: Broast Chicken, Burgers, Drinks, Desserts
+\end{itemize}
+
+\textbf{Menu Item}
+\begin{itemize}
+    \item Basic: Name, Description, Price
+    \item Details: Prep Time, Availability, Featured
+    \item Ratings: Average Rating, Review Count
+    \item Variants: Size Options, Size Prices
+\end{itemize}
+
+\textbf{Deal / Combo}
+\begin{itemize}
+    \item Pricing: Original Price, Discounted Price, Savings
+    \item Contents: Included Items List
+    \item Validity: Available Until Date
+\end{itemize}
+
+\subsubsection{Order Entities}
+
+\textbf{Order}
+\begin{itemize}
+    \item Identification: Order Number, Date/Time
+    \item Type: Delivery, Walk-in, Dine-in
+    \item Pricing: Subtotal, Discount, Delivery Fee, Tax, Total
+    \item Status: Pending → Confirmed → Preparing → Ready → Delivering → Delivered
+\end{itemize}
+
+\textbf{Order Item}
+\begin{itemize}
+    \item Reference: Menu Item
+    \item Details: Quantity, Size, Price, Instructions
+\end{itemize}
+
+\textbf{Invoice}
+\begin{itemize}
+    \item Identification: Invoice Number
+    \item Payment: Total, Method, Status, Date
+\end{itemize}
+
+\textbf{Payment Types}
+\begin{itemize}
+    \item Cash, Card, Online, Wallet
+\end{itemize}
+
+\subsubsection{Operations Entities}
+
+\textbf{Restaurant Table}
+\begin{itemize}
+    \item Physical: Table Number, Capacity, Floor/Section
+    \item Status: Available, Occupied, Reserved, Cleaning
+    \item Assignment: Current Order, Assigned Waiter
+\end{itemize}
+
+\textbf{Inventory Item}
+\begin{itemize}
+    \item Stock: Name, Quantity, Min Level, Unit
+    \item Supplier: Name, Cost per Unit
+    \item Alerts: Last Restocked, Low Stock Flag
+\end{itemize}
+
+\textbf{Attendance}
+\begin{itemize}
+    \item Record: Employee, Date
+    \item Time: Check-in, Check-out
+    \item Calculation: Hours Worked, Overtime
+    \item Status: Present, Absent, Late, On Leave
+\end{itemize}
+
+\textbf{Payroll}
+\begin{itemize}
+    \item Period: Employee, Month/Year
+    \item Earnings: Base Salary, Tips, Bonus
+    \item Deductions: Various deductions
+    \item Result: Net Amount, Paid Status
+\end{itemize}
+
+\subsubsection{Marketing Entities}
+
+\textbf{Special Offer}
+\begin{itemize}
+    \item Discount: Type, Value, Min Order, Max Discount
+    \item Period: Valid From/Until
+    \item Display: Show Banner, Send Push Notification
+\end{itemize}
+
+\textbf{Loyalty Tiers}
+\begin{itemize}
+    \item Bronze: 0-500 points
+    \item Silver: 501-1,500 points
+    \item Gold: 1,501-3,000 points
+    \item Platinum: 3,001+ points
+    \item Benefits: Points per Rs.100, Birthday Bonus, Free Delivery
+\end{itemize}
+
+\textbf{Review}
+\begin{itemize}
+    \item Content: Customer, Order, Rating (1-5), Comment
+    \item Meta: Date, Visibility
+\end{itemize}
+
+\textbf{Notification}
+\begin{itemize}
+    \item Target: Recipient
+    \item Type: Order Update, Promo, Alert
+    \item Content: Title, Message, Read Status
+\end{itemize}
+
+\subsubsection{Security Entities}
+
+\textbf{Audit Log}
+\begin{itemize}
+    \item Tracking: Timestamp, User, IP Address
+    \item Action: Type (Create/Update/Delete/View)
+    \item Data: Entity, Before/After Values
+\end{itemize}
+
+\textbf{Session}
+\begin{itemize}
+    \item Authentication: User, Token
+    \item Details: Device, Login Time, 2FA Verified
+\end{itemize}
+
+\subsection{Entity Relationships}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Relationship} & \textbf{Type} & \textbf{Description} \\
+\midrule
+Customer → Order & 1 to Many & Customer places multiple orders \\
+Customer → Review & 1 to Many & Customer writes reviews \\
+Employee → Role & Many to 1 & Employees have assigned roles \\
+Employee → Attendance & 1 to Many & Daily attendance records \\
+Employee → Payroll & 1 to Many & Monthly payroll records \\
+Category → Menu Item & 1 to Many & Category contains items \\
+Menu Item → Deal & Many to Many & Items in multiple deals \\
+Order → Order Item & 1 to Many & Order has line items \\
+Order → Invoice & 1 to 1 & Order generates invoice \\
+Order → Table & 1 to 1 & Dine-in order at table \\
+Inventory → Menu Item & Many to Many & Ingredients used in items \\
+Offer → Menu Item & Many to Many & Offers apply to items \\
+\bottomrule
+\end{tabular}
+\caption{Entity Relationships}
+\end{table}
+
+% ============================================================
+\section{Database Schema}
+% ============================================================
+
+\subsection{Tables Overview}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}cll@{}}
+\toprule
+\textbf{\#} & \textbf{Table Name} & \textbf{Purpose} \\
+\midrule
+1 & customers & Customer profiles and loyalty \\
+2 & employees & Staff accounts and permissions \\
+3 & categories & Menu categories \\
+4 & menu\_items & Food products \\
+5 & deals & Combo offers \\
+6 & orders & Order transactions \\
+7 & order\_items & Order line items \\
+8 & invoices & Payment records \\
+9 & restaurant\_tables & Table management \\
+10 & inventory & Stock tracking \\
+11 & attendance & Time records \\
+12 & payroll & Salary processing \\
+13 & special\_offers & Promotions \\
+14 & reviews & Customer feedback \\
+15 & notifications & Alerts and messages \\
+16 & audit\_logs & Activity tracking \\
+\bottomrule
+\end{tabular}
+\caption{Database Tables}
+\end{table}
+
+\subsection{Security Features}
+
+\begin{itemize}
+    \item \textbf{Row Level Security (RLS):} Database-level access control
+    \item \textbf{JWT Authentication:} Secure token-based auth
+    \item \textbf{OTP Verification:} Two-step login process
+    \item \textbf{2FA Support:} Optional two-factor authentication
+    \item \textbf{Rate Limiting:} API request throttling
+    \item \textbf{Audit Logging:} Complete activity trail
+\end{itemize}
+
+% ============================================================
+\section{System Features Summary}
+% ============================================================
+
+\subsection{Customer Features}
+\begin{itemize}
+    \item Responsive menu browsing
+    \item Real-time order tracking
+    \item Multiple payment options
+    \item Loyalty points system
+    \item Push notifications
+    \item Review and ratings
+    \item Favorites management
+    \item Order history
+\end{itemize}
+
+\subsection{Employee Portal Features}
+\begin{itemize}
+    \item Role-based dashboard
+    \item Kitchen display system
+    \item Table management
+    \item Delivery tracking
+    \item Attendance recording
+    \item Tips and earnings view
+\end{itemize}
+
+\subsection{Management Features}
+\begin{itemize}
+    \item Sales analytics
+    \item Inventory management
+    \item Menu management
+    \item Deal/offer creation
+    \item Customer insights
+    \item Staff scheduling
+\end{itemize}
+
+\subsection{Admin Features}
+\begin{itemize}
+    \item Employee management
+    \item Payroll processing
+    \item System configuration
+    \item Audit logs
+    \item Database backup
+    \item Loyalty program settings
+\end{itemize}
+
+% ============================================================
+\section{Appendix: Diagram Files}
+% ============================================================
+
+The following PlantUML diagram files are included with this documentation:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lp{8cm}@{}}
+\toprule
+\textbf{File} & \textbf{Description} \\
+\midrule
+use-case-diagram.puml & Shows all actors and their interactions with system features \\
+activity-diagram.puml & Complete order flow with all 7 roles in swimlanes \\
+class-diagram.puml & Business entities and their relationships \\
+\bottomrule
+\end{tabular}
+\caption{Diagram Files}
+\end{table}
+
+\subsection{Rendering Instructions}
+
+To render the PlantUML diagrams:
+
+\begin{enumerate}
+    \item \textbf{VS Code:} Install PlantUML extension, press Alt+D
+    \item \textbf{Online:} Use plantuml.com/plantuml
+    \item \textbf{Command Line:} \texttt{java -jar plantuml.jar diagram.puml}
+\end{enumerate}
+
+\subsection{Converting to Word}
+
+To convert this LaTeX document to Word:
+
+\begin{enumerate}
+    \item \textbf{Pandoc:} \texttt{pandoc methodology.tex -o methodology.docx}
+    \item \textbf{Online:} Use latex2word.com or similar services
+    \item \textbf{Overleaf:} Export as Rich Text Format (RTF)
+\end{enumerate}
+
+% ============================================================
+\end{document}

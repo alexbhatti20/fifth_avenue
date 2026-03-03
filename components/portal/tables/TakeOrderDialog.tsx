@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -27,18 +27,21 @@ import {
   DialogContent,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { createClient } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { 
+  getMenuForOrderingAction, 
+  lookupCustomerAction,
+  createWaiterDineInOrderAction,
+} from '@/lib/actions';
 import { MenuItemCard } from './MenuItemCard';
 import { CartItemRow } from './CartItemRow';
 import type { WaiterTable, MenuItem, CartItem, Customer, MenuData } from './types';
 
-const supabase = createClient();
-
 // ==========================================
 // TAKE ORDER DIALOG COMPONENT
 // Full-featured order creation for waiters
+// SSR authenticated - no direct supabase calls
 // ==========================================
 
 interface TakeOrderDialogProps {
@@ -75,8 +78,9 @@ export function TakeOrderDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Track if user has manually edited fields after selecting a customer
   const [hasManualEdit, setHasManualEdit] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  // Fetch menu data
+  // Fetch menu data using server action (SSR authenticated)
   useEffect(() => {
     if (open) {
       fetchMenu();
@@ -86,39 +90,25 @@ export function TakeOrderDialog({
   const fetchMenu = async () => {
     setIsLoadingMenu(true);
     try {
-      const { data, error } = await supabase.rpc('get_menu_for_ordering');
-      if (error) throw error;
-      if (data?.success) {
+      const result = await getMenuForOrderingAction();
+      if (result.success && result.data) {
         setMenuData({
-          categories: data.categories || [],
-          items: data.items || [],
-          deals: data.deals || [],
+          categories: result.data.categories || [],
+          items: result.data.items || [],
+          deals: result.data.deals || [],
         });
+      } else {
+        toast.error(result.error || 'Failed to load menu');
       }
-    } catch (error) {
-      // Fallback to direct queries
-      const { data: items } = await supabase
-        .from('menu_items')
-        .select('*, categories(name)')
-        .eq('status', 'available');
-      const { data: categories } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('status', 'active');
-      setMenuData({
-        categories: categories || [],
-        items: (items || []).map((i: any) => ({
-          ...i,
-          category_name: i.categories?.name,
-        })),
-        deals: [],
-      });
+    } catch (error: any) {
+      console.error('Menu fetch error:', error);
+      toast.error('Failed to load menu');
     } finally {
       setIsLoadingMenu(false);
     }
   };
 
-  // Customer lookup - only runs when no customer is found and user hasn't manually edited
+  // Customer lookup using server action - only runs when no customer is found and user hasn't manually edited
   const lookupCustomer = async () => {
     // Don't lookup if customer is already found or user has manually edited fields
     if (foundCustomer || hasManualEdit) return;
@@ -126,21 +116,19 @@ export function TakeOrderDialog({
 
     setIsLookingUp(true);
     try {
-      const { data, error } = await supabase.rpc('lookup_customer', {
-        p_phone: customerPhone || null,
-        p_email: customerEmail || null,
-        p_name: customerName || null,
+      const result = await lookupCustomerAction({
+        phone: customerPhone || null,
+        email: customerEmail || null,
+        name: customerName || null,
       });
 
-      if (error) throw error;
-
-      if (data?.found) {
-        setFoundCustomer(data.customer);
-        setCustomerName(data.customer.name || customerName);
-        setCustomerEmail(data.customer.email || customerEmail);
-        setCustomerPhone(data.customer.phone || customerPhone);
-        toast.success(`Found registered customer: ${data.customer.name}`, {
-          description: `Loyalty Points: ${data.customer.loyalty_points || 0}`,
+      if (result.success && result.found && result.customer) {
+        setFoundCustomer(result.customer as Customer);
+        setCustomerName(result.customer.name || customerName);
+        setCustomerEmail(result.customer.email || customerEmail);
+        setCustomerPhone(result.customer.phone || customerPhone);
+        toast.success(`Found registered customer: ${result.customer.name}`, {
+          description: `Loyalty Points: ${result.customer.loyalty_points || 0}`,
         });
       } else {
         setFoundCustomer(null);
@@ -225,7 +213,7 @@ export function TakeOrderDialog({
     return matchesCategory && matchesSearch;
   });
 
-  // Submit order
+  // Submit order using server action (SSR authenticated)
   const handleSubmitOrder = async () => {
     if (cart.length === 0) {
       toast.error('Please add items to the order');
@@ -243,26 +231,24 @@ export function TakeOrderDialog({
         quantity: item.quantity,
       }));
 
-      const { data, error } = await supabase.rpc('create_waiter_dine_in_order', {
-        p_table_id: table.id,
-        p_items: items,
-        p_customer_count: customerCount,
-        p_customer_id: foundCustomer?.id || null,
-        p_customer_name: customerName || null,
-        p_customer_phone: customerPhone || null,
-        p_customer_email: customerEmail || null,
-        p_notes: notes || null,
-        p_payment_method: paymentMethod,
-        p_send_email: sendEmail && !!customerEmail,
+      const result = await createWaiterDineInOrderAction({
+        table_id: table.id,
+        items,
+        customer_count: customerCount,
+        customer_id: foundCustomer?.id || null,
+        customer_name: customerName || null,
+        customer_phone: customerPhone || null,
+        customer_email: customerEmail || null,
+        notes: notes || null,
+        payment_method: paymentMethod,
+        send_email: sendEmail && !!customerEmail,
       });
 
-      if (error) throw error;
-
-      if (!data?.success) {
-        throw new Error(data?.error || 'Failed to create order');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create order');
       }
 
-      toast.success(`Order #${data.order_number} created!`, {
+      toast.success(`Order #${result.order_number} created!`, {
         description: `Table ${table.table_number} - Rs. ${total.toLocaleString()}`,
         duration: 5000,
       });

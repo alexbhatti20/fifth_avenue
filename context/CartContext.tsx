@@ -31,6 +31,10 @@ export interface MenuItem {
   nutritional_info?: Record<string, unknown>;
   has_variants?: boolean;
   size_variants?: SizeVariant[];
+  // New fields for piece count and serving info
+  piece_count?: number | null;
+  serves_count?: number | null;
+  includes?: string | null;
 }
 
 export interface CartItem extends MenuItem {

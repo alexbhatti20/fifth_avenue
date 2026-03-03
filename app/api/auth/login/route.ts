@@ -8,6 +8,7 @@ import {
   clearLoginRateLimit,
   getClientIP 
 } from '@/lib/rate-limit';
+import { signCookieValue } from '@/lib/cookie-signing';
 
 // OTP expiry time: 2 minutes
 const OTP_EXPIRY_MINUTES = 2;
@@ -150,7 +151,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, skipOTP } = await request.json();
+    // skipOTP is only honoured when 2FA is not enabled (requires2FA guards above take priority)
+    // Sanitize: treat as boolean, never allow string-based truthy bypass
+    const { email, password, skipOTP: rawSkipOTP } = await request.json();
+    const skipOTP = rawSkipOTP === true;
 
     // Validate input
     if (!email || !password) {
@@ -187,17 +191,9 @@ export async function POST(request: NextRequest) {
       } else if (authError?.message?.includes('Invalid login credentials')) {
         errorMessage = 'Invalid email or password';
       } else if (authError?.message?.includes('Database error')) {
-        // Database error - try to get user profile anyway to check if it's an auth issue
-        // Check if user exists in our tables
-        const { data: rpcCheck } = await supabase.rpc('get_user_by_email', {
-          p_email: normalizedEmail
-        });
-        
-        if (rpcCheck && rpcCheck.length > 0) {
-          errorMessage = 'Authentication service error. The user exists but auth failed. Please try again or reset your password.';
-        } else {
-          errorMessage = 'Authentication service error. Please try again later.';
-        }
+        // Always return a generic message here to prevent user enumeration
+        // (do NOT query the DB to check if the email exists in this branch)
+        errorMessage = 'Authentication service error. Please try again later.';
       }
       
       return NextResponse.json(
@@ -468,15 +464,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Set employee_data cookie for maintenance mode admin bypass check
+    // Set employee_data cookie (HMAC-signed) for maintenance mode admin bypass check
     if (isEmployee || isAdmin) {
       const employeeData = JSON.stringify({
         id: userProfile.id,
         role: userProfile.type, // 'admin' or 'employee'
         name: userProfile.name,
       });
-      response.cookies.set('employee_data', encodeURIComponent(employeeData), {
-        httpOnly: false, // Readable by middleware
+      const signedValue = await signCookieValue(encodeURIComponent(employeeData));
+      response.cookies.set('employee_data', signedValue, {
+        httpOnly: false, // Must be readable by edge middleware
         secure: isSecure,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7,

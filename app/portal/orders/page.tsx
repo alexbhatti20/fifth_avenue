@@ -19,7 +19,8 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const params = await searchParams;
   const status = params?.status || 'active';
   const orderType = params?.type || 'all';
-  const limit = parseInt(params?.limit || '50', 10);
+  // Cap limit to prevent excessive DB load from crafted query strings
+  const limit = Math.min(parseInt(params?.limit || '50', 10), 200);
 
   // Fetch data in parallel with error handling - don't let stats failure block orders
   const [ordersResult, statsResult] = await Promise.allSettled([

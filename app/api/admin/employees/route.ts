@@ -1,23 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { verifyToken } from '@/lib/jwt';
+import { verifyAuth } from '@/lib/auth';
 import { invalidateMenuCache } from '@/lib/cache';
 import { deleteFile, extractPathFromUrl } from '@/lib/storage';
 
 // Helper to verify admin/manager token
 async function verifyManagerToken(request: NextRequest): Promise<{ valid: boolean; error?: string; status?: number; user?: any }> {
-  const token = request.headers.get('authorization')?.replace('Bearer ', '');
-  if (!token) {
-    return { valid: false, error: 'Unauthorized - No token provided', status: 401 };
-  }
-
-  const decoded = await verifyToken(token);
+  const decoded = await verifyAuth(request);
   if (!decoded) {
     return { valid: false, error: 'Unauthorized - Invalid token', status: 401 };
   }
 
   // Only admin/manager can manage employees
-  if (!['admin', 'manager'].includes(decoded.role)) {
+  if (!['admin', 'manager'].includes(decoded.role ?? '')) {
     return { valid: false, error: 'Forbidden - Only managers can manage employees', status: 403 };
   }
 

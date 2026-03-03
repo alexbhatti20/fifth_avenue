@@ -1,6 +1,4 @@
-"use client";
-
-import { ReactNode, memo } from "react";
+import { ReactNode, Suspense } from "react";
 import dynamic from "next/dynamic";
 
 // Dynamically import heavy components with loading states
@@ -18,25 +16,22 @@ const Footer = dynamic(() => import("@/components/custom/Footer"), {
   ),
 });
 
-// Offer popup - loads after page
-const OfferPopup = dynamic(() => import("@/components/landing/OfferPopup"), {
-  ssr: false,
-});
+// SSR offer popup - fetches offers on server
+import OfferPopupServer from "@/components/landing/OfferPopupServer";
 
 interface LandingLayoutProps {
   children: ReactNode;
 }
 
-function LandingLayout({ children }: LandingLayoutProps) {
+export default function LandingLayout({ children }: LandingLayoutProps) {
   return (
     <>
       <Navbar />
       {children}
       <Footer />
-      <OfferPopup />
+      <Suspense fallback={null}>
+        <OfferPopupServer />
+      </Suspense>
     </>
   );
 }
-
-// Memoize the layout to prevent re-renders on navigation
-export default memo(LandingLayout);

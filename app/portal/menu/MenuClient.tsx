@@ -718,10 +718,10 @@ function MenuItemDialog({
 // Category Management - Advanced
 function CategoryManager({
   categories,
-  onUpdate,
+  onCategoryChange,
 }: {
   categories: Category[];
-  onUpdate: () => void;
+  onCategoryChange: (action: 'add' | 'update' | 'delete' | 'toggle', category: Category | { id: string }) => void;
 }) {
   const [newCategory, setNewCategory] = useState('');
   const [newDescription, setNewDescription] = useState('');
@@ -754,7 +754,10 @@ function CategoryManager({
       toast.success(result.data?.message || 'Category added');
       setNewCategory('');
       setNewDescription('');
-      onUpdate();
+      // Update state directly with the returned category
+      if (result.data?.category) {
+        onCategoryChange('add', result.data.category as Category);
+      }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -807,11 +810,18 @@ function CategoryManager({
       
       if (result.success) {
         toast.success(result.data?.message || (category.is_visible ? 'Category hidden' : 'Category visible'));
+        // Update state directly with the toggled category
+        if (result.data?.category) {
+          onCategoryChange('toggle', result.data.category as Category);
+        }
       } else {
+        // Revert optimistic update on error
+        setOptimisticCategories(categories);
         throw new Error(result.error);
       }
-      onUpdate();
     } catch (error: any) {
+      // Revert optimistic update on error
+      setOptimisticCategories(categories);
       toast.error(error.message);
     }
   };
@@ -836,7 +846,10 @@ function CategoryManager({
       
       toast.success(result.data?.message || 'Category updated');
       setEditingCategory(null);
-      onUpdate();
+      // Update state directly with the returned category
+      if (result.data?.category) {
+        onCategoryChange('update', result.data.category as Category);
+      }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -870,8 +883,9 @@ function CategoryManager({
       }
       
       toast.success(result.data?.message || 'Category deleted');
+      // Update state directly by removing the deleted category
+      onCategoryChange('delete', { id: deletingCategory.id });
       setDeletingCategory(null);
-      onUpdate();
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -1589,6 +1603,29 @@ export default function MenuClient({ initialData }: MenuClientProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Handle category changes without making extra API calls
+  const handleCategoryChange = useCallback((
+    action: 'add' | 'update' | 'delete' | 'toggle',
+    category: Category | { id: string }
+  ) => {
+    setCategories(prev => {
+      switch (action) {
+        case 'add':
+          // Add new category to the end
+          return [...prev, category as Category];
+        case 'update':
+        case 'toggle':
+          // Update existing category
+          return prev.map(c => c.id === category.id ? { ...c, ...category } as Category : c);
+        case 'delete':
+          // Remove the deleted category
+          return prev.filter(c => c.id !== category.id);
+        default:
+          return prev;
+      }
+    });
+  }, []);
+
   useEffect(() => {
     // Only fetch if no SSR data was provided
     if (!initialData) {
@@ -1914,7 +1951,7 @@ export default function MenuClient({ initialData }: MenuClientProps) {
 
         <TabsContent value="categories">
           <div className="max-w-md">
-            <CategoryManager categories={categories} onUpdate={fetchData} />
+            <CategoryManager categories={categories} onCategoryChange={handleCategoryChange} />
           </div>
         </TabsContent>
 

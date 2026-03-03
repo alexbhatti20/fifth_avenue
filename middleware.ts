@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { verifyCookieValue } from '@/lib/cookie-signing';
 
 // ─── Supabase (edge-compatible, anonymous) ────────────────────────────────────
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -110,13 +111,17 @@ function inspectToken(request: NextRequest): TokenInfo {
   return { valid: true, expired: false, role };
 }
 
-/** Also check the employee_data cookie (non-JWT, set by the portal at login). */
-function isAdminFromEmployeeData(request: NextRequest): boolean {
+/** Also check the employee_data cookie (HMAC-signed, set by the portal at login). */
+async function isAdminFromEmployeeData(request: NextRequest): Promise<boolean> {
   try {
     const raw = request.cookies.get('employee_data')?.value;
     if (raw) {
-      const parsed = JSON.parse(decodeURIComponent(raw));
-      return parsed?.role === 'admin';
+      // Verify HMAC signature before trusting the role claim
+      const verified = await verifyCookieValue(raw);
+      if (verified) {
+        const parsed = JSON.parse(decodeURIComponent(verified));
+        return parsed?.role === 'admin';
+      }
     }
   } catch {}
   return false;
@@ -152,7 +157,7 @@ export async function middleware(request: NextRequest) {
     const isAdminOnly = ADMIN_ONLY_PATHS.some(p => pathname.startsWith(p));
     if (isAdminOnly) {
       const jwtIsAdmin = token.role === 'admin';
-      const cookieIsAdmin = !jwtIsAdmin && isAdminFromEmployeeData(request);
+      const cookieIsAdmin = !jwtIsAdmin && await isAdminFromEmployeeData(request);
       if (!jwtIsAdmin && !cookieIsAdmin) {
         return NextResponse.redirect(new URL('/portal', request.url));
       }
@@ -167,7 +172,7 @@ export async function middleware(request: NextRequest) {
     // Fast path: JWT already confirms admin → skip the DB round-trip entirely
     const token = inspectToken(request);
     const jwtIsAdmin = token.valid && token.role === 'admin';
-    const cookieIsAdmin = !jwtIsAdmin && isAdminFromEmployeeData(request);
+    const cookieIsAdmin = !jwtIsAdmin && await isAdminFromEmployeeData(request);
 
     if (!jwtIsAdmin && !cookieIsAdmin) {
       try {

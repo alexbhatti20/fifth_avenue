@@ -100,8 +100,11 @@ function MenuItemCard({
   onDecrement,
 }: MenuItemCardProps) {
   const [imgIdx, setImgIdx] = useState(0);
-  const images = item.images?.length ? item.images : ["https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&h=600&fit=crop&q=80"];
-  const multipleImages = images.length > 1;
+  const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&h=600&fit=crop&q=80";
+  const rawImages = item.images?.length ? item.images : [FALLBACK_IMAGE];
+  const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
+  const images = rawImages.map((src, i) => imgErrors[i] ? FALLBACK_IMAGE : src);
+  const multipleImages = rawImages.length > 1;
 
   const prevImg = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -145,6 +148,7 @@ function MenuItemCard({
               className="object-cover transition-transform duration-500 group-hover:scale-105"
               loading={priority && imgIdx === 0 ? "eager" : "lazy"}
               priority={priority && imgIdx === 0}
+              onError={() => setImgErrors((prev) => ({ ...prev, [imgIdx]: true }))}
             />
           </motion.div>
         </AnimatePresence>
@@ -331,18 +335,8 @@ export default function MenuClient({
   const [categories] = useState<Category[]>(initialCategories);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(initialMenuItems);
   const [deals] = useState<Deal[]>(initialDeals);
-  const [offers, setOffers] = useState<SpecialOffer[]>(initialOffers);
-
-  // Client-side offer refresh — ensures Hot Offers tab appears even if SSR cache was empty
-  useEffect(() => {
-    if (initialOffers.length > 0) return;
-    (async () => {
-      try {
-        const { data } = await supabase.rpc('get_active_offers', { p_include_items: false, p_for_popup: false });
-        if (data && data.length > 0) setOffers(data);
-      } catch { /* non-critical */ }
-    })();
-  }, []);
+  // Offers are now fully SSR - no client-side refetch needed
+  const offers = initialOffers;
 
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -358,6 +352,7 @@ export default function MenuClient({
 
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
+  const [dialogImgError, setDialogImgError] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -470,6 +465,7 @@ export default function MenuClient({
   const openItemDetail = (item: MenuItem) => {
     setSelectedItem(item);
     setSelectedDeal(null);
+    setDialogImgError(false);
     setShowDetailModal(true);
     fetchItemReviews(item.id, 'item');
     if (item.has_variants && item.size_variants && item.size_variants.length > 0) {
@@ -1227,11 +1223,12 @@ export default function MenuClient({
               
               <div className="relative h-64 w-full rounded-xl overflow-hidden bg-muted">
                 <Image
-                  src={selectedItem.images?.[0] || "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&h=600&fit=crop&q=80"}
+                  src={(!dialogImgError && selectedItem.images?.[0]) || "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&h=600&fit=crop&q=80"}
                   alt={selectedItem.name}
                   fill
                   sizes="(max-width: 768px) 100vw, 600px"
                   className="object-cover"
+                  onError={() => setDialogImgError(true)}
                 />
               </div>
 

@@ -49,7 +49,9 @@ interface PageProps {
 
 export default async function DashboardPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const preset = params.preset || 'today';
+  const VALID_PRESETS = ['today', 'yesterday', 'week', 'month', 'year'] as const;
+  const rawPreset = params.preset || 'today';
+  const preset = VALID_PRESETS.includes(rawPreset as (typeof VALID_PRESETS)[number]) ? rawPreset : 'today';
   
   // Get date range from preset or custom dates
   const dateRange = params.startDate && params.endDate
