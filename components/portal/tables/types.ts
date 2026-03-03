@@ -7,7 +7,7 @@ import type { RestaurantTable, TableStatus, OrderStatus } from '@/types/portal';
 export interface MenuItem {
   id: string;
   name: string;
-  slug: string;
+  slug?: string;
   description?: string;
   price: number;
   category_id: string;
@@ -24,14 +24,14 @@ export interface Deal {
   id: string;
   name: string;
   description?: string;
-  deal_type: string;
-  discount_type: string;
-  discount_value: number;
+  deal_type?: string;
+  discount_type?: string;
+  discount_value?: number;
   original_price: number;
   deal_price: number;
   image_url?: string;
-  items: any[];
-  is_active: boolean;
+  items?: any[];
+  is_active?: boolean;
 }
 
 export interface Category {
