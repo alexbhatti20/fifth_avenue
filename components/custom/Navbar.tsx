@@ -163,10 +163,27 @@ function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) {
   }, []);
 
   // Update user type when user changes (login/logout)
+  // Uses localStorage as primary source, falls back to fields on the user object
+  // (role / employee_id) so that a missing user_type key never silently downgrades
+  // an employee to the customer menu.
   useEffect(() => {
     if (hasMounted) {
       const storedUserType = localStorage.getItem('user_type');
-      setUserType(storedUserType);
+      if (storedUserType) {
+        setUserType(storedUserType);
+      } else if (user) {
+        // Derive from user object properties set during employee login
+        const u = user as any;
+        if (u?.role === 'admin' || u?.permissions) {
+          setUserType('admin');
+        } else if (u?.employee_id || u?.role) {
+          setUserType('employee');
+        } else {
+          setUserType('customer');
+        }
+      } else {
+        setUserType(null);
+      }
     }
   }, [user, hasMounted]);
 
@@ -365,20 +382,19 @@ function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) {
             <div className="hidden lg:block">
               <Link href="/book-online" prefetch={true}>
                 <motion.div
-                  whileHover={{ scale: 1.03 }}
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.97 }}
                   className="relative group"
                 >
+                  {/* Animated glow halo */}
+                  <div className="absolute -inset-1 rounded-full blur-md bg-gradient-to-r from-rose-600 via-orange-500 to-amber-400 opacity-50 group-hover:opacity-85 transition-all duration-300 animate-gradient-x [background-size:200%_auto]" />
                   <Button
-                    variant="outline"
-                    className={`relative rounded-full px-5 py-2.5 font-semibold text-sm transition-all duration-300 border-2 ${
-                      !useTransparentNav
-                        ? 'border-primary/40 text-primary hover:bg-primary/5 hover:border-primary'
-                        : 'border-white/60 text-white hover:bg-white/15 hover:border-white'
-                    }`}
+                    className="relative rounded-full px-5 py-2.5 font-bold text-sm text-white border-0 bg-gradient-to-r from-rose-600 via-orange-500 to-amber-400 animate-gradient-x [background-size:200%_auto] shadow-md overflow-hidden"
                   >
-                    <CalendarDays className="w-4 h-4 mr-1.5" />
-                    Book a Table
+                    {/* Shimmer sweep on hover */}
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+                    <CalendarDays className="w-4 h-4 mr-1.5 relative z-10" />
+                    <span className="relative z-10">Book a Table</span>
                   </Button>
                 </motion.div>
               </Link>
@@ -756,9 +772,10 @@ function Navbar({ bookingEnabled = true }: { bookingEnabled?: boolean }) {
             </Link>
             {bookingEnabled && (
             <Link href="/book-online" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant="outline" className="w-full rounded-xl py-5 text-sm font-bold border-2 border-primary/40 text-primary hover:bg-primary/5">
-                <CalendarDays className="w-4 h-4 mr-2" />
-                Book a Table
+              <Button className="relative w-full rounded-xl py-5 text-sm font-bold text-white border-0 bg-gradient-to-r from-rose-600 via-orange-500 to-amber-400 animate-gradient-x [background-size:200%_auto] shadow-md overflow-hidden group">
+                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+                <CalendarDays className="w-4 h-4 mr-2 relative z-10" />
+                <span className="relative z-10">Book a Table</span>
               </Button>
             </Link>
             )}

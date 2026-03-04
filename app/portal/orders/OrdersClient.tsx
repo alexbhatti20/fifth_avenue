@@ -78,7 +78,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { SectionHeader, DataTableWrapper } from '@/components/portal/PortalProvider';
-import { updateOrderStatusQuickServer } from '@/lib/actions';
+import { updateOrderStatusQuickServer, sendOrderToBillingAction } from '@/lib/actions';
 import { realtimeManager, CHANNEL_NAMES } from '@/lib/realtime-manager';
 import { getAvailableDeliveryRiders, assignDeliveryRider, type DeliveryRider } from '@/lib/portal-queries';
 // FIX #18: Import shared timer for performance
@@ -93,6 +93,8 @@ interface OrdersClientProps {
   stats: ServerOrdersStats | null;
   totalCount: number;
   hasMore: boolean;
+  currentEmployeeId?: string | null;
+  currentRole?: string | null;
 }
 
 // FIX #19: CSS animations moved to globals.css to eliminate dynamic injection
@@ -253,6 +255,9 @@ function OrderDetailsDialog({
   onStatusChange,
   onRiderAssigned,
   onGenerateBill,
+  onSendToBilling,
+  isWaiter,
+  billingStatus,
 }: {
   order: PortalOrder | null;
   open: boolean;
@@ -260,6 +265,9 @@ function OrderDetailsDialog({
   onStatusChange: (orderId: string, status: OrderStatus) => Promise<void>;
   onRiderAssigned?: () => void;
   onGenerateBill: (orderId: string) => void;
+  onSendToBilling?: (orderId: string) => void;
+  isWaiter?: boolean;
+  billingStatus?: 'pending' | 'already_exists';
 }) {
   const router = useRouter();
   const [riders, setRiders] = useState<DeliveryRider[]>([]);
@@ -397,8 +405,20 @@ function OrderDetailsDialog({
           <DialogHeader className="space-y-0">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2 flex-wrap">
-                  <span>Order #{order.order_number}</span>
+                <DialogTitle className="text-lg sm:text-xl flex items-center gap-2 flex-wrap">
+                  <span
+                    style={{
+                      background: 'linear-gradient(90deg, #ef4444, #f97316, #ef4444, #f97316)',
+                      backgroundSize: '200% auto',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                      animation: 'gradientShift 3s ease infinite',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Order #{order.order_number}
+                  </span>
                   <Badge className={cn('text-xs px-2 py-0.5', typeConfig?.color)}>
                     {typeConfig?.label}
                   </Badge>
@@ -510,8 +530,8 @@ function OrderDetailsDialog({
             </div>
           </CollapsibleSection>
 
-          {/* Table / Waiter / Rider Info */}
-          {(order.table_number || order.waiter || order.delivery_rider) && (
+          {/* Table / Waiter Info */}
+          {(order.table_number || order.waiter) && (
             <CollapsibleSection 
               title="Service Info" 
               icon={Building}
@@ -539,39 +559,19 @@ function OrderDetailsDialog({
                     )}
                   </div>
                 )}
-
                 {/* Waiter Info */}
-                {order.waiter && (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-zinc-700/50">
+                {order.waiter?.name && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-violet-500/10 border border-violet-500/20">
                     <Avatar className="h-9 w-9">
-                      <AvatarFallback className="bg-violet-500/20 text-violet-600 font-medium">
-                        {order.waiter?.name?.charAt(0)}
+                      <AvatarFallback className="bg-violet-500/20 text-violet-600 font-medium text-sm">
+                        {order.waiter.name.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">{order.waiter?.name}</p>
-                      <p className="text-xs text-muted-foreground">Waiter</p>
+                      <p className="text-sm font-medium">{order.waiter.name}</p>
+                      <p className="text-xs text-muted-foreground">Served by</p>
                     </div>
-                  </div>
-                )}
-
-                {/* Delivery Rider */}
-                {order.delivery_rider && (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
-                    <div className="p-2 rounded-full bg-green-500/20">
-                      <Bike className="h-4 w-4 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{order.delivery_rider.name}</p>
-                      <p className="text-xs text-muted-foreground">Delivery Rider</p>
-                    </div>
-                    {order.delivery_rider.phone && (
-                      <a href={`tel:${order.delivery_rider.phone}`}>
-                        <Button size="sm" variant="outline" className="h-8 rounded-lg">
-                          <Phone className="h-3.5 w-3.5" />
-                        </Button>
-                      </a>
-                    )}
+                    <UserCircle className="h-4 w-4 text-violet-500 shrink-0" />
                   </div>
                 )}
               </div>
@@ -758,16 +758,39 @@ function OrderDetailsDialog({
               Close
             </Button>
             {order.status !== 'cancelled' && order.payment_status !== 'paid' && (
-              <Button 
-                className="flex-1 h-12 sm:h-11 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 font-semibold shadow-lg shadow-green-500/20"
-                onClick={() => {
-                  onGenerateBill(order.id);
-                  onOpenChange(false);
-                }}
-              >
-                <DollarSign className="h-4 w-4 mr-1.5" />
-                Generate Bill
-              </Button>
+              isWaiter ? (
+                billingStatus ? (
+                  <Button
+                    className="flex-1 h-12 sm:h-11 rounded-xl font-semibold border-2 border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-500 cursor-default"
+                    disabled
+                  >
+                    <Receipt className="h-4 w-4 mr-1.5" />
+                    {billingStatus === 'already_exists' ? 'Bill Already in Billing' : 'Bill Pending Payment'}
+                  </Button>
+                ) : (
+                  <Button 
+                    className="flex-1 h-12 sm:h-11 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 font-semibold shadow-lg shadow-blue-500/20"
+                    onClick={() => {
+                      onSendToBilling?.(order.id);
+                      onOpenChange(false);
+                    }}
+                  >
+                    <Receipt className="h-4 w-4 mr-1.5" />
+                    Send to Billing
+                  </Button>
+                )
+              ) : (
+                <Button 
+                  className="flex-1 h-12 sm:h-11 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 font-semibold shadow-lg shadow-green-500/20"
+                  onClick={() => {
+                    onGenerateBill(order.id);
+                    onOpenChange(false);
+                  }}
+                >
+                  <DollarSign className="h-4 w-4 mr-1.5" />
+                  Generate Bill
+                </Button>
+              )
             )}
           </div>
         </div>
@@ -784,11 +807,19 @@ function OrderCard({
   onViewDetails,
   onStatusChange,
   onGenerateBill,
+  onSendToBilling,
+  showWaiterBadge,
+  isWaiter,
+  billingStatus,
 }: {
   order: PortalOrder;
   onViewDetails: (order: PortalOrder) => void;
   onStatusChange: (orderId: string, status: OrderStatus) => Promise<void>;
   onGenerateBill: (orderId: string) => void;
+  onSendToBilling?: (orderId: string) => void;
+  showWaiterBadge?: boolean;
+  isWaiter?: boolean;
+  billingStatus?: 'pending' | 'already_exists';
 }) {
   const statusConfig = getStatusDisplay(order.status, order.order_type);
   const typeConfig = ORDER_TYPE_CONFIG[order.order_type] || ORDER_TYPE_CONFIG['online'];
@@ -883,6 +914,14 @@ function OrderCard({
               <span className="truncate">{order.customer_address}</span>
             </div>
           )}
+
+          {/* Waiter badge — shown in "All Orders" view for context */}
+          {showWaiterBadge && order.waiter?.name && (
+            <div className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 cursor-pointer" onClick={() => onViewDetails(order)}>
+              <UserCircle className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{order.waiter.name}</span>
+            </div>
+          )}
           
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-zinc-100 dark:border-zinc-800">
             <span>{order.total_items || order.items.length} items</span>
@@ -951,20 +990,47 @@ function OrderCard({
             </Button>
           )}
           
-          {/* Generate Bill Button - Show for ready/delivered orders */}
+          {/* Bill Button - Show for ready/delivered orders */}
           {['ready', 'delivered'].includes(order.status) && order.payment_status !== 'paid' && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full gap-2 font-medium border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-              onClick={(e) => {
-                e.stopPropagation();
-                onGenerateBill(order.id);
-              }}
-            >
-              <Receipt className="h-4 w-4" />
-              Generate Bill
-            </Button>
+            isWaiter ? (
+              billingStatus ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled
+                  className="w-full gap-2 font-medium border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-500 cursor-default"
+                >
+                  <Receipt className="h-4 w-4" />
+                  {billingStatus === 'already_exists' ? 'Bill Already in Billing' : 'Bill Sent — Pending Payment'}
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full gap-2 font-medium border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSendToBilling?.(order.id);
+                  }}
+                >
+                  <Receipt className="h-4 w-4" />
+                  Send to Billing
+                </Button>
+              )
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full gap-2 font-medium border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onGenerateBill(order.id);
+                }}
+              >
+                <Receipt className="h-4 w-4" />
+                Generate Bill
+              </Button>
+            )
           )}
         </CardContent>
       </Card>
@@ -980,6 +1046,8 @@ export default function OrdersClient({
   stats: serverStats,
   totalCount: serverTotalCount,
   hasMore: serverHasMore,
+  currentEmployeeId,
+  currentRole,
 }: OrdersClientProps) {
   const router = useRouter();
   
@@ -989,12 +1057,18 @@ export default function OrdersClient({
   const totalCount = serverTotalCount;
   const hasMore = serverHasMore;
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Waiter-specific: default to showing only own orders
+  const isWaiter = currentRole === 'waiter';
+  const [showMyOrdersOnly, setShowMyOrdersOnly] = useState(isWaiter);
   
   const [selectedOrder, setSelectedOrder] = useState<PortalOrder | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('active');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  // Track orders that have been sent to billing (orderId -> 'pending' | 'already_exists')
+  const [billedOrderIds, setBilledOrderIds] = useState<Map<string, 'pending' | 'already_exists'>>(new Map());
   
   // Debounce timer ref for realtime updates
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -1017,9 +1091,11 @@ export default function OrdersClient({
         || (statusFilter === 'active' && !['delivered', 'cancelled'].includes(order.status))
         || order.status === statusFilter;
       const matchesType = typeFilter === 'all' || order.order_type === typeFilter;
-      return matchesSearch && matchesStatus && matchesType;
+      // Waiter filter: when enabled, only show orders taken by the current waiter
+      const matchesWaiter = !showMyOrdersOnly || !currentEmployeeId || order.waiter?.id === currentEmployeeId;
+      return matchesSearch && matchesStatus && matchesType && matchesWaiter;
     });
-  }, [orders, searchQuery, statusFilter, typeFilter]);
+  }, [orders, searchQuery, statusFilter, typeFilter, showMyOrdersOnly, currentEmployeeId]);
 
   // Handle status change with server action
   const handleStatusChange = async (orderId: string, status: OrderStatus) => {
@@ -1074,6 +1150,30 @@ export default function OrdersClient({
   const handleGenerateBill = (orderId: string) => {
     // Instant redirect to billing page
     router.push(`/portal/billing/${orderId}`);
+  };
+
+  // Handle send to billing - waiter sends order to billing queue
+  const handleSendToBilling = async (orderId: string) => {
+    try {
+      const result = await sendOrderToBillingAction(orderId);
+      if (result.success) {
+        if (result.already_exists) {
+          setBilledOrderIds(prev => new Map(prev).set(orderId, 'already_exists'));
+          toast.info('Bill already in billing queue', {
+            description: 'This order already has an active invoice.',
+          });
+        } else {
+          setBilledOrderIds(prev => new Map(prev).set(orderId, 'pending'));
+          toast.success('Bill sent to billing counter!', {
+            description: 'The billing team will process the payment.',
+          });
+        }
+      } else {
+        toast.error(result.error || 'Failed to send to billing');
+      }
+    } catch {
+      toast.error('Failed to send to billing');
+    }
   };
 
   // Calculate local stats if server stats not available
@@ -1157,6 +1257,35 @@ export default function OrdersClient({
 
       {/* Filters */}
       <div className="flex flex-col gap-2 sm:flex-row sm:gap-4 mb-4 sm:mb-6">
+        {/* Waiter scope toggle — only visible for waiter role */}
+        {isWaiter && (
+          <div className="flex rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden flex-shrink-0">
+            <button
+              onClick={() => setShowMyOrdersOnly(true)}
+              className={cn(
+                'px-3 py-2 text-xs font-semibold flex items-center gap-1.5 transition-colors',
+                showMyOrdersOnly
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
+                  : 'bg-transparent text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              )}
+            >
+              <UserCircle className="h-3.5 w-3.5" />
+              My Orders
+            </button>
+            <button
+              onClick={() => setShowMyOrdersOnly(false)}
+              className={cn(
+                'px-3 py-2 text-xs font-semibold flex items-center gap-1.5 transition-colors border-l border-zinc-200 dark:border-zinc-700',
+                !showMyOrdersOnly
+                  ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white'
+                  : 'bg-transparent text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              )}
+            >
+              <ShoppingBag className="h-3.5 w-3.5" />
+              All Orders
+            </button>
+          </div>
+        )}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -1211,6 +1340,10 @@ export default function OrdersClient({
                 onViewDetails={(o) => { setSelectedOrder(o); setIsDetailsOpen(true); }}
                 onStatusChange={handleStatusChange}
                 onGenerateBill={handleGenerateBill}
+                onSendToBilling={handleSendToBilling}
+                showWaiterBadge={isWaiter && !showMyOrdersOnly}
+                isWaiter={isWaiter}
+                billingStatus={billedOrderIds.get(order.id)}
               />
             ))}
           </AnimatePresence>
@@ -1227,6 +1360,9 @@ export default function OrdersClient({
         onStatusChange={handleStatusChange}
         onRiderAssigned={() => router.refresh()}
         onGenerateBill={handleGenerateBill}
+        onSendToBilling={handleSendToBilling}
+        isWaiter={isWaiter}
+        billingStatus={selectedOrder ? billedOrderIds.get(selectedOrder.id) : undefined}
       />
     </>
   );

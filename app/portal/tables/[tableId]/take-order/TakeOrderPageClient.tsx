@@ -244,6 +244,15 @@ export default function TakeOrderPageClient({
   // ── LocalStorage: restore cart on mount, persist on change ──────────────────
   useEffect(() => {
     try {
+      // Only restore a saved cart if this table is actively occupied by the
+      // current waiter and has no completed order yet. If the table was released
+      // or re-claimed by someone else, wipe the stale cart so the new session
+      // starts clean.
+      const tableIsActive = table.status === 'occupied' && table.is_my_table !== false;
+      if (!tableIsActive) {
+        localStorage.removeItem(getCartKey(table.id));
+        return; // leave cart empty
+      }
       const saved = localStorage.getItem(getCartKey(table.id));
       if (saved) {
         const parsed: CartItem[] = JSON.parse(saved);

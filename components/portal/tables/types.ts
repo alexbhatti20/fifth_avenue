@@ -90,9 +90,13 @@ export interface WaiterTable extends RestaurantTable {
     id: string;
     order_number: string;
     status: OrderStatus;
+    payment_status?: string;
     total: number;
     items_count: number;
     created_at: string;
+    has_invoice?: boolean;
+    invoice_id?: string | null;
+    invoice_payment_status?: string | null;
   } | null;
 }
 

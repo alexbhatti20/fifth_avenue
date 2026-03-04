@@ -62,7 +62,9 @@ export async function POST(request: NextRequest) {
 
       case 'mark_attendance_with_code': {
         const { data, error } = await client.rpc('mark_attendance_with_code', {
-          p_code: params.code
+          p_code: params.code,
+          p_latitude: params.latitude ?? null,
+          p_longitude: params.longitude ?? null,
         });
         if (error) throw error;
         result = data;
@@ -74,12 +76,32 @@ export async function POST(request: NextRequest) {
           p_valid_minutes: params.validMinutes || 5
         });
         if (error) throw error;
-        // The RPC returns { success: boolean, code?: string, error?: string }
-        // If success is false, return error response
         if (data && !data.success) {
           return NextResponse.json({ success: false, error: data.error || 'Code generation failed' }, { status: 403 });
         }
         result = data;
+
+        // Broadcast push notification to all employees
+        if (data?.success && data?.code) {
+          const expiryText = `Valid for ${params.validMinutes || 5} min — expires at ${data.valid_until}`;
+          fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/push/send`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              // Forward authentication cookie header for server-to-server
+              'Authorization': request.headers.get('authorization') || '',
+              'Cookie': request.headers.get('cookie') || '',
+            },
+            body: JSON.stringify({
+              userType: 'employee',
+              title: `📋 Attendance Code: ${data.code}`,
+              body: expiryText,
+              notificationType: 'attendance_code',
+              referenceId: data.code,
+              priority: 'high',
+            }),
+          }).catch(() => null); // fire-and-forget, don't block response
+        }
         break;
       }
 
@@ -139,7 +161,9 @@ export async function POST(request: NextRequest) {
 
       // ============ LEAVE ACTIONS ============
       case 'get_leave_balance': {
-        const { data, error } = await client.rpc('get_leave_balance');
+        const { data, error } = await client.rpc('get_leave_balance', {
+          p_employee_id: params.employeeId ?? null,
+        });
         if (error) throw error;
         result = data;
         break;
@@ -192,6 +216,128 @@ export async function POST(request: NextRequest) {
           p_status: params.statusFilter,
           p_year: params.year,
           p_month: params.month
+        });
+        if (error) throw error;
+        result = data;
+        break;
+      }
+
+      // ============ MANUAL ATTENDANCE APPROVAL ACTIONS ============
+      case 'request_manual_attendance': {
+        const { data, error } = await client.rpc('request_manual_attendance', {
+          p_date: params.date,
+          p_check_in: params.checkIn,
+          p_check_out: params.checkOut || null,
+          p_status: params.status || 'present',
+          p_notes: params.notes || null,
+        });
+        if (error) throw error;
+        result = data;
+        break;
+      }
+
+      case 'get_pending_manual_attendances': {
+        const { data, error } = await client.rpc('get_pending_manual_attendances');
+        if (error) throw error;
+        result = data;
+        break;
+      }
+
+      case 'approve_manual_attendance': {
+        const { data, error } = await client.rpc('approve_manual_attendance', {
+          p_attendance_id: params.attendanceId,
+        });
+        if (error) throw error;
+        result = data;
+        break;
+      }
+
+      case 'reject_manual_attendance': {
+        const { data, error } = await client.rpc('reject_manual_attendance', {
+          p_attendance_id: params.attendanceId,
+          p_notes: params.notes || null,
+        });
+        if (error) throw error;
+        result = data;
+        break;
+      }
+
+      case 'get_employee_attendance_grid': {
+        const { data, error } = await client.rpc('get_employee_attendance_grid', {
+          p_year: params.year || null,
+          p_month: params.month || null,
+          p_employee_id: params.employeeId || null,
+        });
+        if (error) throw error;
+        result = data;
+        break;
+      }
+
+      // ============ LOCATION / GEOFENCE SETTINGS ============
+      case 'get_attendance_location': {
+        const { data, error } = await client.rpc('get_attendance_location');
+        if (error) throw error;
+        result = data;
+        break;
+      }
+
+      case 'save_attendance_location': {
+        const { data, error } = await client.rpc('save_attendance_location', {
+          p_latitude:      params.latitude,
+          p_longitude:     params.longitude,
+          p_location_name: params.locationName || 'Restaurant',
+          p_radius_meters: params.radiusMeters || 100,
+          p_enabled:       params.enabled !== false,
+        });
+        if (error) throw error;
+        result = data;
+        break;
+      }
+
+      case 'get_my_attendance_sheet': {
+        const { data, error } = await client.rpc('get_my_attendance_sheet', {
+          p_start_date: params.startDate,
+          p_end_date:   params.endDate,
+        });
+        if (error) throw error;
+        result = data;
+        break;
+      }
+
+      case 'get_attendance_time_rules': {
+        const { data, error } = await client.rpc('get_attendance_time_rules');
+        if (error) throw error;
+        result = data;
+        break;
+      }
+
+      case 'save_attendance_time_rules': {
+        const { data, error } = await client.rpc('save_attendance_time_rules', {
+          p_checkin_enabled:    params.checkinEnabled !== false,
+          p_checkin_opens:      params.checkinOpens     || '07:00',
+          p_checkin_late_after: params.checkinLateAfter || '09:30',
+          p_checkin_closes:     params.checkinCloses    || '12:00',
+          p_checkout_enabled:   params.checkoutEnabled  === true,
+          p_checkout_earliest:  params.checkoutEarliest || '13:00',
+        });
+        if (error) throw error;
+        result = data;
+        break;
+      }
+
+      case 'get_leave_quota_settings': {
+        const { data, error } = await client.rpc('get_leave_quota_settings');
+        if (error) throw error;
+        result = data;
+        break;
+      }
+
+      case 'save_leave_quota_settings': {
+        const { data, error } = await client.rpc('save_leave_quota_settings', {
+          p_annual_days:  params.annualDays  ?? 14,
+          p_sick_days:    params.sickDays    ?? 10,
+          p_casual_days:  params.casualDays  ?? 7,
+          p_apply_to_all: params.applyToAll  === true,
         });
         if (error) throw error;
         result = data;

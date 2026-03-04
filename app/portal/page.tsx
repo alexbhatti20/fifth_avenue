@@ -8,6 +8,8 @@ import {
   getRecentOrdersServer,
   getBillingStatsServer,
   getBillingPendingOrdersServer,
+  getSSRCurrentEmployee,
+  getWaiterDashboardStatsServer,
 } from '@/lib/server-queries';
 import DashboardClient from './DashboardClient';
 
@@ -61,6 +63,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // For 'today' preset, don't pass dates (use optimized today-only RPCs)
   const useToday = preset === 'today';
   
+  // Identify the current employee (cached — no extra DB round-trip if called again later)
+  const currentEmployee = await getSSRCurrentEmployee();
+  const empAny = currentEmployee as any;
+  const isWaiter = empAny?.role === 'waiter';
+
   // Fetch all dashboard data on the server (hidden from browser)
   const [
     stats,
@@ -69,19 +76,27 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     orders,
     billingStats,
     pendingBillingOrders,
+    waiterStats,
   ] = await Promise.all([
-    getAdminDashboardStatsServer(
-      useToday ? undefined : dateRange.startDate,
-      useToday ? undefined : dateRange.endDate
-    ),
-    getHourlySalesAdvancedServer(
-      useToday ? undefined : dateRange.startDate,
-      useToday ? undefined : dateRange.endDate
-    ),
+    isWaiter
+      ? Promise.resolve(null)
+      : getAdminDashboardStatsServer(
+          useToday ? undefined : dateRange.startDate,
+          useToday ? undefined : dateRange.endDate
+        ),
+    isWaiter
+      ? Promise.resolve(null)
+      : getHourlySalesAdvancedServer(
+          useToday ? undefined : dateRange.startDate,
+          useToday ? undefined : dateRange.endDate
+        ),
     getTablesStatusServer(),
     getRecentOrdersServer(10),
     getBillingStatsServer(),
     getBillingPendingOrdersServer(5),
+    isWaiter && empAny?.id
+      ? getWaiterDashboardStatsServer(empAny.id, dateRange.startDate, dateRange.endDate)
+      : Promise.resolve(null),
   ]);
 
   return (
@@ -92,6 +107,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       initialOrders={orders}
       initialBillingStats={billingStats}
       initialPendingBillingOrders={pendingBillingOrders}
+      initialWaiterStats={waiterStats}
       currentPreset={preset}
       currentDateRange={dateRange}
     />

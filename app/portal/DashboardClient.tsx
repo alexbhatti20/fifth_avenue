@@ -60,6 +60,7 @@ import type {
   PortalOrder,
   BillingStats,
   BillingStatsServer,
+  WaiterDashboardStats,
 } from '@/lib/server-queries';
 
 // Date range type
@@ -216,6 +217,7 @@ interface DashboardClientProps {
   initialOrders: PortalOrder[];
   initialBillingStats: BillingStatsServer | null;
   initialPendingBillingOrders: { orders: any[]; pendingCount: number; onlineOrdersCount: number };
+  initialWaiterStats: WaiterDashboardStats | null;
   currentPreset: string;
   currentDateRange: { startDate: string; endDate: string };
 }
@@ -1060,110 +1062,64 @@ function AdminDashboard({
 }
 
 // Waiter Dashboard with Date Filter
-function WaiterDashboard() {
-  const { employee } = usePortalAuth();
-  const [dateRange, setDateRange] = useState<DateRange>({
-    ...getDateRange('today'),
-    preset: 'today'
-  });
-  const [stats, setStats] = useState({
-    orders_count: 0,
-    orders_today: 0,
-    tips_total: 0,
-    tips_today: 0,
-    active_tables: 0,
-    total_sales: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
+function WaiterDashboard({
+  initialStats,
+  currentPreset,
+  currentDateRange,
+}: {
+  initialStats: WaiterDashboardStats | null;
+  currentPreset: string;
+  currentDateRange: { startDate: string; endDate: string };
+}) {
+  // Use SSR data directly — completely avoids the client-side RPC permission error.
+  // When the waiter changes the date range, DateRangePicker calls router.push() which
+  // triggers a full SSR reload, delivering fresh initialStats.
+  const stats = {
+    orders_count: initialStats?.orders_count ?? 0,
+    orders_today: initialStats?.orders_today ?? 0,
+    tips_total: initialStats?.tips_total ?? 0,
+    tips_today: initialStats?.tips_today ?? 0,
+    active_tables: initialStats?.active_tables ?? 0,
+    total_sales: initialStats?.total_sales ?? 0,
+  };
 
-  const fetchWaiterStats = useCallback(async () => {
-    if (!employee?.id) {
-      setIsLoading(false);
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      const { data, error } = await getAuthenticatedClient().rpc('get_waiter_dashboard_stats', {
-        p_employee_id: employee.id,
-        p_start_date: dateRange.startDate,
-        p_end_date: dateRange.endDate
-      });
-      
-      if (data && !error) {
-        setStats({
-          orders_count: data.orders_count || 0,
-          orders_today: data.orders_today || 0,
-          tips_total: data.tips_total || 0,
-          tips_today: data.tips_today || 0,
-          active_tables: data.active_tables || 0,
-          total_sales: data.total_sales || 0,
-        });
-      } else {
-        setStats({
-          orders_count: employee?.total_orders_taken || 0,
-          orders_today: employee?.total_orders_taken || 0,
-          tips_total: employee?.total_tips || 0,
-          tips_today: employee?.total_tips || 0,
-          active_tables: 0,
-          total_sales: 0,
-        });
-      }
-    } catch (err) {
-      setStats({
-        orders_count: employee?.total_orders_taken || 0,
-        orders_today: employee?.total_orders_taken || 0,
-        tips_total: employee?.total_tips || 0,
-        tips_today: employee?.total_tips || 0,
-        active_tables: 0,
-        total_sales: 0,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [employee?.id, employee?.total_orders_taken, employee?.total_tips, dateRange]);
-
-  useEffect(() => {
-    fetchWaiterStats();
-  }, [fetchWaiterStats]);
-
-  const isToday = dateRange.preset === 'today';
+  const isToday = currentPreset === 'today';
 
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Date Filter */}
       <div className="flex justify-between items-center">
         <div className="text-sm text-muted-foreground">
-          {isToday ? 'Live data' : `${dateRange.startDate} to ${dateRange.endDate}`}
+          {isToday ? 'Live data' : `${currentDateRange.startDate} to ${currentDateRange.endDate}`}
         </div>
-        <DateRangePicker currentPreset={dateRange.preset} currentDateRange={{ startDate: dateRange.startDate, endDate: dateRange.endDate }} />
+        <DateRangePicker currentPreset={currentPreset} currentDateRange={currentDateRange} />
       </div>
       
       <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
         <StatsCard
           title={isToday ? "Orders Today" : "Total Orders"}
-          value={isLoading ? '...' : (isToday ? stats.orders_today : stats.orders_count)}
+          value={isToday ? stats.orders_today : stats.orders_count}
           change="Keep it up!"
           changeType="positive"
           icon={<ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5" />}
         />
         <StatsCard
           title={isToday ? "Tips Today" : "Total Tips"}
-          value={isLoading ? '...' : `Rs. ${(isToday ? stats.tips_today : stats.tips_total).toLocaleString()}`}
+          value={isToday ? `Rs. ${stats.tips_today.toLocaleString()}` : `Rs. ${stats.tips_total.toLocaleString()}`}
           change={isToday ? "Today's tips" : "Selected period"}
           changeType="positive"
           icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
         />
         <StatsCard
           title="Active Tables"
-          value={isLoading ? '...' : stats.active_tables}
+          value={stats.active_tables}
           change="Assigned to you"
           changeType="neutral"
           icon={<LayoutGrid className="h-4 w-4 sm:h-5 sm:w-5" />}
         />
         <StatsCard
           title="Total Sales"
-          value={isLoading ? '...' : `Rs. ${stats.total_sales.toLocaleString()}`}
+          value={`Rs. ${stats.total_sales.toLocaleString()}`}
           change="Your orders value"
           changeType="positive"
           icon={<TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />}
@@ -1877,6 +1833,7 @@ export default function DashboardClient({
   initialOrders,
   initialBillingStats,
   initialPendingBillingOrders,
+  initialWaiterStats,
   currentPreset,
   currentDateRange,
 }: DashboardClientProps) {
@@ -1924,7 +1881,11 @@ export default function DashboardClient({
             title="My Dashboard"
             description={`${greeting}, ${employee?.name?.split(' ')[0] || 'Waiter'}! Your performance and quick actions.`}
           />
-          <WaiterDashboard />
+          <WaiterDashboard
+            initialStats={initialWaiterStats}
+            currentPreset={currentPreset}
+            currentDateRange={currentDateRange}
+          />
         </>
       );
     case 'kitchen_staff':

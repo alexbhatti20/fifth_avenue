@@ -139,7 +139,27 @@ export function useAuth(): UseAuthReturn {
       // Skip customer fetch if user is an employee (determined during login)
       const userType = localStorage.getItem('user_type');
       if (userType === 'employee' || userType === 'admin') {
-        // Employee user - don't fetch customer data, just validate session
+        // Employee user - validate session is still alive before keeping them logged in
+        try {
+          const { data: { user: sessionUser } } = await supabase.auth.getUser();
+          if (!sessionUser) {
+            // Session expired — clear everything to prevent stale employee state
+            setUser(null);
+            setAuthUser(null);
+            globalAuthCache.user = null;
+            globalAuthCache.authUser = null;
+            clearAuthToken();
+            [
+              'user_data', 'user_type', 'auth_token', 'sb_access_token', 'sb_refresh_token',
+            ].forEach(k => localStorage.removeItem(k));
+            Object.keys(localStorage).forEach(key => {
+              if (key.startsWith('sb-') || key.includes('supabase')) localStorage.removeItem(key);
+            });
+            dispatchAuthChange(null);
+          }
+        } catch {
+          // Network error - keep existing state, will retry on next mount
+        }
         setIsLoading(false);
         isFetchingRef.current = false;
         hasFetchedRef.current = true;
@@ -250,14 +270,23 @@ export function useAuth(): UseAuthReturn {
         // Only fetch if not already fetched
         fetchUser();
       } else if (!session) {
-        // Check if we have a manual token before clearing
+        // For employees/admins, always clear on Supabase session expiry —
+        // a stale manual token must NOT keep them in a broken half-logged-in state.
+        const storedUserType = localStorage.getItem('user_type');
         const token = getAuthToken();
-        if (!token) {
+        if (!token || storedUserType === 'employee' || storedUserType === 'admin') {
           setUser(null);
           setAuthUser(null);
+          globalAuthCache.user = null;
+          globalAuthCache.authUser = null;
           clearAuthToken();
-          localStorage.removeItem('user_data');
+          ['user_data', 'user_type', 'auth_token', 'sb_access_token', 'sb_refresh_token']
+            .forEach(k => localStorage.removeItem(k));
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('sb-') || key.includes('supabase')) localStorage.removeItem(key);
+          });
           hasFetchedRef.current = false;
+          dispatchAuthChange(null);
         }
       }
     });

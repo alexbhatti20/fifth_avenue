@@ -3,10 +3,12 @@
 import { memo, useMemo, useState, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Users, Timer, ShoppingCart, Star, User, Receipt, Sparkles, Zap, Clock,
+  Users, Timer, ShoppingCart, Star, User, Receipt, ReceiptText, Sparkles, Zap, Clock,
   Edit2, Trash2, MoreVertical, CheckCircle2, AlertCircle, Coffee, Send,
-  Phone, StickyNote, CalendarDays
+  Phone, StickyNote, CalendarDays, Loader2, CheckCheck
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { sendOrderToBillingAction } from '@/lib/actions';
 
 /** Convert HH:MM or HH:MM:SS (24-h) string → 12-h h:mm AM/PM */
 function fmt12h(time: string): string {
@@ -38,8 +40,8 @@ interface WaiterTableCardProps {
   table: WaiterTable;
   onClaimTable: (tableId: string) => void;
   onTakeOrder: (table: WaiterTable) => void;
+  onCompleteOrder?: (orderId: string, tableId: string) => void;
   onViewDetails: (table: WaiterTable) => void;
-  onGenerateBill?: (orderId: string) => void;
   onEditTable?: (table: WaiterTable) => void;
   onDeleteTable?: (tableId: string) => void;
   onUpdateStatus?: (tableId: string, status: string) => void;
@@ -127,8 +129,8 @@ function WaiterTableCardV2Component({
   table,
   onClaimTable,
   onTakeOrder,
+  onCompleteOrder,
   onViewDetails,
-  onGenerateBill,
   onEditTable,
   onDeleteTable,
   onUpdateStatus,
@@ -142,6 +144,8 @@ function WaiterTableCardV2Component({
 }: WaiterTableCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isSendingBill, setIsSendingBill] = useState(false);
+  const [billSentThisSession, setBillSentThisSession] = useState(false);
   
   const config = STATUS_CONFIG[table.status];
   const style = STATUS_STYLES[table.status] || STATUS_STYLES.available;
@@ -314,17 +318,17 @@ function WaiterTableCardV2Component({
           </DropdownMenu>
         </div>
 
-        {/* My Table Badge */}
+        {/* My Table Badge — bottom-left corner, away from the three-dot menu */}
         {isMyTable && (
-          <motion.div 
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute -top-2 left-1/2 -translate-x-1/2 z-20"
+          <motion.div
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="absolute bottom-2 left-2 z-20"
           >
-            <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg gap-1 px-2.5 py-1 text-[10px]">
-              <Star className="h-3 w-3 fill-current" />
-              MY TABLE
-            </Badge>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-white shadow-md">
+              <Star className="h-2.5 w-2.5 fill-current" />
+              MINE
+            </span>
           </motion.div>
         )}
 
@@ -585,8 +589,8 @@ function WaiterTableCardV2Component({
         </CardContent>
 
         <CardFooter className="pt-0 pb-3 px-3 flex-col gap-1.5">
-          {/* Take Table Button */}
-          {isAvailable && isWaiter && (
+          {/* Take Table Button — only when not already assigned to me */}
+          {isAvailable && isWaiter && !isMyTable && (
             <motion.div 
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -618,54 +622,101 @@ function WaiterTableCardV2Component({
                   size="sm"
                   className={cn(
                     'w-full h-9 text-xs font-semibold text-white shadow-lg',
-                    'bg-gradient-to-r from-amber-500 via-orange-500 to-red-500',
-                    'hover:from-amber-600 hover:via-orange-600 hover:to-red-600'
+                    table.current_order
+                      ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700'
+                      : 'bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-600 hover:via-orange-600 hover:to-red-600'
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
                     onTakeOrder(table);
                   }}
                 >
-                  <ShoppingCart className="h-4 w-4 mr-1.5" />
-                  {table.current_order ? 'Add Items' : 'Take Order'}
+                  {table.current_order ? (
+                    <Edit2 className="h-4 w-4 mr-1.5" />
+                  ) : (
+                    <ShoppingCart className="h-4 w-4 mr-1.5" />
+                  )}
+                  {table.current_order ? 'Edit Order' : 'Take Order'}
                 </Button>
               </motion.div>
 
-              {table.current_order && onGenerateBill && (
+              {/* Send to Billing — self-contained, no redirect, idempotent */}
+              {(() => {
+                const ord = table.current_order;
+                if (!ord) return null;
+                const invoiceStatus = ord.invoice_payment_status;
+                // Already paid / cancelled / refunded → hide entirely
+                if (invoiceStatus === 'paid' || invoiceStatus === 'cancelled' || invoiceStatus === 'refunded') return null;
+                // Invoice exists and is pending → already in billing queue
+                const alreadyInBilling = (ord.has_invoice || billSentThisSession) && invoiceStatus !== 'paid';
+                return (
+                  <motion.div whileHover={{ scale: alreadyInBilling ? 1 : 1.02 }} whileTap={{ scale: alreadyInBilling ? 1 : 0.98 }}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={alreadyInBilling || isSendingBill}
+                      className={
+                        alreadyInBilling
+                          ? 'w-full h-8 text-xs font-semibold border-slate-300 bg-slate-50 text-slate-400 dark:bg-slate-800/40 dark:text-slate-500 cursor-default'
+                          : 'w-full h-8 text-xs font-semibold border-emerald-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400'
+                      }
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (alreadyInBilling || isSendingBill || !ord.id) return;
+                        setIsSendingBill(true);
+                        try {
+                          const result = await sendOrderToBillingAction(ord.id);
+                          if (!result.success) {
+                            toast.error(result.error || 'Failed to send bill');
+                          } else if (result.already_exists) {
+                            toast.info(`Bill already in billing queue (${result.invoice_number})`);
+                            setBillSentThisSession(true);
+                          } else {
+                            toast.success(`Bill sent to billing! (${result.invoice_number})`, {
+                              description: 'Billing staff can now process payment',
+                              duration: 4000,
+                            });
+                            setBillSentThisSession(true);
+                          }
+                        } catch {
+                          toast.error('Failed to send bill to billing');
+                        } finally {
+                          setIsSendingBill(false);
+                        }
+                      }}
+                    >
+                      {isSendingBill ? (
+                        <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Sending…</>
+                      ) : alreadyInBilling ? (
+                        <><CheckCheck className="h-3.5 w-3.5 mr-1.5" />Bill Sent to Billing</>
+                      ) : (
+                        <><ReceiptText className="h-3.5 w-3.5 mr-1.5" />Send to Billing</>
+                      )}
+                    </Button>
+                  </motion.div>
+                );
+              })()}
+
+              {table.current_order && onCompleteOrder && (
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="w-full h-8 text-xs font-semibold border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400"
+                    className="w-full h-8 text-xs font-semibold border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:bg-violet-950/30 dark:text-violet-400"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (table.current_order?.id) {
-                        onGenerateBill(table.current_order.id);
+                        onCompleteOrder(table.current_order.id, table.id);
                       }
                     }}
                   >
-                    <Receipt className="h-3.5 w-3.5 mr-1.5" />
-                    Generate Bill
+                    <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                    Complete Order
                   </Button>
                 </motion.div>
               )}
 
-              {onReleaseTable && !table.current_order && (
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full h-8 text-xs font-semibold border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 dark:bg-sky-950/30 dark:text-sky-400"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onReleaseTable(table.id, true);
-                    }}
-                  >
-                    <Coffee className="h-3.5 w-3.5 mr-1.5" />
-                    Release Table
-                  </Button>
-                </motion.div>
-              )}
+
             </div>
           )}
         </CardFooter>

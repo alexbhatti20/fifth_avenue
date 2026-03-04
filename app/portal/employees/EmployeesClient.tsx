@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef, startTransition } from 'react';
+import { useState, useEffect, useMemo, useCallback, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -43,7 +43,8 @@ import {
   BlockUnblockDialog,
   ROLE_LABELS 
 } from '@/components/portal/employees';
-import { getEmployeesPaginated, getEmployeesDashboardStats } from '@/lib/portal-queries';
+// NOTE: data is now fetched via the authenticated API route (/api/portal/employees)
+// instead of the deprecated direct-RPC helper to avoid browser-side permission errors.
 import { usePortalAuth } from '@/hooks/usePortal';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -161,64 +162,59 @@ export default function EmployeesClient({ initialData }: EmployeesClientProps) {
     return false;
   }, [currentEmployee]);
 
-  // Fetch employees using RPC
-  const fetchEmployees = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      // Use RPC to get paginated employees with proper auth check
-      const result = await getEmployeesPaginated(
-        1, // page
-        100, // limit - get all for display
-        debouncedSearch || undefined,
-        roleFilter !== 'all' ? roleFilter : undefined,
-        statusFilter !== 'all' ? statusFilter : undefined
-      );
-      
-      setEmployees(result.employees || []);
-    } catch (error) {
-      toast.error('Failed to fetch employees');
-    } finally {
+  // Sync state whenever Next.js delivers a fresh RSC payload (after router.refresh())
+  useEffect(() => {
+    if (initialData?.employees) {
+      setEmployees(initialData.employees as Employee[]);
       setIsLoading(false);
     }
-  }, [debouncedSearch, roleFilter, statusFilter]);
+  }, [initialData]);
 
-  // FIX #4: Track if we have valid SSR data and filters are at default
-  const hasSSRData = !!(initialData?.employees && initialData.employees.length > 0);
-  const hasInitialLoadedRef = useRef(hasSSRData);
+  // Refresh: triggers SSR re-fetch on the server — response comes back as an opaque
+  // RSC payload (the ?_rsc=… request) so NO plain JSON is visible in the Network tab.
+  const fetchEmployees = useCallback(() => {
+    setIsLoading(true);
+    router.refresh();
+    // Loading spinner is cleared by the initialData useEffect above when RSC arrives.
+    // Safety fallback in case RSC update doesn't change initialData reference:
+    const t = setTimeout(() => setIsLoading(false), 5000);
+    return () => clearTimeout(t);
+  }, [router]);
 
-  // Initial load and auth check
+  // Initial auth guard (no data fetch needed — SSR already provides initialData)
   useEffect(() => {
-    if (!authLoading) {
-      if (!isAdmin) {
-        toast.error('Access denied. Admin only area.');
-        router.push('/portal');
-        return;
-      }
-      // FIX #4: Only fetch if we don't have SSR data AND filters are at default
-      // If we have SSR data and filters are default, skip the fetch
-      if (!hasInitialLoadedRef.current) {
-        hasInitialLoadedRef.current = true;
-        fetchEmployees();
-      }
+    if (!authLoading && !isAdmin) {
+      toast.error('Access denied. Admin only area.');
+      router.push('/portal');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, isAdmin, router]);
+  }, [authLoading, isAdmin]);
 
-  // Refetch when filters change (only after initial load and only if filters changed from default)
-  useEffect(() => {
-    // Only refetch if filters actually changed from default
-    const filtersChanged = debouncedSearch || roleFilter !== 'all' || statusFilter !== 'all';
-    if (!authLoading && isAdmin && filtersChanged) {
-      fetchEmployees();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, roleFilter, statusFilter]);
-
-  // Filter out the current admin from the list (admin should not see themselves)
+  // All filtering is done client-side from the full SSR dataset — no extra network calls.
   const filteredEmployees = useMemo(() => {
-    if (!currentAdminId) return employees;
-    return employees.filter(emp => emp.id !== currentAdminId);
-  }, [employees, currentAdminId]);
+    let list = employees as Employee[];
+
+    // Exclude current admin from the list
+    if (currentAdminId) list = list.filter(emp => emp.id !== currentAdminId);
+
+    // Search: name, email, employee_id
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      list = list.filter(emp =>
+        emp.name?.toLowerCase().includes(q) ||
+        emp.email?.toLowerCase().includes(q) ||
+        (emp as any).employee_id?.toLowerCase().includes(q)
+      );
+    }
+
+    // Role filter
+    if (roleFilter !== 'all') list = list.filter(emp => emp.role === roleFilter);
+
+    // Status filter
+    if (statusFilter !== 'all') list = list.filter(emp => emp.status === statusFilter);
+
+    return list;
+  }, [employees, currentAdminId, debouncedSearch, roleFilter, statusFilter]);
 
   // Stats from filtered employees (excluding current admin)
   const stats = useMemo(() => ({

@@ -134,6 +134,15 @@ export default {
           "0%, 100%": { filter: "drop-shadow(0 0 8px rgba(239,68,68,0.5))" },
           "50%": { filter: "drop-shadow(0 0 16px rgba(239,68,68,0.9))" },
         },
+        shake: {
+          "0%, 100%": { transform: "translateX(0)" },
+          "15%":       { transform: "translateX(-6px)" },
+          "30%":       { transform: "translateX(6px)" },
+          "45%":       { transform: "translateX(-4px)" },
+          "60%":       { transform: "translateX(4px)" },
+          "75%":       { transform: "translateX(-2px)" },
+          "90%":       { transform: "translateX(2px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -148,6 +157,7 @@ export default {
         "gradient-xy": "gradient-xy 5s ease infinite",
         float: "float 3s ease-in-out infinite",
         glow: "glow 2s ease-in-out infinite",
+        shake: "shake 0.5s ease-in-out",
       },
     },
   },

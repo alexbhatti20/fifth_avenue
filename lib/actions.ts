@@ -3,6 +3,7 @@
 import { supabase } from '@/lib/supabase';
 import { getAuthenticatedClient } from '@/lib/server-queries';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import {
   invalidateMenuCache,
   invalidateDealsCache,
@@ -1040,7 +1041,114 @@ export async function generateFullBill(data: {
   }
 }
 
-// Mark invoice as paid
+// Send order to billing queue (waiter action — no redirect, idempotent)
+// The underlying generate_quick_bill RPC returns existing invoice if one already exists.
+export async function sendOrderToBillingAction(orderId: string): Promise<{
+  success: boolean;
+  invoice_id?: string;
+  invoice_number?: string;
+  already_exists?: boolean;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data: result, error } = await client.rpc('generate_quick_bill', {
+      p_order_id: orderId,
+      p_biller_id: null,
+    });
+    if (error) throw error;
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to send bill to billing' };
+    }
+    revalidatePath('/portal/billing');
+    revalidatePath('/portal/tables');
+    return {
+      success: true,
+      invoice_id: result.invoice_id,
+      invoice_number: result.invoice_number,
+      already_exists: result.message === 'Invoice already exists',
+    };
+  } catch (error: any) {
+    console.error('[Server Action] sendOrderToBillingAction error:', error);
+    return { success: false, error: error.message || 'Failed to send bill to billing' };
+  }
+}
+
+// Update an existing pending/draft invoice with the latest order items & totals.
+// Called after a waiter edits the order (add/remove items).
+export async function updatePendingInvoiceAction(orderId: string): Promise<{
+  success: boolean;
+  invoice_id?: string;
+  invoice_number?: string;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+
+    // 1. Get latest order data (items JSONB + financials)
+    const { data: orderData, error: orderErr } = await client
+      .from('orders')
+      .select('items, subtotal, discount, delivery_fee, total')
+      .eq('id', orderId)
+      .single();
+    if (orderErr) throw orderErr;
+
+    // 2. Find the pending/draft invoice for this order
+    const { data: invoice, error: invoiceErr } = await client
+      .from('invoices')
+      .select('id, invoice_number')
+      .eq('order_id', orderId)
+      .in('payment_status', ['pending', 'draft'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (invoiceErr) throw invoiceErr;
+    if (!invoice) {
+      return { success: false, error: 'No pending invoice found for this order' };
+    }
+
+    // 3. Recalculate totals using DB tax rate
+    const subtotal = orderData.subtotal ?? orderData.total;
+    const discount = orderData.discount ?? 0;
+    const deliveryFee = orderData.delivery_fee ?? 0;
+
+    // Read tax settings from DB
+    const { data: taxRow } = await client
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'tax_settings')
+      .maybeSingle();
+    const taxEnabled: boolean = taxRow?.value?.enabled ?? false;
+    const taxRate: number = taxEnabled ? (taxRow?.value?.rate ?? 0) : 0;
+    const tax = Math.round(subtotal * (taxRate / 100) * 100) / 100;
+    const total = subtotal - discount + tax + deliveryFee;
+
+    // 4. Patch the invoice
+    const { error: updateErr } = await client
+      .from('invoices')
+      .update({
+        items: orderData.items,
+        subtotal,
+        tax,
+        discount,
+        delivery_fee: deliveryFee,
+        total,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', invoice.id);
+    if (updateErr) throw updateErr;
+
+    revalidatePath('/portal/billing');
+    revalidatePath('/portal/tables');
+
+    return { success: true, invoice_id: invoice.id, invoice_number: invoice.invoice_number };
+  } catch (error: any) {
+    console.error('[Server Action] updatePendingInvoiceAction error:', error);
+    return { success: false, error: error.message || 'Failed to update invoice' };
+  }
+}
+
+
 export async function markInvoicePaid(invoiceId: string, paymentMethod?: string) {
   try {
     const { error } = await supabase
@@ -1995,6 +2103,46 @@ export async function getPayslipDetailAction(payslipId: string): Promise<any> {
   }
 }
 
+/**
+ * Get My Payslips - Employee self-service (any authenticated employee)
+ * Returns all payslips for the current logged-in employee + profile + company info
+ */
+export async function getMyPayslipsAction(): Promise<{
+  employee: any;
+  payslips: any[];
+  company: any;
+} | null> {
+  try {
+    const client = await getAuthenticatedClient();
+    // Resolve employee ID from cookie JWT (avoids relying on auth.uid() in RPC)
+    const cookieStore = await cookies();
+    const token = cookieStore.get('sb-access-token')?.value || cookieStore.get('auth_token')?.value;
+    if (!token) return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    const authUserId: string = payload.sub;
+    if (!authUserId) return null;
+
+    // Get employee record to get their UUID
+    const empRes = await client.rpc('get_employee_by_auth_user' as any, { p_auth_user_id: authUserId });
+    if (empRes.error || !empRes.data) return null;
+    const empData = empRes.data as any;
+    const employeeId: string = empData?.data?.id ?? empData?.id ?? null;
+    if (!employeeId) return null;
+
+    // Now fetch payslips by employee ID (no auth.uid() dependency)
+    const { data, error } = await client.rpc('get_my_payslips_by_id' as any, { p_employee_id: employeeId });
+    if (error) throw error;
+    const d = data as any;
+    if (!d || d.error) return null;
+    return d as { employee: any; payslips: any[]; company: any };
+  } catch (error: any) {
+    console.error('getMyPayslipsAction error:', error);
+    return null;
+  }
+}
+
 // =============================================
 // PAYMENT METHODS SERVER ACTIONS (SSR - Admin Only)
 // =============================================
@@ -2454,6 +2602,69 @@ export async function updateWebsiteSettingsServer(
   } catch (error: any) {
     console.error('updateWebsiteSettingsServer error:', error);
     return { success: false, error: error.message || 'Server error' };
+  }
+}
+
+// =============================================
+// TAX SETTINGS - SERVER ACTIONS (SSR)
+// Stored in system_settings table, key='tax_settings'
+// =============================================
+
+export interface TaxSettingsData {
+  rate: number;   // percentage, e.g. 5 = 5%
+  enabled: boolean;
+  label: string;  // e.g. "GST"
+}
+
+export async function getTaxSettingsAction(): Promise<{
+  success: boolean;
+  settings?: TaxSettingsData;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'tax_settings')
+      .maybeSingle();
+    if (error) throw error;
+    const settings: TaxSettingsData = {
+      rate: data?.value?.rate ?? 0,
+      enabled: data?.value?.enabled ?? false,
+      label: data?.value?.label ?? 'GST',
+    };
+    return { success: true, settings };
+  } catch (error: any) {
+    console.error('[Server Action] getTaxSettingsAction error:', error);
+    return { success: false, error: error.message || 'Failed to get tax settings' };
+  }
+}
+
+export async function updateTaxSettingsAction(settings: TaxSettingsData): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { error } = await client
+      .from('system_settings')
+      .upsert(
+        {
+          key: 'tax_settings',
+          value: settings,
+          description: 'Tax rate applied to invoices (percentage, 0 = no tax)',
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'key' }
+      );
+    if (error) throw error;
+    revalidatePath('/portal/settings');
+    revalidatePath('/portal/billing');
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Server Action] updateTaxSettingsAction error:', error);
+    return { success: false, error: error.message || 'Failed to save tax settings' };
   }
 }
 
@@ -3819,6 +4030,48 @@ export async function updateTableStatusAction(tableId: string, status: string): 
 }
 
 // Release table (waiter/admin/manager)
+/**
+ * Complete an order (mark as completed) and release the table to 'cleaning'.
+ * Called from the waiter table card "Complete Order" button.
+ */
+export async function completeOrderAndReleaseTable(orderId: string, tableId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+
+    // 1. Mark the order as delivered (terminal state for dine-in)
+    const { error: orderError } = await client.rpc('update_order_status', {
+      p_order_id: orderId,
+      p_new_status: 'delivered',
+      p_notes: null,
+    });
+    if (orderError) throw orderError;
+
+    // 2. Release the table and set it to cleaning
+    const { data: releaseResult, error: releaseError } = await client.rpc('release_table_waiter', {
+      p_table_id: tableId,
+      p_set_to_cleaning: true,
+    });
+    if (releaseError) throw releaseError;
+    if (!releaseResult?.success) {
+      throw new Error(releaseResult?.error || 'Failed to release table');
+    }
+
+    revalidatePath('/portal/tables');
+    revalidatePath('/portal/orders');
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Server Action] completeOrderAndReleaseTable error:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+    });
+    return { success: false, error: error.message || 'Failed to complete order' };
+  }
+}
+
 export async function releaseTableAction(tableId: string, setToCleaning: boolean = false): Promise<{
   success: boolean;
   table_number?: number;
@@ -3871,6 +4124,8 @@ export interface TableOrderDetails {
   total: number;
   notes?: string | null;
   created_at: string;
+  has_invoice?: boolean;
+  invoice_payment_status?: string | null;
   customer?: {
     id?: string;
     name?: string | null;
@@ -3907,6 +4162,18 @@ export async function getTableCurrentOrderAction(tableId: string): Promise<{
 
     const orderId = tableData.current_order_id;
 
+    // Check if there's already an invoice for this order
+    const { data: invoiceData } = await client
+      .from('invoices')
+      .select('id, payment_status')
+      .eq('order_id', orderId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const has_invoice = !!invoiceData;
+    const invoice_payment_status = invoiceData?.payment_status ?? null;
+
     // Try the billing RPC which has full order details
     const { data: billingData, error: billingError } = await client.rpc('get_order_for_billing', {
       p_order_id: orderId,
@@ -3939,6 +4206,8 @@ export async function getTableCurrentOrderAction(tableId: string): Promise<{
           })),
           table_number: tableData.table_number,
           customer_count: order.customer_count || 1,
+          has_invoice,
+          invoice_payment_status,
         },
       };
     }
@@ -3987,6 +4256,8 @@ export async function getTableCurrentOrderAction(tableId: string): Promise<{
         items,
         table_number: tableData.table_number,
         customer_count: orderData.customer_count || 1,
+        has_invoice,
+        invoice_payment_status,
       },
     };
   } catch (error: any) {
@@ -4284,5 +4555,246 @@ export async function deleteReservationAction(reservationId: string): Promise<{
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e.message };
+  }
+}
+
+// =============================================
+// 2FA SERVER ACTIONS (SSR — reads httpOnly cookies directly)
+// These replace the /api/portal/security/2fa REST route to eliminate
+// the "Not authenticated" error caused by httpOnly cookie limitations.
+// =============================================
+
+/** Resolve the employee DB record from the current request cookies */
+async function get2FAEmployee() {
+  const cookieStore = await cookies();
+  const token =
+    cookieStore.get('sb-access-token')?.value ||
+    cookieStore.get('auth_token')?.value;
+  if (!token) return null;
+
+  // Decode JWT to get Supabase auth user ID
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    const exp = payload.exp as number | undefined;
+    if (exp && exp * 1000 < Date.now()) return null;
+
+    const authUserId: string | undefined = payload.sub;
+    if (!authUserId) return null;
+
+    const client = await getAuthenticatedClient();
+
+    // Look up employee by auth_user_id
+    const { data: byId } = await client
+      .from('employees')
+      .select('id, email, name, is_2fa_enabled, two_fa_secret, role')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle();
+    if (byId) return { employee: byId, client };
+
+    // Fallback: look up by email from JWT payload
+    const email: string | undefined = payload.email;
+    if (email) {
+      const { data: byEmail } = await client
+        .from('employees')
+        .select('id, email, name, is_2fa_enabled, two_fa_secret, role')
+        .ilike('email', email)
+        .maybeSingle();
+      if (byEmail) {
+        // Back-fill auth_user_id
+        await client
+          .from('employees')
+          .update({ auth_user_id: authUserId })
+          .eq('id', byEmail.id);
+        return { employee: byEmail, client };
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+/** Generate a new TOTP secret + QR code for the current employee */
+export async function generate2FASetupAction(): Promise<{
+  success: boolean;
+  qr_code?: string;
+  secret?: string;
+  manual_entry_key?: string;
+  is_enabled?: boolean;
+  error?: string;
+}> {
+  try {
+    // Dynamic import keeps speakeasy out of the client bundle
+    const speakeasy = await import('speakeasy');
+    const QRCode = await import('qrcode');
+
+    const auth = await get2FAEmployee();
+    if (!auth) return { success: false, error: 'Not authenticated' };
+
+    const { employee } = auth;
+
+    const secretObj = speakeasy.generateSecret({
+      name: `ZOIRO Broast (${employee.email})`,
+      issuer: 'ZOIRO Broast Hub',
+      length: 32,
+    });
+
+    const qrCodeDataUrl = await QRCode.toDataURL(secretObj.otpauth_url || '');
+
+    return {
+      success: true,
+      qr_code: qrCodeDataUrl,
+      secret: secretObj.base32,
+      manual_entry_key: secretObj.base32,
+      is_enabled: employee.is_2fa_enabled || false,
+    };
+  } catch (e: any) {
+    return { success: false, error: e.message || 'Failed to generate 2FA setup' };
+  }
+}
+
+/** Verify a TOTP code and enable 2FA for the current employee */
+export async function enable2FAAction(
+  secret: string,
+  token: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const speakeasy = await import('speakeasy');
+
+    if (!secret || !token) {
+      return { success: false, error: 'Secret and token are required' };
+    }
+
+    const auth = await get2FAEmployee();
+    if (!auth) return { success: false, error: 'Not authenticated' };
+
+    const { employee, client } = auth;
+
+    const verified = speakeasy.totp.verify({
+      secret,
+      encoding: 'base32',
+      token,
+      window: 2,
+    });
+
+    if (!verified) {
+      return { success: false, error: 'Invalid verification code' };
+    }
+
+    const { error } = await client
+      .from('employees')
+      .update({
+        is_2fa_enabled: true,
+        two_fa_secret: secret,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', employee.id);
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath('/portal/settings');
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message || 'Failed to enable 2FA' };
+  }
+}
+
+/** Verify a TOTP code and disable 2FA for the current employee */
+export async function disable2FAAction(
+  token: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const speakeasy = await import('speakeasy');
+
+    if (!token) {
+      return { success: false, error: 'Token is required' };
+    }
+
+    const auth = await get2FAEmployee();
+    if (!auth) return { success: false, error: 'Not authenticated' };
+
+    const { employee, client } = auth;
+
+    if (!employee.two_fa_secret) {
+      return { success: false, error: '2FA is not configured for this account' };
+    }
+
+    const verified = speakeasy.totp.verify({
+      secret: employee.two_fa_secret,
+      encoding: 'base32',
+      token,
+      window: 2,
+    });
+
+    if (!verified) {
+      return { success: false, error: 'Invalid verification code' };
+    }
+
+    const { error } = await client
+      .from('employees')
+      .update({
+        is_2fa_enabled: false,
+        two_fa_secret: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', employee.id);
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath('/portal/settings');
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message || 'Failed to disable 2FA' };
+  }
+}
+
+// =============================================
+// EDIT ORDER ACTION
+// Replaces the full items array on an active
+// dine-in order (pending/confirmed/preparing).
+// Recalculates subtotal, tax, total and sends
+// a kitchen_updates notification via Postgres.
+// =============================================
+
+export interface OrderCartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  isDeal?: boolean;
+  notes?: string;
+}
+
+export async function updateOrderItemsAction(
+  orderId: string,
+  items: OrderCartItem[]
+): Promise<{ success: boolean; subtotal?: number; tax?: number; total?: number; items_count?: number; error?: string }> {
+  try {
+    const client = await getAuthenticatedClient();
+
+    const { data, error } = await client.rpc('update_order_items', {
+      p_order_id: orderId,
+      p_items: items as any,
+    });
+
+    if (error) throw error;
+    if (!data?.success) return { success: false, error: data?.error || 'Failed to update order' };
+
+    revalidatePath('/portal/tables');
+    revalidatePath('/portal/orders');
+    revalidatePath('/portal/kitchen');
+
+    return {
+      success: true,
+      subtotal: data.subtotal,
+      tax: data.tax,
+      total: data.total,
+      items_count: data.items_count,
+    };
+  } catch (error: any) {
+    console.error('[Server Action] updateOrderItemsAction error:', error);
+    return { success: false, error: error.message || 'Failed to update order items' };
   }
 }

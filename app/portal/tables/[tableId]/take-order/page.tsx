@@ -5,12 +5,10 @@ import {
 } from '@/lib/server-queries';
 import TakeOrderPageClient from './TakeOrderPageClient';
 
-// =============================================
-// TAKE ORDER — SSR PAGE
-// Parallel server fetch: table + menu.
-// Customer order history is loaded client-side when a registered customer
-// is detected (so there is no per-request DB cost on every page load).
-// =============================================
+// Always render fresh from the server — never serve a cached snapshot.
+// Without this, Next.js may reuse a stale RSC payload where the table
+// still shows the previous order's data even after the table was released.
+export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ tableId: string }>;

@@ -40,7 +40,7 @@ export const ALL_PAGES = {
 export type PageKey = keyof typeof ALL_PAGES;
 
 // General pages everyone has access to
-export const GENERAL_PAGES: PageKey[] = ['dashboard', 'profile', 'attendance'];
+export const GENERAL_PAGES: PageKey[] = ['dashboard', 'profile', 'attendance', 'payroll'];
 
 // =============================================
 // DEFAULT ROLE PERMISSIONS
@@ -70,10 +70,10 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<EmployeeRole, {
   },
   
   waiter: {
-    // General + Tables, Orders (dine-in only)
-    pages: [...GENERAL_PAGES, 'tables', 'orders'],
+    // General + Tables, Orders (dine-in only), Billing (for generating bills on their orders)
+    pages: [...GENERAL_PAGES, 'tables', 'orders', 'billing'],
     orderFilters: ['dine-in'],
-    features: ['create_orders', 'view_own_tables'],
+    features: ['create_orders', 'view_own_tables', 'generate_bills'],
   },
   
   billing_staff: {
@@ -266,7 +266,7 @@ export function getSidebarItems(permissions: UserPermissions) {
 export const PERMISSIONS_CACHE_KEY = 'user_permissions';
 export const PERMISSIONS_CACHE_EXPIRY = 'user_permissions_expiry';
 export const PERMISSIONS_CACHE_VERSION_KEY = 'user_permissions_version';
-export const PERMISSIONS_CACHE_VERSION = '4'; // bumped: added bookings + missing page-access permissions
+export const PERMISSIONS_CACHE_VERSION = '5'; // bumped: payroll added to GENERAL_PAGES (visible to all roles)
 export const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 /**

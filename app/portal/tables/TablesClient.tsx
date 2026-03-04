@@ -47,6 +47,7 @@ import {
   deleteRestaurantTableAction,
   updateTableStatusAction,
   releaseTableAction,
+  completeOrderAndReleaseTable,
   getOnlineBookingSettingAction,
   toggleOnlineBookingAction,
 } from '@/lib/actions';
@@ -175,14 +176,20 @@ export default function TablesClient({
     realtimeHandlerRef.current = (payload?: any) => {
       const eventType: string = payload?.eventType ?? '';
       if (eventType === 'UPDATE' && payload?.new?.id) {
-        // Surgical single-card patch — no full refetch
-        patchTable(payload.new.id, {
+        const updates: Partial<WaiterTable> = {
           status: payload.new.status,
           current_customers: payload.new.current_customers,
           current_order_id: payload.new.current_order_id,
           assigned_waiter_id: payload.new.assigned_waiter_id,
           updated_at: payload.new.updated_at,
-        } as Partial<WaiterTable>);
+        };
+        // When the DB clears the order (table released/completed), also wipe
+        // the client-side current_order object so the card stops showing stale
+        // order details (number, items, timer, etc.).
+        if (!payload.new.current_order_id) {
+          (updates as any).current_order = null;
+        }
+        patchTable(payload.new.id, updates);
       } else if (eventType === 'INSERT' || eventType === 'DELETE') {
         // Table added/removed — must resync count
         fetchTables();
@@ -214,6 +221,9 @@ export default function TablesClient({
         description: 'Taking you to the order page…',
       });
       patchTable(tableId, { status: 'occupied', is_my_table: true } as Partial<WaiterTable>);
+      // Clear any stale cart from a previous session so the new waiter
+      // starts with an empty cart instead of seeing a previous order's items.
+      try { localStorage.removeItem(`zoiro_cart_${tableId}`); } catch {}
       router.push(`/portal/tables/${tableId}/take-order`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to claim table');
@@ -241,7 +251,13 @@ export default function TablesClient({
   // Release table — optimistic patch, revert on error
   const handleReleaseTable = async (tableId: string, setToCleaning: boolean = false) => {
     const newStatus = setToCleaning ? 'cleaning' : 'available';
-    patchTable(tableId, { status: newStatus, is_my_table: false, current_order_id: null } as Partial<WaiterTable>);
+    // Clear current_order too so the card stops showing the old order details
+    patchTable(tableId, {
+      status: newStatus,
+      is_my_table: false,
+      current_order_id: null,
+      current_order: null,
+    } as Partial<WaiterTable>);
     try {
       const result = await releaseTableAction(tableId, setToCleaning);
       if (!result.success) {
@@ -251,6 +267,27 @@ export default function TablesClient({
       toast.success(`Table released${setToCleaning ? ' and set to cleaning' : ''}`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to release table');
+    }
+  };
+
+  // Complete order + set table to cleaning
+  const handleCompleteOrder = async (orderId: string, tableId: string) => {
+    // Optimistic update: clear order, set cleaning, release from me
+    patchTable(tableId, {
+      status: 'cleaning',
+      is_my_table: false,
+      current_order_id: null,
+      current_order: null,
+    } as Partial<WaiterTable>);
+    try {
+      const result = await completeOrderAndReleaseTable(orderId, tableId);
+      if (!result.success) {
+        fetchTables(); // revert
+        throw new Error(result.error || 'Failed to complete order');
+      }
+      toast.success('Order completed! Table set to cleaning.');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to complete order');
     }
   };
 
@@ -505,18 +542,20 @@ export default function TablesClient({
                   index={index}
                   onClaimTable={handleClaimTable}
                   onTakeOrder={(t) => {
-                    router.push(`/portal/tables/${t.id}/take-order`);
+                    if (t.current_order) {
+                      router.push(`/portal/tables/${t.id}/edit-order`);
+                    } else {
+                      router.push(`/portal/tables/${t.id}/take-order`);
+                    }
                   }}
                   onViewDetails={(t) => {
                     router.push(`/portal/tables/${t.id}/take-order`);
-                  }}
-                  onGenerateBill={(orderId) => {
-                    router.push(`/portal/billing?order=${orderId}`);
                   }}
                   onEditTable={isAdminOrManager ? handleEditTable : undefined}
                   onDeleteTable={isAdminOrManager ? handleDeleteTableClick : undefined}
                   onUpdateStatus={handleUpdateStatus}
                   onReleaseTable={handleReleaseTable}
+                  onCompleteOrder={handleCompleteOrder}
                   onViewOrderDetails={handleViewOrderDetails}
                   onSendToBilling={handleSendToBilling}
                   isWaiter={isWaiter}
@@ -571,10 +610,6 @@ export default function TablesClient({
         table={tableForOrder}
         open={isOrderDetailsOpen}
         onOpenChange={setIsOrderDetailsOpen}
-        onGenerateBill={(orderId) => {
-          setIsOrderDetailsOpen(false);
-          router.push(`/portal/billing?order=${orderId}`);
-        }}
       />
 
       {/* Delete Confirmation Dialog */}

@@ -1104,6 +1104,69 @@ export async function getWaiterDashboardServer(employeeId: string) {
   return data;
 }
 
+export interface WaiterDashboardStats {
+  orders_count: number;
+  orders_today: number;
+  tips_total: number;
+  tips_today: number;
+  active_tables: number;
+  total_sales: number;
+}
+
+/**
+ * SSR-only: fetch waiter dashboard stats via RPC.
+ * Uses authenticated client with JWT to call secure RPC function.
+ * Employee ID is verified server-side before calling this.
+ */
+export async function getWaiterDashboardStatsServer(
+  employeeId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<WaiterDashboardStats | null> {
+  if (!isSupabaseConfigured) return null;
+  try {
+    const client = await getAuthenticatedClient();
+    const today = new Date().toISOString().split('T')[0];
+    const start = startDate || today;
+    const end = endDate || today;
+
+    // Use RPC instead of direct table queries for security
+    const { data, error } = await client.rpc('get_waiter_dashboard_stats', {
+      p_employee_id: employeeId,
+      p_start_date: start,
+      p_end_date: end,
+    });
+
+    if (error) {
+      // Serialize error properly for debugging (PostgresError doesn't stringify well)
+      console.error('[SSR] getWaiterDashboardStatsServer RPC error:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+      return null;
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    // Map RPC response to interface
+    return {
+      orders_count: data.orders_count || 0,
+      orders_today: data.orders_today || 0,
+      tips_total: data.tips_total || 0,
+      tips_today: data.tips_today || 0,
+      active_tables: data.active_tables || 0,
+      total_sales: data.total_sales || 0,
+    };
+  } catch (e: any) {
+    console.error('[SSR] getWaiterDashboardStatsServer exception:', e?.message || e);
+    return null;
+  }
+}
+
 // OLD getDeliveryOrdersServer - REMOVED (duplicate of cached version below)
 
 // =============================================
@@ -2582,6 +2645,8 @@ export async function getMyLeaveRequestsServer(
 }
 
 // Get Leave Balance (Employee)
+// Uses RPC without p_employee_id to avoid function overload ambiguity
+// The RPC uses auth.uid() internally via get_employee_id()
 export async function getLeaveBalanceServer(): Promise<LeaveBalanceServer | null> {
   if (!isSupabaseConfigured) return null;
 
@@ -2592,9 +2657,11 @@ export async function getLeaveBalanceServer(): Promise<LeaveBalanceServer | null
     return null;
   }
 
-  const { data, error } = await (await getAuthenticatedClient()).rpc('get_leave_balance', {
-    p_employee_id: employee.id
-  });
+  // Call RPC without p_employee_id to avoid PostgreSQL function overload ambiguity
+  // The RPC has two versions: get_leave_balance() and get_leave_balance(p_employee_id uuid DEFAULT NULL)
+  // Calling with named parameter causes "Could not choose the best candidate function" error
+  // The no-parameter version uses get_employee_id() internally which resolves auth.uid()
+  const { data, error } = await (await getAuthenticatedClient()).rpc('get_leave_balance', { p_employee_id: null });
 
   if (error) {
     console.error('Error fetching leave balance:', error);
@@ -3128,6 +3195,28 @@ export interface PayslipsPaginatedServer {
   total_count: number;
   page: number;
   total_pages: number;
+}
+
+// Get My Payslips (Server-Side) — employee self-service, uses auth.uid() in RPC
+export async function getMyPayslipsServer(employeeId: string): Promise<{
+  employee: any;
+  payslips: any[];
+  company: any;
+} | null> {
+  if (!isSupabaseConfigured || !employeeId) return null;
+  try {
+    const { data, error } = await (await getAuthenticatedClient()).rpc(
+      'get_my_payslips_by_id' as any,
+      { p_employee_id: employeeId }
+    );
+    if (error) { console.error('getMyPayslipsServer error:', error); return null; }
+    const d = data as any;
+    if (!d || d.error) { console.error('getMyPayslipsServer RPC error:', d?.error); return null; }
+    return d as { employee: any; payslips: any[]; company: any };
+  } catch (e) {
+    console.error('getMyPayslipsServer exception:', e);
+    return null;
+  }
 }
 
 // Get Payroll Dashboard (Server-Side)
@@ -4307,6 +4396,36 @@ export interface WebsiteSettingsServer {
   deliveryFee: string;
 }
 
+export interface TaxSettingsServer {
+  rate: number;
+  enabled: boolean;
+  label: string;
+}
+
+/**
+ * Get tax settings (SSR)
+ */
+export async function getTaxSettingsServer(): Promise<TaxSettingsServer> {
+  const defaults: TaxSettingsServer = { rate: 0, enabled: false, label: 'GST' };
+  if (!isSupabaseConfigured) return defaults;
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'tax_settings')
+      .maybeSingle();
+    if (error || !data) return defaults;
+    return {
+      rate: data.value?.rate ?? 0,
+      enabled: data.value?.enabled ?? false,
+      label: data.value?.label ?? 'GST',
+    };
+  } catch {
+    return defaults;
+  }
+}
+
 export interface PaymentMethodServer {
   id: string;
   method_type: 'jazzcash' | 'easypaisa' | 'bank';
@@ -4728,6 +4847,61 @@ export async function getOnlineBookingSettingServer(): Promise<OnlineBookingSett
     return data ?? { enabled: false, max_advance_days: 14, min_notice_hours: 1, auto_release_minutes: 10 };
   } catch {
     return { enabled: false, max_advance_days: 14, min_notice_hours: 1, auto_release_minutes: 10 };
+  }
+}
+
+// =============================================
+// ORDER FOR EDIT SERVER QUERY
+// Fetches an active order's items + metadata
+// for pre-populating the edit-order cart.
+// =============================================
+
+export interface OrderForEdit {
+  id: string;
+  order_number: string;
+  status: string;
+  items: {
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+    isDeal?: boolean;
+    notes?: string;
+  }[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  notes?: string;
+}
+
+/**
+ * Server-side fetch of a live order's full details for the edit-order page.
+ * Uses the existing `get_order_details` RPC with authenticated client.
+ */
+export async function getOrderForEditServer(orderId: string): Promise<OrderForEdit | null> {
+  if (!isSupabaseConfigured) return null;
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('get_order_details', {
+      p_order_id: orderId,
+      p_customer_id: null,
+    });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) return null;
+    return {
+      id: row.id,
+      order_number: row.order_number,
+      status: row.status,
+      items: Array.isArray(row.items) ? row.items : [],
+      subtotal: row.subtotal ?? 0,
+      tax: row.tax ?? 0,
+      total: row.total ?? 0,
+      notes: row.notes ?? '',
+    };
+  } catch (e) {
+    console.error('[SSR] getOrderForEditServer error:', e);
+    return null;
   }
 }
 

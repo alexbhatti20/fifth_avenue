@@ -44,6 +44,7 @@ import {
   AlertCircle,
   Calendar,
   Keyboard,
+  Calculator,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -89,6 +90,11 @@ import {
   getWebsiteSettingsServerAction,
   updateWebsiteSettingsServer,
   getEmployeeProfileServerAction,
+  generate2FASetupAction,
+  enable2FAAction,
+  disable2FAAction,
+  getTaxSettingsAction,
+  updateTaxSettingsAction,
 } from '@/lib/actions';
 import { uploadEmployeeAvatar, deleteStorageFile } from '@/lib/storage';
 
@@ -142,6 +148,12 @@ export interface WebsiteSettings {
   deliveryRadius: string;
   minOrderAmount: string;
   deliveryFee: string;
+}
+
+export interface TaxSettings {
+  rate: number;
+  enabled: boolean;
+  label: string;
 }
 
 export interface MaintenanceStatus {
@@ -1282,42 +1294,6 @@ function SecuritySettings({
   const pwdResendTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pwdExpiryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Helper: always attach the freshest token so server auth works even when
-  // httpOnly cookies are stale (tokens are refreshed in localStorage by PortalProvider).
-  const getAuthHeaders = (): Record<string, string> => {
-    if (typeof window === 'undefined') return {};
-
-    // 1. Our custom localStorage keys (set by employeeLogin + TOKEN_REFRESHED)
-    let token =
-      localStorage.getItem('sb_access_token') ||
-      localStorage.getItem('auth_token');
-
-    // 2. Supabase's own native session JSON — reliable when user logged in but page reloaded
-    if (!token) {
-      try {
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-            const stored = JSON.parse(localStorage.getItem(key) || '{}');
-            if (stored?.access_token) { token = stored.access_token; break; }
-          }
-        }
-      } catch { /* ignore */ }
-    }
-
-    // 3. Cookie fallback — reads non-httpOnly cookies we set at login
-    if (!token) {
-      try {
-        const m1 = document.cookie.match(/(^| )sb-access-token=([^;]+)/);
-        const m2 = document.cookie.match(/(^| )auth_token=([^;]+)/);
-        token = (m1 ? decodeURIComponent(m1[2]) : null) ||
-                (m2 ? decodeURIComponent(m2[2]) : null);
-      } catch { /* ignore */ }
-    }
-
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
-
   // Load 2FA status only if no SSR data
   useEffect(() => {
     if (hasSSRData.current || hasFetched.current) {
@@ -1330,15 +1306,10 @@ function SecuritySettings({
   const loadStatus = async () => {
     try {
       setIsLoading(true);
-      
-      const response = await fetch('/api/portal/security/2fa', {
-        credentials: 'include',
-        headers: getAuthHeaders(),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setIs2FAEnabled(data.is_enabled);
+      // Use server action — no Authorization header needed; reads httpOnly cookies server-side
+      const data = await generate2FASetupAction();
+      if (data.success) {
+        setIs2FAEnabled(data.is_enabled ?? false);
       }
     } catch (error) {
       // Silent fail
@@ -1350,18 +1321,12 @@ function SecuritySettings({
   const handleGenerate2FA = async () => {
     try {
       setIsEnabling(true);
-      
-      const response = await fetch('/api/portal/security/2fa', {
-        credentials: 'include',
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) throw new Error('Failed to generate 2FA');
-
-      const data = await response.json();
-      setQrCode(data.qr_code);
-      setSecret(data.secret);
-      setManualKey(data.manual_entry_key);
+      // Server action — reads httpOnly cookies directly, no client-side token needed
+      const data = await generate2FASetupAction();
+      if (!data.success) throw new Error(data.error || 'Failed to generate 2FA');
+      setQrCode(data.qr_code ?? null);
+      setSecret(data.secret ?? null);
+      setManualKey(data.manual_entry_key ?? null);
       setShowSetup(true);
     } catch (error: any) {
       toast.error(error.message || 'Failed to generate 2FA setup');
@@ -1378,26 +1343,9 @@ function SecuritySettings({
 
     try {
       setIsEnabling(true);
-      
-      const response = await fetch('/api/portal/security/2fa', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          secret,
-          token: verificationCode,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to enable 2FA');
-      }
-
+      // Server action — no client-side Authorization header needed
+      const data = await enable2FAAction(secret ?? '', verificationCode);
+      if (!data.success) throw new Error(data.error || 'Failed to enable 2FA');
       toast.success('2FA enabled successfully!');
       setIs2FAEnabled(true);
       setShowSetup(false);
@@ -1417,26 +1365,9 @@ function SecuritySettings({
 
     try {
       setIsDisabling(true);
-      
-      const response = await fetch('/api/portal/security/2fa', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          enabled: false,
-          token: disableCode,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to disable 2FA');
-      }
-
+      // Server action — no client-side Authorization header needed
+      const data = await disable2FAAction(disableCode);
+      if (!data.success) throw new Error(data.error || 'Failed to disable 2FA');
       toast.success('2FA disabled successfully');
       setIs2FAEnabled(false);
       setShowDisableDialog(false);
@@ -1499,7 +1430,7 @@ function SecuritySettings({
       setPwdStep('sending');
       const res = await fetch('/api/portal/security/password-reset', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ action: 'send-otp' }),
       });
@@ -1521,7 +1452,7 @@ function SecuritySettings({
       setPwdStep('sending');
       const res = await fetch('/api/portal/security/password-reset', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ action: 'send-otp' }),
       });
@@ -1545,7 +1476,7 @@ function SecuritySettings({
       setPwdStep('verifying');
       const res = await fetch('/api/portal/security/password-reset', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ action: 'verify-otp', otp: pwdOTP }),
       });
@@ -1575,7 +1506,7 @@ function SecuritySettings({
       setPwdStep('resetting');
       const res = await fetch('/api/portal/security/password-reset', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           action: 'reset-password',
@@ -2717,6 +2648,399 @@ function MaintenanceModeSettings({
   );
 }
 
+// =============================================
+// TAX SETTINGS FORM
+// Admin-only — stored in system_settings table
+// =============================================
+function TaxSettingsForm({ initialSettings }: { initialSettings: TaxSettings | null }) {
+  const defaults: TaxSettings = { rate: 0, enabled: false, label: 'GST' };
+  const [settings, setSettings] = useState<TaxSettings>(initialSettings ?? defaults);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(!initialSettings);
+
+  useEffect(() => {
+    if (initialSettings) return;
+    let cancelled = false;
+    getTaxSettingsAction().then((r) => {
+      if (!cancelled && r.success && r.settings) setSettings(r.settings);
+      if (!cancelled) setIsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [initialSettings]);
+
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    try {
+      const result = await updateTaxSettingsAction(settings);
+      if (!result.success) throw new Error(result.error || 'Failed to save');
+      toast.success('Tax settings saved', {
+        description: settings.enabled
+          ? `${settings.label} set to ${settings.rate}%`
+          : 'Tax is disabled — invoices will not include tax.',
+      });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to save tax settings');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calculator className="h-4 w-4" />
+            Tax / GST Settings
+          </CardTitle>
+          <CardDescription>
+            Configure the tax rate applied to all invoices generated by the billing desk.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Enable / Disable toggle */}
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div>
+              <p className="font-medium text-sm">Enable Tax on Invoices</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                When off, no tax is added and the rate is ignored.
+              </p>
+            </div>
+            <Switch
+              checked={settings.enabled}
+              onCheckedChange={(v) => setSettings({ ...settings, enabled: v })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Tax label */}
+            <div className="space-y-2">
+              <Label>Tax Label</Label>
+              <Input
+                placeholder="e.g. GST, VAT"
+                value={settings.label}
+                disabled={!settings.enabled}
+                onChange={(e) => setSettings({ ...settings, label: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">Shown on invoices</p>
+            </div>
+
+            {/* Tax rate */}
+            <div className="space-y-2">
+              <Label>Tax Rate (%)</Label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  placeholder="0"
+                  value={settings.rate}
+                  disabled={!settings.enabled}
+                  onChange={(e) =>
+                    setSettings({ ...settings, rate: Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)) })
+                  }
+                  className="pr-8"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {settings.enabled && settings.rate > 0
+                  ? `Rs. 1000 order → Rs. ${(settings.rate * 10).toFixed(0)} tax → Rs. ${(1000 + settings.rate * 10).toFixed(0)} total`
+                  : 'No tax applied'}
+              </p>
+            </div>
+          </div>
+
+          {/* Info banner */}
+          {!settings.enabled && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Tax is currently <strong>disabled</strong>. All invoices are generated at 0% tax. Enable above to activate.
+              </AlertDescription>
+            </Alert>
+          )}
+          {settings.enabled && settings.rate === 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Tax is enabled but the rate is <strong>0%</strong>. Invoices will show the tax label but no tax amount.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+        <CardFooter className="border-t pt-4">
+          <Button onClick={handleSave} disabled={isSubmitting} className="ml-auto">
+            {isSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+            {isSubmitting ? 'Saving...' : 'Save Tax Settings'}
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
+// ============================================================
+// ATTENDANCE LOCATION SETTINGS (Admin/Manager — geofence)
+// ============================================================
+function AttendanceLocationSettings() {
+  const [lat, setLat]           = useState('');
+  const [lng, setLng]           = useState('');
+  const [name, setName]         = useState('Restaurant');
+  const [radius, setRadius]     = useState(100);
+  const [enabled, setEnabled]   = useState(true);
+  const [isLoading, setIsLoading]   = useState(true);
+  const [isSaving, setIsSaving]     = useState(false);
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [configured, setConfigured] = useState(false);
+
+  // Fetch current settings
+  useEffect(() => {
+    fetch('/api/portal/attendance/actions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_attendance_location' }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d?.data?.location) {
+          const loc = d.data.location;
+          if (loc.latitude  != null) setLat(String(loc.latitude));
+          if (loc.longitude != null) setLng(String(loc.longitude));
+          if (loc.location_name)     setName(loc.location_name);
+          if (loc.radius_meters)     setRadius(loc.radius_meters);
+          if (loc.enabled != null)   setEnabled(loc.enabled);
+          setConfigured(!!d.data.configured);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const handleAutoDetect = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation not supported by your browser');
+      return;
+    }
+    setIsDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLat(pos.coords.latitude.toFixed(7));
+        setLng(pos.coords.longitude.toFixed(7));
+        setIsDetecting(false);
+      },
+      (err) => {
+        alert('Could not get location: ' + err.message);
+        setIsDetecting(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  };
+
+  const handleSave = async () => {
+    const latN = parseFloat(lat);
+    const lngN = parseFloat(lng);
+    if (isNaN(latN) || isNaN(lngN)) {
+      alert('Please enter valid latitude and longitude');
+      return;
+    }
+    if (radius < 10 || radius > 5000) {
+      alert('Radius must be between 10 and 5000 meters');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/portal/attendance/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_attendance_location',
+          latitude: latN,
+          longitude: lngN,
+          locationName: name || 'Restaurant',
+          radiusMeters: radius,
+          enabled,
+        }),
+      });
+      const d = await res.json();
+      if (d?.data?.success) {
+        setConfigured(true);
+        alert('Location settings saved successfully!');
+      } else {
+        alert(d?.data?.error || d?.error || 'Failed to save');
+      }
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-500/10">
+                <MapPin className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <CardTitle>Attendance Geofence</CardTitle>
+                <CardDescription>
+                  Employees can only mark attendance when within the allowed radius of this location
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="geo-enabled" className="text-sm">Enable</Label>
+              <Switch id="geo-enabled" checked={enabled} onCheckedChange={setEnabled} />
+            </div>
+          </div>
+          {configured && (
+            <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-green-500/10 text-green-700 rounded-lg text-sm">
+              <CheckCircle className="h-4 w-4 shrink-0" />
+              Geofence is configured and {enabled ? 'active' : 'disabled'}
+            </div>
+          )}
+          {!configured && (
+            <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-amber-500/10 text-amber-700 rounded-lg text-sm">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              No premises location set — attendance marking works without location check
+            </div>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Auto-detect */}
+          <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+            <div>
+              <p className="text-sm font-medium">Auto-detect from this device</p>
+              <p className="text-xs text-muted-foreground">Use your admin device's current GPS position as the premises</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAutoDetect}
+              disabled={isDetecting}
+            >
+              {isDetecting
+                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Detecting…</>
+                : <><MapPin className="h-4 w-4 mr-2" />Detect GPS</>
+              }
+            </Button>
+          </div>
+
+          {/* Manual coordinates */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="lat">Latitude</Label>
+              <Input
+                id="lat"
+                value={lat}
+                onChange={e => setLat(e.target.value)}
+                placeholder="e.g. 31.5204"
+                className="font-mono text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="lng">Longitude</Label>
+              <Input
+                id="lng"
+                value={lng}
+                onChange={e => setLng(e.target.value)}
+                placeholder="e.g. 74.3587"
+                className="font-mono text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Location name */}
+          <div className="space-y-1.5">
+            <Label htmlFor="loc-name">Location Name</Label>
+            <Input
+              id="loc-name"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. Main Branch, Gulberg"
+            />
+          </div>
+
+          {/* Radius */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="radius">Allowed Radius</Label>
+              <span className="text-sm font-mono font-semibold text-primary">{radius} m</span>
+            </div>
+            <Input
+              id="radius"
+              type="number"
+              min={10}
+              max={5000}
+              step={10}
+              value={radius}
+              onChange={e => setRadius(Number(e.target.value))}
+              className="w-full"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              <span>10 m (strict)</span>
+              <span>100 m (recommended)</span>
+              <span>5000 m (loose)</span>
+            </div>
+          </div>
+
+          {/* Preview map link */}
+          {lat && lng && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng)) && (
+            <a
+              href={`https://maps.google.com/?q=${lat},${lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-blue-500 hover:text-blue-600 underline"
+            >
+              <MapPin className="h-4 w-4" />
+              Preview on Google Maps ↗
+            </a>
+          )}
+
+          {/* Info box */}
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              <strong>How it works:</strong> When employees enter the 6-character code, their browser GPS is checked.
+              If they are outside the {radius}-meter radius of <em>{name || 'this location'}</em>, the attendance will be rejected.
+              Set to 100 m for a typical restaurant or office.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+        <CardFooter className="border-t pt-4">
+          <Button onClick={handleSave} disabled={isSaving || !lat || !lng} className="ml-auto">
+            {isSaving
+              ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>
+              : <><Save className="h-4 w-4 mr-2" />Save Location Settings</>
+            }
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
 // Props for SSR data
 interface SettingsClientProps {
   initialEmployeeProfile?: Employee | null;
@@ -2725,7 +3049,8 @@ interface SettingsClientProps {
   initialPaymentStats?: PaymentMethodsStats | null;
   initial2FAStatus?: boolean;
   initialMaintenanceStatus?: MaintenanceStatus | null;
-  hasSSRData?: boolean; // Explicitly set from server to indicate SSR data was fetched
+  initialTaxSettings?: TaxSettings | null;
+  hasSSRData?: boolean;
 }
 
 // Main Settings Client Component
@@ -2736,6 +3061,7 @@ export default function SettingsClient({
   initialPaymentStats = null,
   initial2FAStatus = false,
   initialMaintenanceStatus = null,
+  initialTaxSettings = null,
   hasSSRData = false,
 }: SettingsClientProps) {
   // Get context as fallback when SSR data is not available
@@ -2810,6 +3136,9 @@ export default function SettingsClient({
                 <TabsTrigger value="payment-methods" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
                   <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Payments
                 </TabsTrigger>
+                <TabsTrigger value="billing-settings" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+                  <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Billing
+                </TabsTrigger>
                 <TabsTrigger value="website" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
                   <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Website
                 </TabsTrigger>
@@ -2860,6 +3189,9 @@ export default function SettingsClient({
                 initialStats={initialPaymentStats}
                 hasSSRData={hasSSRData} 
               />
+            </TabsContent>
+            <TabsContent value="billing-settings">
+              <TaxSettingsForm initialSettings={initialTaxSettings} />
             </TabsContent>
             <TabsContent value="website">
               <WebsiteSettingsForm initialSettings={initialWebsiteSettings || null} />

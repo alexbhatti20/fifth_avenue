@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useTransition, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Receipt, User, Phone, Mail, ShoppingCart, Clock, X, RefreshCw,
-  Send, Calculator, Tag, Package, ChevronRight, Printer, Star,
-  AlertTriangle
+  Send, Calculator, Tag, Package, ChevronRight, Star,
+  AlertTriangle, Loader2, CheckCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,19 +17,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { getTableCurrentOrderAction, sendTableToBillingAction } from '@/lib/actions';
+import { getTableCurrentOrderAction, sendOrderToBillingAction, updatePendingInvoiceAction } from '@/lib/actions';
 import type { TableOrderDetails } from '@/lib/actions';
 import type { WaiterTable } from './types';
 
@@ -44,7 +34,6 @@ interface TableOrderDetailsDialogProps {
   table: WaiterTable | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGenerateBill?: (orderId: string) => void;
 }
 
 const MEMBERSHIP_COLORS: Record<string, string> = {
@@ -72,12 +61,13 @@ export function TableOrderDetailsDialog({
   table,
   open,
   onOpenChange,
-  onGenerateBill,
 }: TableOrderDetailsDialogProps) {
   const [order, setOrder] = useState<TableOrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSendBillingOpen, setIsSendBillingOpen] = useState(false);
-  const [isSendPending, startSendTransition] = useTransition();
+  const [isSendingBill, setIsSendingBill] = useState(false);
+  const [isUpdatingBill, setIsUpdatingBill] = useState(false);
+  const [billSentThisSession, setBillSentThisSession] = useState(false);
+  const [billUpdatedThisSession, setBillUpdatedThisSession] = useState(false);
 
   const fetchOrderDetails = useCallback(async () => {
     if (!table?.id || !table.current_order) return;
@@ -99,25 +89,59 @@ export function TableOrderDetailsDialog({
   useEffect(() => {
     if (open && table) {
       fetchOrderDetails();
+      setBillSentThisSession(false);
+      setBillUpdatedThisSession(false);
     } else {
       setOrder(null);
     }
   }, [open, table, fetchOrderDetails]);
 
-  const handleSendToBilling = () => {
-    if (!order?.order_id) return;
-    startSendTransition(async () => {
-      const result = await sendTableToBillingAction(order.order_id);
+  const handleSendToBilling = async () => {
+    if (!order?.order_id || isSendingBill) return;
+    setIsSendingBill(true);
+    try {
+      const result = await sendOrderToBillingAction(order.order_id);
       if (result.success) {
-        toast.success(`Order #${result.order_number} sent to billing counter!`, {
-          description: 'The billing team will process the payment.',
-        });
-        setIsSendBillingOpen(false);
-        onOpenChange(false);
+        setBillSentThisSession(true);
+        if (result.already_exists) {
+          toast.info('Bill already in billing queue', {
+            description: 'This order already has an active invoice.',
+          });
+        } else {
+          toast.success('Bill sent to billing counter!', {
+            description: 'The billing team will process the payment.',
+          });
+        }
       } else {
         toast.error(result.error || 'Failed to send to billing');
       }
-    });
+    } catch {
+      toast.error('Failed to send to billing');
+    } finally {
+      setIsSendingBill(false);
+    }
+  };
+
+  const handleUpdateBill = async () => {
+    if (!order?.order_id || isUpdatingBill) return;
+    setIsUpdatingBill(true);
+    try {
+      const result = await updatePendingInvoiceAction(order.order_id);
+      if (result.success) {
+        setBillUpdatedThisSession(true);
+        toast.success(`Invoice ${result.invoice_number} updated!`, {
+          description: 'Billing counter will see the latest items and totals.',
+        });
+        // Refresh order details to show updated invoice state
+        await fetchOrderDetails();
+      } else {
+        toast.error(result.error || 'Failed to update invoice');
+      }
+    } catch {
+      toast.error('Failed to update invoice');
+    } finally {
+      setIsUpdatingBill(false);
+    }
   };
 
   // Auto-calculate bill totals from items if server values are 0
@@ -367,92 +391,78 @@ export function TableOrderDetailsDialog({
           </div>
 
           {/* Actions Footer */}
-          {!isLoading && order && (
-            <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4 space-y-2">
-              {/* Send to Billing Counter */}
-              {!order.notes?.includes('[BILLING REQUESTED') && (
-                <Button
-                  className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-md h-11"
-                  onClick={() => setIsSendBillingOpen(true)}
-                  disabled={isSendPending}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Bill to Billing Counter
-                </Button>
-              )}
+          {!isLoading && order && (() => {
+            const invoiceStatus = order.invoice_payment_status ?? null;
+            const isPaidOrClosed = ['paid', 'cancelled', 'refunded'].includes(invoiceStatus ?? '');
+            const hasPendingInvoice = order.has_invoice && ['pending', 'draft'].includes(invoiceStatus ?? '') && !billSentThisSession;
+            const hasNoInvoice = !order.has_invoice || billSentThisSession;
 
-              {/* Generate Bill (open billing page) */}
-              {onGenerateBill && (
-                <Button
-                  variant="outline"
-                  className="w-full h-10 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-900/20"
-                  onClick={() => {
-                    onGenerateBill(order.order_id);
-                    onOpenChange(false);
-                  }}
-                >
-                  <Printer className="h-4 w-4 mr-2" />
-                  Open in Billing
-                </Button>
-              )}
+            return (
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4 space-y-2">
 
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full text-slate-500 h-9"
-                onClick={fetchOrderDetails}
-                disabled={isLoading}
-              >
-                <RefreshCw className={cn('h-3.5 w-3.5 mr-1.5', isLoading && 'animate-spin')} />
-                Refresh
-              </Button>
-            </div>
-          )}
+                {/* Paid / closed — show badge only */}
+                {isPaidOrClosed && (
+                  <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 h-11">
+                    <CheckCheck className="h-4 w-4 text-emerald-600" />
+                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                      {invoiceStatus === 'paid' ? 'Bill Paid' : invoiceStatus === 'cancelled' ? 'Invoice Cancelled' : 'Invoice Refunded'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Pending invoice → Update Bill */}
+                {hasPendingInvoice && (
+                  <Button
+                    className={`w-full h-11 shadow-md ${
+                      billUpdatedThisSession
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
+                    }`}
+                    onClick={handleUpdateBill}
+                    disabled={isUpdatingBill || billUpdatedThisSession}
+                  >
+                    {isUpdatingBill ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : billUpdatedThisSession ? (
+                      <CheckCheck className="h-4 w-4 mr-2" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    {isUpdatingBill ? 'Updating Bill...' : billUpdatedThisSession ? 'Bill Updated' : 'Update Bill'}
+                  </Button>
+                )}
+
+                {/* No invoice → Send to Billing */}
+                {hasNoInvoice && !isPaidOrClosed && (
+                  <Button
+                    className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-md h-11"
+                    onClick={handleSendToBilling}
+                    disabled={isSendingBill}
+                  >
+                    {isSendingBill ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    {isSendingBill ? 'Sending...' : 'Send to Billing'}
+                  </Button>
+                )}
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-slate-500 h-9"
+                  onClick={fetchOrderDetails}
+                  disabled={isLoading}
+                >
+                  <RefreshCw className={cn('h-3.5 w-3.5 mr-1.5', isLoading && 'animate-spin')} />
+                  Refresh
+                </Button>
+              </div>
+            );
+          })()}
         </SheetContent>
       </Sheet>
-
-      {/* Confirm Send to Billing */}
-      <AlertDialog open={isSendBillingOpen} onOpenChange={setIsSendBillingOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5 text-violet-500" />
-              Send Bill to Billing Counter?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <span className="block">
-                This will notify the billing counter to process payment for{' '}
-                <strong>Table {table?.table_number}</strong>
-                {order?.customer?.name ? ` (${order.customer.name})` : ''}.
-              </span>
-              {order && (
-                <span className="block text-base font-bold text-slate-800 dark:text-slate-100 pt-1">
-                  Total: Rs. {grandTotal.toLocaleString()}
-                </span>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSendPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleSendToBilling}
-              disabled={isSendPending}
-              className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white"
-            >
-              {isSendPending ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  className="h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"
-                />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              {isSendPending ? 'Sending...' : 'Send to Billing'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
