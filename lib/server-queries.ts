@@ -350,8 +350,26 @@ export async function getServerCustomer() {
     if (!token) return null;
     
     // Use JWT verification to get customer ID directly
-    const decoded = await verifyToken(token);
+    let decoded = await verifyToken(token);
     
+    // If the access token is expired, try to refresh it using the refresh token cookie
+    if (!decoded) {
+      const refreshToken = cookieStore.get('sb-refresh-token')?.value;
+      if (refreshToken) {
+        try {
+          const { data: refreshData } = await supabase.auth.setSession({
+            access_token: token,
+            refresh_token: refreshToken,
+          });
+          if (refreshData?.session?.access_token) {
+            decoded = await verifyToken(refreshData.session.access_token);
+          }
+        } catch {
+          // Refresh failed - user needs to log in again
+        }
+      }
+    }
+
     if (!decoded || !decoded.userId) return null;
     
     // userId in JWT is the customer.id from customers table

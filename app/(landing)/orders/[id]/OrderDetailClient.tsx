@@ -19,6 +19,7 @@ import {
   FileText,
   Loader2,
   RefreshCw,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect, useCallback } from "react";
+import { generateOrderInvoicePDF } from "@/lib/order-invoice-pdf";
 
 // ─── Animated red gradient text helpers ───────────────────────────────────────
 const GRADIENT_LABEL =
@@ -40,6 +42,7 @@ const FIELD_LABEL_CLASS =
 interface OrderDetail {
   id: string;
   order_number: string;
+  order_type: string;
   customer_name: string;
   customer_email: string;
   customer_phone: string;
@@ -56,6 +59,7 @@ interface OrderDetail {
   notes: string;
   assigned_to_name: string;
   assigned_to_phone: string;
+  waiter_name?: string | null;
   created_at: string;
   delivered_at: string;
   status_history: any[];
@@ -151,6 +155,41 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
       router.push("/auth");
     }
   }, [user, authLoading, router, hasCheckedAuth]);
+
+  const downloadInvoice = async () => {
+    if (!order) return;
+    await generateOrderInvoicePDF({
+      order_number: order.order_number,
+      order_type: order.order_type,
+      status: order.status,
+      created_at: order.created_at,
+      delivered_at: order.delivered_at ?? null,
+      customer_name: order.customer_name ?? null,
+      customer_email: order.customer_email ?? null,
+      customer_phone: order.customer_phone ?? null,
+      customer_address: order.customer_address ?? null,
+      items: Array.isArray(order.items)
+        ? order.items.map((i: any) => ({
+            name: i.name || 'Item',
+            quantity: i.quantity || 1,
+            price: i.price ?? i.unit_price ?? 0,
+            variant: i.variant,
+          }))
+        : [],
+      subtotal: order.subtotal ?? order.total,
+      tax: order.tax ?? 0,
+      delivery_fee: order.delivery_fee ?? 0,
+      discount: order.discount ?? 0,
+      total: order.total,
+      payment_method: order.payment_method ?? null,
+      payment_status: order.payment_status ?? null,
+      transaction_id: order.transaction_id ?? null,
+      online_payment_details: order.online_payment_details ?? null,
+      notes: order.notes ?? null,
+      assigned_to_name: order.assigned_to_name ?? null,
+      waiter_name: order.waiter_name ?? null,
+    });
+  };
 
   // Live polling — refresh order data every 30 s
   const refreshOrder = useCallback(async (silent = true) => {
@@ -650,12 +689,22 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
               transition={{ delay: 0.6 }}
               className="flex flex-col gap-3"
             >
+              {order.order_type === 'online' && (
+                <Button
+                  className="w-full bg-gradient-to-r from-red-600 via-rose-500 to-orange-500 hover:from-red-700 hover:to-orange-600 font-bold tracking-wider uppercase text-white shadow-lg"
+                  onClick={() => router.push(`/orders/track?id=${order.id}`)}
+                >
+                  <Truck className="w-4 h-4 mr-2" />
+                  Track Order
+                </Button>
+              )}
               <Button
-                className="w-full bg-gradient-to-r from-red-600 via-rose-500 to-orange-500 hover:from-red-700 hover:to-orange-600 font-bold tracking-wider uppercase text-white shadow-lg"
-                onClick={() => router.push(`/orders/track?id=${order.id}`)}
+                variant="outline"
+                className="w-full border-red-200 text-red-600 hover:bg-red-50 font-semibold tracking-wide"
+                onClick={downloadInvoice}
               >
-                <Truck className="w-4 h-4 mr-2" />
-                Track Order
+                <Download className="w-4 h-4 mr-2" />
+                Download Invoice (PDF)
               </Button>
               <Button
                 variant="outline"

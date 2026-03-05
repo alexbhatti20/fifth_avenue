@@ -1,5 +1,6 @@
 import { getBillingStatsServer, getBillingPendingOrdersServer, getRecentInvoicesServer, getBillableOrdersServer, getSSRCurrentEmployee } from '@/lib/server-queries';
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import BillingClient from './BillingClient';
 
 export const dynamic = 'force-dynamic';
@@ -22,13 +23,15 @@ export default async function BillingPage() {
   ]);
 
   return (
-    <BillingClient 
-      initialStats={stats}
-      initialPendingOrders={pendingData.orders}
-      initialPendingCount={pendingData.pendingCount}
-      initialOnlineOrdersCount={pendingData.onlineOrdersCount}
-      initialInvoices={invoices}
-      initialBillableOrders={billableOrders}
-    />
+    <Suspense fallback={null}>
+      <BillingClient 
+        initialStats={stats}
+        initialPendingOrders={pendingData.orders}
+        initialPendingCount={pendingData.pendingCount}
+        initialOnlineOrdersCount={pendingData.onlineOrdersCount}
+        initialInvoices={invoices}
+        initialBillableOrders={billableOrders}
+      />
+    </Suspense>
   );
 }

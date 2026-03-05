@@ -815,7 +815,9 @@ export async function getTablesStatus(): Promise<RestaurantTable[]> {
   const cached = await getFromCache<RestaurantTable[]>(PORTAL_CACHE_KEYS.TABLES_STATUS);
   if (cached) return cached;
 
-  const { data, error } = await getAuthenticatedClient().rpc('get_tables_status');
+  // Use rpcWithToken — direct fetch with token from localStorage.
+  // Bypasses GoTrueClient session so it works even before setSession is called on first mount.
+  const { data, error } = await rpcWithToken<RestaurantTable[]>('get_tables_status');
 
   if (error) {
     console.error('getTablesStatus error:', error);

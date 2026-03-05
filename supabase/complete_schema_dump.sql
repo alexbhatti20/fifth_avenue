@@ -10337,7 +10337,7 @@ $$;
 -- Name: get_customer_orders_paginated(uuid, integer, integer, public.order_status); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_customer_orders_paginated(p_customer_id uuid, p_limit integer DEFAULT 10, p_offset integer DEFAULT 0, p_status public.order_status DEFAULT NULL::public.order_status) RETURNS TABLE(id uuid, order_number text, items jsonb, total numeric, status public.order_status, payment_method public.payment_method, payment_status text, customer_address text, created_at timestamp with time zone, delivered_at timestamp with time zone, assigned_to_name text, assigned_to_phone text, transaction_id text, online_payment_method_id uuid, online_payment_details jsonb)
+CREATE FUNCTION public.get_customer_orders_paginated(p_customer_id uuid, p_limit integer DEFAULT 10, p_offset integer DEFAULT 0, p_status public.order_status DEFAULT NULL::public.order_status) RETURNS TABLE(id uuid, order_number text, order_type public.order_type, items jsonb, subtotal numeric, discount numeric, tax numeric, delivery_fee numeric, total numeric, status public.order_status, payment_method public.payment_method, payment_status text, customer_address text, table_number integer, created_at timestamp with time zone, delivered_at timestamp with time zone, assigned_to_name text, assigned_to_phone text, transaction_id text, online_payment_method_id uuid, online_payment_details jsonb)
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN

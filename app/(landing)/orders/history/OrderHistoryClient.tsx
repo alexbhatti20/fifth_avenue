@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { isMobile } from "@/lib/utils";
+import { generateOrderInvoicePDF } from "@/lib/order-invoice-pdf";
 
 interface OrderHistory {
   id: string;
@@ -40,6 +41,10 @@ interface OrderHistory {
   status: string;
   order_type: string;
   total_amount: number;
+  subtotal?: number;
+  discount?: number;
+  tax?: number;
+  table_number?: number | null;
   payment_method: string;
   payment_status: string;
   created_at: string;
@@ -92,15 +97,19 @@ export default function OrderHistoryClient({ initialOrders }: OrderHistoryClient
   const [dateFilter, setDateFilter] = useState("all");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [orderDetails, setOrderDetails] = useState<any>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const detailsCacheRef = useRef<Map<string, any>>(new Map());
   const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [mounted, setMounted] = useState(false);
   
-  // Track if SSR data was provided - skip fetch if so
-  const hasSSRData = initialOrders !== undefined && initialOrders.length >= 0;
+  // Track if SSR data was provided - only skip fetch if SSR actually returned orders
+  const hasSSRData = initialOrders !== undefined && initialOrders.length > 0;
   const hasFetchedRef = useRef(hasSSRData);
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   // Delay auth check to allow localStorage to be read
   useEffect(() => {
+    setMounted(true);
     setIsMobileDevice(isMobile());
     const timer = setTimeout(() => setHasCheckedAuth(true), 100);
     return () => clearTimeout(timer);
@@ -137,6 +146,10 @@ export default function OrderHistoryClient({ initialOrders }: OrderHistoryClient
           status: order.status,
           order_type: order.order_type || 'walk-in',
           total_amount: order.total,
+          subtotal: order.subtotal,
+          discount: order.discount,
+          tax: order.tax,
+          table_number: order.table_number,
           payment_method: order.payment_method,
           payment_status: order.payment_status,
           created_at: order.created_at,
@@ -151,6 +164,13 @@ export default function OrderHistoryClient({ initialOrders }: OrderHistoryClient
   };
 
   const fetchOrderDetails = async (orderId: string) => {
+    // Return cached result immediately — no extra network round-trip
+    if (detailsCacheRef.current.has(orderId)) {
+      setOrderDetails(detailsCacheRef.current.get(orderId));
+      return;
+    }
+
+    setIsDetailLoading(true);
     try {
       const res = await fetch(`/api/customer/orders/${orderId}`);
       const { data, error } = await res.json();
@@ -167,12 +187,15 @@ export default function OrderHistoryClient({ initialOrders }: OrderHistoryClient
           delivery_fee: orderData.delivery_fee || 0,
           order_items: Array.isArray(orderData.items) ? orderData.items : []
         };
+        detailsCacheRef.current.set(orderId, transformedData);
         setOrderDetails(transformedData);
       } else {
         setOrderDetails(null);
       }
     } catch (error) {
       setOrderDetails(null);
+    } finally {
+      setIsDetailLoading(false);
     }
   };
 
@@ -190,26 +213,39 @@ export default function OrderHistoryClient({ initialOrders }: OrderHistoryClient
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
 
-    const invoiceContent = `
-ZOIRO Injected Broast
-Invoice #${order.order_number}
-Date: ${new Date(order.created_at).toLocaleDateString()}
+    // Use cached details if available for rich item data
+    const details = detailsCacheRef.current.get(orderId);
 
-Status: ${order.status}
-Payment: ${order.payment_method} (${order.payment_status})
-
-Total: Rs. ${order.total_amount}
-
-Thank you for your order!
-    `;
-
-    const blob = new Blob([invoiceContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `invoice-${order.order_number}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    await generateOrderInvoicePDF({
+      order_number: order.order_number,
+      order_type: order.order_type,
+      status: order.status,
+      created_at: order.created_at,
+      delivered_at: details?.delivered_at ?? null,
+      customer_name: details?.customer_name ?? null,
+      customer_email: details?.customer_email ?? null,
+      customer_phone: details?.customer_phone ?? null,
+      customer_address: details?.customer_address ?? null,
+      items: details?.order_items?.map((i: any) => ({
+        name: i.name || 'Item',
+        quantity: i.quantity || 1,
+        price: i.price ?? i.unit_price ?? 0,
+        variant: i.variant,
+      })) ?? [],
+      subtotal: order.subtotal ?? order.total_amount,
+      tax: order.tax ?? 0,
+      delivery_fee: details?.delivery_fee ?? 0,
+      discount: order.discount ?? 0,
+      total: order.total_amount,
+      payment_method: order.payment_method,
+      payment_status: order.payment_status,
+      transaction_id: details?.transaction_id ?? null,
+      online_payment_details: details?.online_payment_details ?? null,
+      table_number: order.table_number ?? null,
+      notes: details?.notes ?? null,
+      assigned_to_name: details?.assigned_to_name ?? null,
+      waiter_name: details?.waiter_name ?? null,
+    });
   };
 
   // Filter orders
@@ -236,7 +272,7 @@ Thank you for your order!
     return true;
   });
 
-  if (authLoading) {
+  if (!mounted || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <motion.div
@@ -419,7 +455,7 @@ Thank you for your order!
 
                   {/* Expanded Details */}
                   <AnimatePresence>
-                    {expandedOrder === order.id && orderDetails && (
+                    {expandedOrder === order.id && (isDetailLoading || orderDetails) && (
                       <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
@@ -428,8 +464,15 @@ Thank you for your order!
                         className="border-t"
                       >
                         <div className="p-4 md:p-6 bg-gradient-to-b from-secondary/30 to-secondary/10">
-                          {/* Order Items */}
-                          <div className="space-y-3 mb-6">
+                          {/* Loading state for details */}
+                          {isDetailLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                              <RefreshCw className="w-6 h-6 text-primary animate-spin" />
+                            </div>
+                          ) : orderDetails ? (
+                            <>
+                            {/* Order Items */}
+                            <div className="space-y-3 mb-6">
                             {orderDetails.order_items && orderDetails.order_items.length > 0 ? (
                               orderDetails.order_items.map((item: any, idx: number) => (
                                 <div
@@ -507,6 +550,8 @@ Thank you for your order!
                               View Details
                             </Button>
                           </div>
+                            </>
+                          ) : null}
                         </div>
                       </motion.div>
                     )}

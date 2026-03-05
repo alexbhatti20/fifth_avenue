@@ -1,5 +1,5 @@
 import { getPopupOffers } from "@/lib/server-queries";
-import OfferPopup from "./OfferPopup";
+import OfferPopupClient from "./OfferPopupClient";
 import type { SpecialOffer } from "@/types/offers";
 
 /**
@@ -15,5 +15,5 @@ export default async function OfferPopupServer() {
   // Don't render popup wrapper if no offers
   if (offers.length === 0) return null;
 
-  return <OfferPopup initialOffers={offers} />;
+  return <OfferPopupClient initialOffers={offers} />;
 }

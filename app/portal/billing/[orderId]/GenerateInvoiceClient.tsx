@@ -62,6 +62,7 @@ import {
   validatePromoCodeForBilling,
   generateFullBill,
   getInvoiceDetails,
+  getTaxSettingsAction,
 } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -380,6 +381,21 @@ export default function GenerateInvoiceClient({
   const [loyaltyPointsToUse, setLoyaltyPointsToUse] = useState(0);
   const [notes, setNotes] = useState('');
 
+  // Tax settings (fetched from system_settings)
+  const [taxRate, setTaxRate] = useState<number>(0);
+  const [taxEnabled, setTaxEnabled] = useState<boolean>(false);
+  const [taxLabel, setTaxLabel] = useState<string>('GST');
+
+  useEffect(() => {
+    getTaxSettingsAction().then((r) => {
+      if (r.success && r.settings) {
+        setTaxRate(r.settings.rate);
+        setTaxEnabled(r.settings.enabled);
+        setTaxLabel(r.settings.label);
+      }
+    });
+  }, []);
+
   // Generated invoice state
   const [generatedInvoice, setGeneratedInvoice] = useState<any>(null);
   const [showPrintView, setShowPrintView] = useState(false);
@@ -432,7 +448,7 @@ export default function GenerateInvoiceClient({
   const pointsDiscount = loyaltyPointsToUse * 0.1;
   const totalDiscount = manualDiscount + promoDiscount + pointsDiscount;
   const taxableAmount = Math.max(0, subtotal - totalDiscount);
-  const tax = Math.round(taxableAmount * 0.05 * 100) / 100;
+  const tax = taxEnabled ? Math.round(taxableAmount * (taxRate / 100) * 100) / 100 : 0;
   const deliveryFee = billingData?.order?.delivery_fee || 0;
   const finalTotal = taxableAmount + tax + serviceCharge + deliveryFee + tip;
 
@@ -1162,10 +1178,12 @@ export default function GenerateInvoiceClient({
                 </>
               )}
 
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Tax (5% GST)</span>
-                <span>Rs. {tax.toLocaleString()}</span>
-              </div>
+              {taxEnabled && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{taxLabel} ({taxRate}%)</span>
+                  <span>Rs. {tax.toLocaleString()}</span>
+                </div>
+              )}
               {serviceCharge > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Service Charge</span>

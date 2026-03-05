@@ -13,22 +13,29 @@ DROP FUNCTION IF EXISTS get_customer_payment_history(UUID, INT, INT, TEXT);
 -- ============================================
 -- 1. GET CUSTOMER ORDERS PAGINATED
 -- Returns customer orders with delivery rider info and online payment details
+-- Includes dine-in and takeaway orders linked to the customer
 -- ============================================
 CREATE OR REPLACE FUNCTION get_customer_orders_paginated(
     p_customer_id UUID,
     p_limit INT DEFAULT 10,
     p_offset INT DEFAULT 0,
-    p_status order_status DEFAULT NULL
+    p_status TEXT DEFAULT NULL   -- TEXT so callers don't need to cast
 )
 RETURNS TABLE (
     id UUID,
     order_number TEXT,
+    order_type order_type,
     items JSONB,
+    subtotal DECIMAL,
+    discount DECIMAL,
+    tax DECIMAL,
+    delivery_fee DECIMAL,
     total DECIMAL,
     status order_status,
     payment_method payment_method,
     payment_status TEXT,
     customer_address TEXT,
+    table_number INT,
     created_at TIMESTAMPTZ,
     delivered_at TIMESTAMPTZ,
     assigned_to_name TEXT,
@@ -42,12 +49,18 @@ BEGIN
     SELECT 
         o.id,
         o.order_number::TEXT,
+        o.order_type,
         o.items,
+        o.subtotal,
+        o.discount,
+        o.tax,
+        o.delivery_fee,
         o.total,
         o.status,
         o.payment_method,
         o.payment_status::TEXT,
         o.customer_address,
+        o.table_number,
         o.created_at,
         o.delivered_at,
         e.name::TEXT,
@@ -58,7 +71,7 @@ BEGIN
     FROM orders o
     LEFT JOIN employees e ON o.assigned_to = e.id
     WHERE o.customer_id = p_customer_id
-        AND (p_status IS NULL OR o.status = p_status)
+        AND (p_status IS NULL OR o.status::TEXT = p_status)
     ORDER BY o.created_at DESC
     LIMIT p_limit
     OFFSET p_offset;
@@ -151,6 +164,7 @@ CREATE OR REPLACE FUNCTION get_order_details(p_order_id UUID, p_customer_id UUID
 RETURNS TABLE (
     id UUID,
     order_number TEXT,
+    order_type order_type,
     customer_name TEXT,
     customer_email TEXT,
     customer_phone TEXT,
@@ -168,6 +182,7 @@ RETURNS TABLE (
     assigned_to UUID,
     assigned_to_name TEXT,
     assigned_to_phone TEXT,
+    waiter_name TEXT,
     created_at TIMESTAMPTZ,
     delivered_at TIMESTAMPTZ,
     status_history JSONB,
@@ -180,6 +195,7 @@ BEGIN
     SELECT 
         o.id,
         o.order_number::TEXT,
+        o.order_type,
         o.customer_name::TEXT,
         o.customer_email::TEXT,
         o.customer_phone::TEXT,
@@ -197,6 +213,7 @@ BEGIN
         o.assigned_to,
         e.name::TEXT,
         e.phone::TEXT,
+        w.name::TEXT,
         o.created_at,
         o.delivered_at,
         (
@@ -215,13 +232,14 @@ BEGIN
         o.online_payment_details
     FROM orders o
     LEFT JOIN employees e ON o.assigned_to = e.id
+    LEFT JOIN employees w ON o.waiter_id = w.id
     WHERE o.id = p_order_id
         AND (p_customer_id IS NULL OR o.customer_id = p_customer_id);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Grant permissions
-GRANT EXECUTE ON FUNCTION get_customer_orders_paginated(UUID, INT, INT, order_status) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION get_customer_orders_paginated(UUID, INT, INT, TEXT) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION get_order_details(UUID, UUID) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION get_customer_payment_history(UUID, INT, INT, TEXT) TO authenticated, anon;
 

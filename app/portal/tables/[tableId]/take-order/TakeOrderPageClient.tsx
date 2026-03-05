@@ -68,6 +68,7 @@ import {
   getCustomerFullDetailsAction,
   createWaiterDineInOrderAction,
   getCustomerOrderHistoryAction,
+  getTaxSettingsAction,
   type CustomerFullDetails,
   type CustomerPromoCode,
   type CustomerOrderSummary,
@@ -197,6 +198,21 @@ export default function TakeOrderPageClient({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [menuSearch, setMenuSearch] = useState('');
   const [activeTab, setActiveTab] = useState<string>('menu');
+
+  // ── Tax settings ────────────────────────────────────────────────────
+  const [taxRate, setTaxRate] = useState<number>(0);
+  const [taxEnabled, setTaxEnabled] = useState<boolean>(false);
+  const [taxLabel, setTaxLabel] = useState<string>('GST');
+
+  useEffect(() => {
+    getTaxSettingsAction().then((r) => {
+      if (r.success && r.settings) {
+        setTaxRate(r.settings.rate);
+        setTaxEnabled(r.settings.enabled);
+        setTaxLabel(r.settings.label);
+      }
+    });
+  }, []);
 
   // ── Cart ────────────────────────────────────────────────────────────
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -390,11 +406,11 @@ export default function TakeOrderPageClient({
       }
     }
     const afterDiscount = subtotal - discount;
-    const tax = Math.round(afterDiscount * 0.05);
+    const tax = taxEnabled ? Math.round(afterDiscount * (taxRate / 100)) : 0;
     const total = afterDiscount + tax;
     const itemCount = cart.reduce((s, i) => s + i.quantity, 0);
     return { subtotal, discount, afterDiscount, tax, total, itemCount };
-  }, [cart, appliedPromo]);
+  }, [cart, appliedPromo, taxEnabled, taxRate]);
 
   // ── Menu filter ─────────────────────────────────────────────────────
   const filteredItems = useMemo(() => {
@@ -1042,7 +1058,7 @@ export default function TakeOrderPageClient({
                   </div>
                 )}
                 <div className="flex justify-between text-slate-500 dark:text-slate-400">
-                  <span>Tax (5%)</span>
+                  <span>{taxEnabled ? `${taxLabel} (${taxRate}%)` : 'Tax'}</span>
                   <span>Rs.&nbsp;{calc.tax.toLocaleString()}</span>
                 </div>
                 <Separator className="my-1" />
