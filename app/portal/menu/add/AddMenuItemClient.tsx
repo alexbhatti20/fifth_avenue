@@ -758,32 +758,65 @@ export default function AddMenuItemClient({ categories }: AddMenuItemClientProps
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b">
         <div className="container-custom py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+              <Button variant="ghost" size="icon" className="flex-shrink-0" onClick={() => router.back()}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div>
-                <h1 className="text-xl font-bold">Add Menu Item</h1>
-                <p className="text-sm text-muted-foreground">Create a new item for your menu</p>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl font-bold truncate">Add Menu Item</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Create a new item for your menu</p>
               </div>
             </div>
-            <Button onClick={handleSubmit} disabled={isLoading}>
+            <Button onClick={handleSubmit} disabled={isLoading} size="sm" className="flex-shrink-0 sm:h-10 sm:px-4 sm:py-2">
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
               ) : (
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-4 w-4 sm:mr-2" />
               )}
-              Save Item
+              <span className="hidden sm:inline">Save Item</span>
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="container-custom mt-8">
+      <div className="container-custom mt-4 sm:mt-8">
+        {/* Mobile step indicator */}
+        <div className="lg:hidden mb-5">
+          <div className="flex items-end justify-between px-2">
+            {STEPS.map((step) => (
+              <button
+                key={step.id}
+                onClick={() => setCurrentStep(step.id)}
+                className="flex flex-col items-center gap-1 flex-1"
+              >
+                <div className={cn(
+                  'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all',
+                  currentStep === step.id
+                    ? 'bg-primary text-primary-foreground shadow-md scale-110'
+                    : currentStep > step.id
+                    ? 'bg-green-500 text-white'
+                    : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-500'
+                )}>
+                  {currentStep > step.id ? <Check className="h-3 w-3" /> : step.id}
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden mt-3">
+            <div
+              className="h-full bg-primary rounded-full transition-all duration-300"
+              style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}
+            />
+          </div>
+          <p className="text-center text-xs text-muted-foreground mt-2 font-medium">
+            Step {currentStep}/{STEPS.length} · {STEPS[currentStep - 1].title}
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Steps Sidebar */}
-          <div className="lg:col-span-1">
+          {/* Steps Sidebar – desktop only */}
+          <div className="hidden lg:block lg:col-span-1">
             <Card className="sticky top-24">
               <CardContent className="p-4">
                 <div className="space-y-2">
@@ -833,11 +866,12 @@ export default function AddMenuItemClient({ categories }: AddMenuItemClientProps
             </Card>
 
             {/* Navigation */}
-            <div className="flex justify-between mt-6">
+            <div className="grid grid-cols-2 gap-3 mt-6">
               <Button
                 variant="outline"
                 onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
                 disabled={currentStep === 1}
+                className="w-full"
               >
                 Previous
               </Button>
@@ -845,11 +879,12 @@ export default function AddMenuItemClient({ categories }: AddMenuItemClientProps
                 <Button
                   onClick={() => setCurrentStep(prev => Math.min(STEPS.length, prev + 1))}
                   disabled={!canProceed()}
+                  className="w-full"
                 >
                   Next Step
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} disabled={isLoading}>
+                <Button onClick={handleSubmit} disabled={isLoading} className="w-full">
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : (

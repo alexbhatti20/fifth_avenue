@@ -221,10 +221,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const SSR_CART_DEFAULT: CartContextType = {
+  items: [],
+  addToCart: () => {},
+  removeFromCart: () => {},
+  updateQuantity: () => {},
+  clearCart: () => {},
+  totalItems: 0,
+  totalPrice: 0,
+  getCartItemId: () => '',
+  appliedOffer: null,
+  applyOffer: () => {},
+  removeOffer: () => {},
+};
+
 export function useCart() {
   const context = useContext(CartContext);
-  if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  return context;
+  // During SSR, CartProvider hasn't executed yet and context is undefined.
+  // Cart is localStorage-based so it's always empty on the server anyway.
+  return context ?? SSR_CART_DEFAULT;
 }

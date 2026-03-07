@@ -892,15 +892,61 @@ interface MobileBottomNavProps {
 
 export const MobileBottomNav = memo(function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
   const pathname = usePathname();
-  const { unreadCount } = usePortalAuth();
-  
-  // Quick access items for bottom nav
-  const quickItems = [
-    { path: '/portal', icon: Home, label: 'Home' },
-    { path: '/portal/orders', icon: ShoppingBag, label: 'Orders' },
-    { path: '/portal/kitchen', icon: ChefHat, label: 'Kitchen' },
-    { path: '/portal/billing', icon: Receipt, label: 'Billing' },
+  const { employee, role } = usePortalAuth();
+
+  // Build permissions (same pattern as sidebar)
+  const permissions: UserPermissions | null = React.useMemo(() => {
+    if (!role) return null;
+    const cached = getCachedPermissions();
+    if (cached && cached.role === role) return cached;
+    const customPerms = employee?.permissions
+      ? Object.keys(employee.permissions).filter(k => (employee.permissions as Record<string, boolean>)[k] === true)
+      : [];
+    return buildUserPermissions(role, customPerms);
+  }, [role, employee?.permissions]);
+
+  // Role-specific priority ordering — the first 4 accessible items are shown.
+  // Each role's most-used page comes first.
+  const roleItemSets: Record<string, Array<{ path: string; icon: React.ElementType; label: string; pageKey: PageKey }>> = {
+    delivery_rider: [
+      { path: '/portal/delivery', icon: Truck,       label: 'Delivery',  pageKey: 'delivery'   },
+      { path: '/portal/orders',   icon: ShoppingBag, label: 'Orders',    pageKey: 'orders'     },
+      { path: '/portal',          icon: Home,        label: 'Home',      pageKey: 'dashboard'  },
+      { path: '/portal/attendance', icon: Clock,     label: 'Clock In',  pageKey: 'attendance' },
+    ],
+    kitchen_staff: [
+      { path: '/portal/kitchen',  icon: ChefHat,     label: 'Kitchen',   pageKey: 'kitchen'    },
+      { path: '/portal/orders',   icon: ShoppingBag, label: 'Orders',    pageKey: 'orders'     },
+      { path: '/portal',          icon: Home,        label: 'Home',      pageKey: 'dashboard'  },
+      { path: '/portal/attendance', icon: Clock,     label: 'Clock In',  pageKey: 'attendance' },
+    ],
+    billing_staff: [
+      { path: '/portal/billing',  icon: Receipt,     label: 'Billing',   pageKey: 'billing'    },
+      { path: '/portal/orders',   icon: ShoppingBag, label: 'Orders',    pageKey: 'orders'     },
+      { path: '/portal',          icon: Home,        label: 'Home',      pageKey: 'dashboard'  },
+      { path: '/portal/attendance', icon: Clock,     label: 'Clock In',  pageKey: 'attendance' },
+    ],
+    waiter: [
+      { path: '/portal/orders',   icon: ShoppingBag, label: 'Orders',    pageKey: 'orders'     },
+      { path: '/portal',          icon: Home,        label: 'Home',      pageKey: 'dashboard'  },
+      { path: '/portal/tables',   icon: LayoutGrid,  label: 'Tables',    pageKey: 'tables'     },
+      { path: '/portal/attendance', icon: Clock,     label: 'Clock In',  pageKey: 'attendance' },
+    ],
+  };
+
+  const defaultItems = [
+    { path: '/portal',          icon: Home,        label: 'Home',      pageKey: 'dashboard' as PageKey },
+    { path: '/portal/orders',   icon: ShoppingBag, label: 'Orders',    pageKey: 'orders'    as PageKey },
+    { path: '/portal/kitchen',  icon: ChefHat,     label: 'Kitchen',   pageKey: 'kitchen'   as PageKey },
+    { path: '/portal/delivery', icon: Truck,       label: 'Delivery',  pageKey: 'delivery'  as PageKey },
   ];
+
+  const candidateItems = role && role in roleItemSets ? roleItemSets[role] : defaultItems;
+
+  // Filter by permissions and take up to 4 items
+  const quickItems = candidateItems
+    .filter(item => !permissions || canAccessPage(permissions, item.pageKey))
+    .slice(0, 4);
 
   return (
     <>
@@ -995,22 +1041,6 @@ export const MobileBottomNav = memo(function MobileBottomNav({ onMenuClick }: Mo
               </Link>
             );
           })}
-          
-          {/* More Menu Button */}
-          <button 
-            onClick={onMenuClick}
-            className="flex-1 flex flex-col items-center py-2.5 px-2 rounded-2xl text-zinc-500 dark:text-zinc-400 active:scale-95 active:bg-red-50 dark:active:bg-red-950/30 transition-all duration-200"
-          >
-            <div className="relative">
-              <MoreHorizontal className="h-5 w-5 mb-1" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] bg-gradient-to-br from-red-500 to-red-600 rounded-full text-[9px] text-white font-bold flex items-center justify-center shadow-lg shadow-red-500/40 animate-pulse">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </div>
-            <span className="text-[10px] font-semibold tracking-wide">More</span>
-          </button>
         </div>
       </div>
     </>

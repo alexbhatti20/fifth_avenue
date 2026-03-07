@@ -117,13 +117,24 @@ export default function OfferPopup({ onClose, initialOffers = [] }: OfferPopupPr
     loadOffers();
   }, [initialOffers]);
 
+  // Close handler — defined before any effect that references it
+  const handleClose = useCallback(() => {
+    setIsVisible(false);
+    sessionStorage.setItem('zoiro_offer_popup_seen', 'true');
+    setHasSeenPopup(true);
+    onClose?.();
+  }, [onClose]);
+
   // Auto-close countdown — pause when collapsed
+  // Depends on isVisible (starts timer) and isCollapsed (pause/resume).
+  // timeLeft is intentionally excluded: the interval computes remaining time
+  // from wall-clock refs so it doesn't need to restart on every tick.
   useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0 || isCollapsed) return;
+    if (!isVisible || !startTimeRef.current || !totalTimeRef.current || isCollapsed) return;
 
     const interval = setInterval(() => {
-      const elapsed = (Date.now() - (startTimeRef.current || Date.now())) / 1000;
-      const total = totalTimeRef.current || 8;
+      const elapsed = (Date.now() - startTimeRef.current!) / 1000;
+      const total = totalTimeRef.current!;
       const remaining = Math.max(0, total - elapsed);
       const pct = (remaining / total) * 100;
 
@@ -137,7 +148,7 @@ export default function OfferPopup({ onClose, initialOffers = [] }: OfferPopupPr
     }, 200);
 
     return () => clearInterval(interval);
-  }, [timeLeft, isCollapsed]);
+  }, [isVisible, isCollapsed, handleClose]);
 
   // Confetti effect — desktop only, single lightweight burst
   useEffect(() => {
@@ -148,14 +159,6 @@ export default function OfferPopup({ onClose, initialOffers = [] }: OfferPopupPr
       confetti({ particleCount: 60, spread: 55, origin: { x: 0.15, y: 0.2 } });
     });
   }, [isVisible, currentIndex, offers, isMobile]);
-
-  // Close handler
-  const handleClose = useCallback(() => {
-    setIsVisible(false);
-    sessionStorage.setItem('zoiro_offer_popup_seen', 'true');
-    setHasSeenPopup(true);
-    onClose?.();
-  }, [onClose]);
 
   // Track click
   const handleOfferClick = async (offer: SpecialOffer) => {

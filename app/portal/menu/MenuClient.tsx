@@ -246,14 +246,14 @@ function MenuItemCard({
             <>
               <button
                 onClick={prevImg}
-                className="absolute left-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-black/55 hover:bg-black/80 flex items-center justify-center text-white transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100"
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-black/55 hover:bg-black/80 flex items-center justify-center text-white transition-opacity opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
                 aria-label="Previous image"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={nextImg}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-black/55 hover:bg-black/80 flex items-center justify-center text-white transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-black/55 hover:bg-black/80 flex items-center justify-center text-white transition-opacity opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
                 aria-label="Next image"
               >
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -612,7 +612,7 @@ function MenuItemDialog({
             </div>
 
             {/* Category & Prep Time */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Category *</Label>
                 <Select
@@ -1239,7 +1239,7 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
       <div className="space-y-4">
         {/* Header with Select toolbar + Add button */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {localDeals.length > 0 && (
               !isDealSelectMode ? (
                 <Button
@@ -1252,8 +1252,8 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
                 </Button>
               ) : (
                 <>
-                  <Button variant="outline" size="sm" onClick={exitDealSelectMode}>
-                    <X className="h-4 w-4 mr-1" /> Cancel
+                  <Button variant="outline" size="sm" onClick={exitDealSelectMode} className="gap-1">
+                    <X className="h-4 w-4" /><span className="hidden sm:inline">Cancel</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -1262,7 +1262,12 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
                     className="gap-1.5"
                   >
                     <CheckSquare className="h-4 w-4" />
-                    {selectedDeals.size === localDeals.length && localDeals.length > 0 ? 'Deselect All' : `Select All (${localDeals.length})`}
+                    <span className="hidden sm:inline">
+                      {selectedDeals.size === localDeals.length && localDeals.length > 0 ? 'Deselect All' : `Select All (${localDeals.length})`}
+                    </span>
+                    <span className="sm:hidden">
+                      {selectedDeals.size === localDeals.length && localDeals.length > 0 ? 'None' : 'All'}
+                    </span>
                   </Button>
                   {selectedDeals.size > 0 && (
                     <Button
@@ -1272,27 +1277,29 @@ function DealsManager({ deals, onUpdate }: DealsManagerProps) {
                       className="gap-1.5"
                     >
                       <Trash2 className="h-4 w-4" />
-                      Delete {selectedDeals.size} Selected
+                      <span className="hidden sm:inline">Delete</span>
+                      {selectedDeals.size}
+                      <span className="hidden sm:inline">Selected</span>
                     </Button>
                   )}
                 </>
               )
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {isDealSelectMode && (
-              <span className="text-sm text-muted-foreground">
-                {selectedDeals.size} of {localDeals.length} selected
+              <span className="text-xs text-muted-foreground">
+                {selectedDeals.size}/{localDeals.length} selected
               </span>
             )}
             {!isDealSelectMode && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground hidden sm:block">
                 {localDeals.length} deal{localDeals.length !== 1 ? 's' : ''} configured
               </p>
             )}
-            <Button onClick={() => router.push('/portal/deals/add')} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Deal
+            <Button onClick={() => router.push('/portal/deals/add')} size="sm" className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add Deal</span>
             </Button>
           </div>
         </div>
@@ -1852,8 +1859,8 @@ export default function MenuClient({ initialData }: MenuClientProps) {
 
         <TabsContent value="items" className="space-y-4">
           {/* Select Mode Toolbar */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {!isSelectMode ? (
                 <Button
                   variant="outline"
@@ -1865,8 +1872,8 @@ export default function MenuClient({ initialData }: MenuClientProps) {
                 </Button>
               ) : (
                 <>
-                  <Button variant="outline" size="sm" onClick={exitSelectMode}>
-                    <X className="h-4 w-4 mr-1" /> Cancel
+                  <Button variant="outline" size="sm" onClick={exitSelectMode} className="gap-1">
+                    <X className="h-4 w-4" /><span className="hidden sm:inline">Cancel</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -1875,9 +1882,14 @@ export default function MenuClient({ initialData }: MenuClientProps) {
                     className="gap-1.5"
                   >
                     <CheckSquare className="h-4 w-4" />
-                    {selectedItems.size === filteredItems.length && filteredItems.length > 0
-                      ? 'Deselect All'
-                      : `Select All (${filteredItems.length})`}
+                    <span className="hidden sm:inline">
+                      {selectedItems.size === filteredItems.length && filteredItems.length > 0
+                        ? 'Deselect All'
+                        : `Select All (${filteredItems.length})`}
+                    </span>
+                    <span className="sm:hidden">
+                      {selectedItems.size === filteredItems.length && filteredItems.length > 0 ? 'None' : 'All'}
+                    </span>
                   </Button>
                   {selectedItems.size > 0 && (
                     <Button
@@ -1887,15 +1899,17 @@ export default function MenuClient({ initialData }: MenuClientProps) {
                       className="gap-1.5"
                     >
                       <Trash2 className="h-4 w-4" />
-                      Delete {selectedItems.size} Selected
+                      <span className="hidden sm:inline">Delete</span>
+                      {selectedItems.size}
+                      <span className="hidden sm:inline">Selected</span>
                     </Button>
                   )}
                 </>
               )}
             </div>
             {isSelectMode && (
-              <span className="text-sm text-muted-foreground">
-                {selectedItems.size} of {filteredItems.length} selected
+              <span className="text-xs text-muted-foreground">
+                {selectedItems.size}/{filteredItems.length} selected
               </span>
             )}
           </div>

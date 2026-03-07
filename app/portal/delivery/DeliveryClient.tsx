@@ -334,10 +334,10 @@ function MyDeliveryCard({
           : 'bg-gradient-to-br from-blue-50/90 via-white to-purple-50/90 dark:from-blue-950/90 dark:via-zinc-950 dark:to-purple-950/90'
       )}>
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-2.5 min-w-0 flex-1">
               <div className={cn(
-                'relative w-14 h-14 rounded-xl flex items-center justify-center shadow-lg',
+                'relative w-11 h-11 sm:w-14 sm:h-14 rounded-xl flex-shrink-0 flex items-center justify-center shadow-lg',
                 isDelivering
                   ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/30'
                   : 'bg-gradient-to-br from-blue-500 to-purple-500 shadow-blue-500/30'
@@ -349,30 +349,29 @@ function MyDeliveryCard({
                   />
                 )}
                 {isDelivering ? (
-                  <Bike className="h-7 w-7 text-white relative z-10" />
+                  <Bike className="h-5 w-5 sm:h-7 sm:w-7 text-white relative z-10" />
                 ) : (
-                  <Package className="h-7 w-7 text-white relative z-10" />
+                  <Package className="h-5 w-5 sm:h-7 sm:w-7 text-white relative z-10" />
                 )}
               </div>
-              <div>
-                <CardTitle className="text-xl flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-base sm:text-xl flex flex-wrap items-center gap-1.5">
                   #{order.order_number}
-                  <Badge variant={isDelivering ? 'default' : 'secondary'} className="ml-2">
-                    {isDelivering ? 'On the Way' : 'Ready for Pickup'}
+                  <Badge variant={isDelivering ? 'default' : 'secondary'} className="text-[10px] sm:text-xs">
+                    {isDelivering ? 'On the Way' : 'Ready'}
                   </Badge>
                 </CardTitle>
-                <CardDescription className="flex items-center gap-2">
+                <CardDescription className="flex flex-wrap items-center gap-1.5 mt-0.5 text-xs">
                   {order.items.length} items • Rs. {order.total.toLocaleString()}
-                  <span className="text-muted-foreground">•</span>
                   <DeliveryTimer createdAt={order.created_at} />
                 </CardDescription>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={onToggle}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={onToggle}>
               {isExpanded ? (
-                <ChevronUp className="h-5 w-5" />
+                <ChevronUp className="h-4 w-4" />
               ) : (
-                <ChevronDown className="h-5 w-5" />
+                <ChevronDown className="h-4 w-4" />
               )}
             </Button>
           </div>
@@ -584,14 +583,14 @@ function AvailableOrderCard({
     >
       <Card className="border-0 rounded-[14px] transition-all bg-white dark:bg-zinc-950">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-zinc-800 dark:to-zinc-700 flex items-center justify-center shadow-inner">
-                <Package className="h-6 w-6 text-slate-500 dark:text-slate-400" />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-zinc-800 dark:to-zinc-700 flex items-center justify-center flex-shrink-0 shadow-inner">
+                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-slate-500 dark:text-slate-400" />
               </div>
               <div>
-                <CardTitle className="text-lg font-bold">#{order.order_number}</CardTitle>
-                <CardDescription className="text-sm">
+                <CardTitle className="text-base sm:text-lg font-bold">#{order.order_number}</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   {order.items.length} items • Rs. {order.total.toLocaleString()}
                 </CardDescription>
               </div>
@@ -910,6 +909,283 @@ interface DeliveryStats {
   active_deliveries: number;
 }
 
+// ==========================================
+// HISTORY DETAIL CARD (expandable)
+// ==========================================
+
+function HistoryDetailCard({
+  delivery,
+  index,
+}: {
+  delivery: HistoryDelivery;
+  index: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied!`);
+  };
+
+  // Timeline steps
+  const steps = [
+    { label: 'Accepted', time: delivery.accepted_at, icon: CheckCircle, color: 'text-blue-500' },
+    { label: 'Started', time: delivery.started_at, icon: Truck, color: 'text-orange-500' },
+    { label: 'Delivered', time: delivery.delivered_at, icon: CheckCircle, color: 'text-green-500' },
+  ];
+
+  return (
+    <motion.div
+      key={delivery.id}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04 }}
+      className="relative rounded-2xl overflow-hidden"
+      style={{ padding: '1.5px', background: 'linear-gradient(90deg, #22c55e50, #10b98150, #22c55e50)' }}
+    >
+      <div className="rounded-[14px] bg-white dark:bg-zinc-950 overflow-hidden">
+        {/* Summary Row — always visible */}
+        <button
+          onClick={() => setExpanded((p) => !p)}
+          className="w-full flex items-center gap-3 p-3 sm:p-4 text-left hover:bg-green-50/50 dark:hover:bg-green-950/20 transition-colors active:scale-[0.99]"
+        >
+          {/* Icon */}
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-500/25">
+            <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+          </div>
+
+          {/* Order info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-sm sm:text-base">#{delivery.order_number}</span>
+              {delivery.customer_rating && (
+                <span className="flex items-center gap-0.5 text-amber-500 text-xs font-semibold">
+                  <Star className="h-3 w-3 fill-amber-500" /> {delivery.customer_rating}
+                </span>
+              )}
+              {delivery.actual_delivery_minutes && (
+                <span className="flex items-center gap-0.5 text-muted-foreground text-xs">
+                  <Timer className="h-3 w-3" /> {delivery.actual_delivery_minutes}m
+                </span>
+              )}
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">{delivery.customer_name}</p>
+            {delivery.customer_address && (
+              <p className="text-[10px] sm:text-xs text-muted-foreground truncate flex items-center gap-1">
+                <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
+                {delivery.customer_address}
+              </p>
+            )}
+          </div>
+
+          {/* Amount + date + chevron */}
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <p
+              className="font-bold text-sm sm:text-base"
+              style={{
+                background: 'linear-gradient(135deg, #22c55e, #10b981)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              Rs. {delivery.total?.toLocaleString()}
+            </p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
+              {delivery.delivered_at
+                ? new Date(delivery.delivered_at).toLocaleDateString('en-US', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : '—'}
+            </p>
+            {expanded ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+        </button>
+
+        {/* Expandable Detail Panel */}
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.22, ease: 'easeInOut' }}
+              className="overflow-hidden"
+            >
+              <div className="px-3 sm:px-4 pb-4 space-y-3 border-t border-green-100 dark:border-green-900/30 pt-3">
+
+                {/* Customer Info */}
+                <div className="rounded-xl bg-slate-50 dark:bg-zinc-900 p-3 space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Customer</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm font-medium">{delivery.customer_name}</span>
+                    </div>
+                    {delivery.customer_phone && (
+                      <a
+                        href={`tel:${delivery.customer_phone}`}
+                        className="flex items-center gap-1.5 text-xs text-green-600 font-semibold bg-green-500/10 px-2.5 py-1.5 rounded-lg active:scale-95 transition-transform"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Phone className="h-3.5 w-3.5" /> {delivery.customer_phone}
+                      </a>
+                    )}
+                  </div>
+                  {delivery.customer_address && (
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2 flex-1">
+                        <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                        <p className="text-xs sm:text-sm text-muted-foreground">{delivery.customer_address}</p>
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); copyToClipboard(delivery.customer_address!, 'Address'); }}
+                          className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-zinc-700 text-muted-foreground transition-colors"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                        <a
+                          href={`https://maps.google.com/?q=${encodeURIComponent(delivery.customer_address)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-500 transition-colors"
+                        >
+                          <Navigation className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Order Items */}
+                {delivery.items && delivery.items.length > 0 && (
+                  <div className="rounded-xl bg-slate-50 dark:bg-zinc-900 p-3 space-y-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      Items ({delivery.items.length})
+                    </p>
+                    <div className="space-y-1.5">
+                      {delivery.items.map((item: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between text-xs sm:text-sm">
+                          <span className="text-foreground">
+                            <span className="font-semibold text-primary">{item.quantity}×</span> {item.name}
+                          </span>
+                          <span className="font-medium tabular-nums">Rs. {(item.price * item.quantity).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <Separator className="my-1.5" />
+                    <div className="flex items-center justify-between font-bold text-sm sm:text-base">
+                      <span>Total</span>
+                      <span
+                        style={{
+                          background: 'linear-gradient(135deg, #22c55e, #10b981)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                        }}
+                      >
+                        Rs. {delivery.total?.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment */}
+                {delivery.payment_method && (
+                  <div className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-zinc-900 p-3">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-xs sm:text-sm font-medium">Payment</span>
+                    </div>
+                    <Badge
+                      className={cn(
+                        'text-xs rounded-lg',
+                        delivery.payment_method === 'cash'
+                          ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/30'
+                          : 'bg-green-500/10 text-green-600 border-green-500/30'
+                      )}
+                      variant="outline"
+                    >
+                      {delivery.payment_method === 'cash' ? 'Cash on Delivery' : 'Paid Online ✓'}
+                    </Badge>
+                  </div>
+                )}
+
+                {/* Delivery Timeline */}
+                <div className="rounded-xl bg-slate-50 dark:bg-zinc-900 p-3 space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Timeline</p>
+                  <div className="relative pl-5">
+                    {/* vertical line */}
+                    <div className="absolute left-[7px] top-0 bottom-0 w-px bg-gradient-to-b from-blue-300 via-orange-300 to-green-400 dark:from-blue-800 dark:via-orange-800 dark:to-green-800" />
+                    <div className="space-y-3">
+                      {steps.map((step, i) => step.time ? (
+                        <div key={i} className="relative flex items-start gap-2.5">
+                          <div className={cn('absolute -left-5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-zinc-950 mt-0.5', {
+                            'bg-blue-500': i === 0,
+                            'bg-orange-500': i === 1,
+                            'bg-green-500': i === 2,
+                          })} />
+                          <div className="flex-1">
+                            <p className="text-[10px] text-muted-foreground">{step.label}</p>
+                            <p className="text-xs sm:text-sm font-medium">
+                              {new Date(step.time).toLocaleDateString('en-US', {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      ) : null)}
+                    </div>
+                  </div>
+                  {delivery.actual_delivery_minutes && (
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-200 dark:border-zinc-800">
+                      <Timer className="h-4 w-4 text-amber-500" />
+                      <span className="text-xs text-muted-foreground">Total delivery time:</span>
+                      <span className="text-xs font-bold text-amber-600">{delivery.actual_delivery_minutes} minutes</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Rating */}
+                {delivery.customer_rating && (
+                  <div className="flex items-center justify-between rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30 p-3">
+                    <span className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">Customer Rating</span>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={cn('h-4 w-4', star <= delivery.customer_rating! ? 'fill-amber-400 text-amber-400' : 'text-amber-200 dark:text-amber-800')}
+                        />
+                      ))}
+                      <span className="ml-1 font-bold text-amber-600 text-sm">{delivery.customer_rating}/5</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+}
+
+// ==========================================
+// DELIVERY HISTORY COMPONENT
+// ==========================================
+
 function DeliveryHistory({ riderId }: { riderId: string }) {
   const [deliveries, setDeliveries] = useState<HistoryDelivery[]>([]);
   const [stats, setStats] = useState<DeliveryStats | null>(null);
@@ -976,7 +1252,7 @@ function DeliveryHistory({ riderId }: { riderId: string }) {
   return (
     <div className="space-y-6">
       {/* Premium Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         <PremiumStatsCard
           title="Today"
           value={stats?.total_today || 0}
@@ -1065,69 +1341,16 @@ function DeliveryHistory({ riderId }: { riderId: string }) {
         isEmpty={deliveries.length === 0}
         emptyMessage="No deliveries completed yet"
       >
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {deliveries.map((delivery, index) => (
-            <motion.div
-              key={delivery.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="relative rounded-xl overflow-hidden"
-              style={{ padding: '1.5px', background: 'linear-gradient(90deg, #22c55e50, #10b98150, #22c55e50)' }}
-            >
-              <div className="flex items-center justify-between p-4 rounded-[10px] bg-white dark:bg-zinc-950 hover:bg-green-50/50 dark:hover:bg-green-950/20 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/25">
-                    <CheckCircle className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-base">#{delivery.order_number}</p>
-                    <p className="text-sm text-muted-foreground">{delivery.customer_name}</p>
-                    {delivery.actual_delivery_minutes && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Timer className="h-3 w-3" />
-                        {delivery.actual_delivery_minutes} mins
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p
-                    className="font-bold text-lg"
-                    style={{
-                      background: 'linear-gradient(135deg, #22c55e, #10b981)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
-                    }}
-                  >
-                    Rs. {delivery.total?.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {delivery.delivered_at
-                      ? new Date(delivery.delivered_at).toLocaleDateString('en-US', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
-                      : '-'}
-                  </p>
-                  {delivery.customer_rating && (
-                    <p className="text-xs text-amber-500 flex items-center justify-end gap-1">
-                      <Star className="h-3 w-3 fill-amber-500" /> {delivery.customer_rating}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </motion.div>
+            <HistoryDetailCard key={delivery.id} delivery={delivery} index={index} />
           ))}
-          
+
           {/* Load More */}
           {hasMore && (
             <Button
               variant="outline"
-              className="w-full rounded-xl"
+              className="w-full rounded-xl mt-2"
               onClick={() => fetchHistory(true)}
               disabled={isLoading}
             >
@@ -1439,22 +1662,22 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="mb-5 sm:mb-8"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl"
+              className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex-shrink-0 flex items-center justify-center shadow-xl"
               style={{
                 background: 'linear-gradient(135deg, #ff6b35, #f72585)',
                 boxShadow: '0 8px 32px rgba(247, 37, 133, 0.3)',
               }}
             >
-              <Truck className="h-7 w-7 text-white" />
+              <Truck className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
-                <span
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-3xl font-bold"
                   style={{
                     background: 'linear-gradient(135deg, #ff6b35, #f72585)',
                     WebkitBackgroundClip: 'text',
@@ -1462,17 +1685,12 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
                     backgroundClip: 'text',
                   }}
                 >
-                  {isRider ? 'My Deliveries' : 'Delivery Management'}
-                </span>
+                  {isRider ? 'My Deliveries' : 'Delivery Mgmt'}
+                </h1>
                 <LiveIndicator />
-              </h1>
-              <p className="text-muted-foreground text-sm mt-1">
-                {isRider
-                  ? 'View your assigned orders and make deliveries'
-                  : 'Manage all delivery orders in real-time'}
-                <span className="ml-2 opacity-60">
-                  • Updated: {lastUpdate.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                </span>
+              </div>
+              <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 truncate">
+                Updated: {lastUpdate.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true })}
               </p>
             </div>
           </div>
@@ -1480,10 +1698,11 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
             variant="outline"
             onClick={fetchOrders}
             disabled={isLoading}
-            className="rounded-xl h-11 px-5"
+            size="sm"
+            className="rounded-xl px-3 sm:px-5 flex-shrink-0"
           >
-            <RefreshCw className={cn('h-4 w-4 mr-2', isLoading && 'animate-spin')} />
-            Refresh
+            <RefreshCw className={cn('h-4 w-4 sm:mr-2', isLoading && 'animate-spin')} />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
         </div>
       </motion.div>
@@ -1494,7 +1713,7 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
       )}
 
       {/* Premium Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-5 sm:mb-8">
         {isRider ? (
           <>
             <PremiumStatsCard
@@ -1546,24 +1765,22 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
       <Tabs defaultValue={isRider ? 'my-orders' : 'all'} className="space-y-6">
         {/* Premium Tabs */}
         <div
-          className="inline-flex p-1 rounded-2xl"
+          className="inline-flex p-1 rounded-2xl w-full sm:w-auto"
           style={{
             background: 'linear-gradient(135deg, rgba(255,107,53,0.1), rgba(247,37,133,0.1))',
             border: '1px solid rgba(255,107,53,0.2)',
           }}
         >
-          <TabsList className="grid grid-cols-3 w-full max-w-md bg-transparent p-0">
+          <TabsList className="grid grid-cols-3 w-full sm:max-w-md bg-transparent p-0">
             {isRider && (
               <TabsTrigger
                 value="my-orders"
-                className="gap-2 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-lg transition-all duration-300"
+                className="gap-1.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-lg transition-all duration-300 text-xs sm:text-sm"
               >
-                <Target className="h-4 w-4" />
-                <span className="hidden sm:inline">My Orders</span>
+                <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span>Mine</span>
                 {stats.myActive > 0 && (
-                  <Badge
-                    className="ml-1 h-5 px-1.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0"
-                  >
+                  <Badge className="ml-0.5 h-4 sm:h-5 px-1 sm:px-1.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 text-[9px] sm:text-xs">
                     {stats.myActive}
                   </Badge>
                 )}
@@ -1571,24 +1788,22 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
             )}
             <TabsTrigger
               value="all"
-              className="gap-2 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-lg transition-all duration-300"
+              className="gap-1.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-lg transition-all duration-300 text-xs sm:text-sm"
             >
-              <Package className="h-4 w-4" />
-              <span className="hidden sm:inline">Available</span>
+              <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span>Available</span>
               {stats.available > 0 && (
-                <Badge
-                  className="ml-1 h-5 px-1.5 bg-gradient-to-r from-orange-500 to-red-500 text-white border-0"
-                >
+                <Badge className="ml-0.5 h-4 sm:h-5 px-1 sm:px-1.5 bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 text-[9px] sm:text-xs">
                   {stats.available}
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger
               value="history"
-              className="gap-2 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-lg transition-all duration-300"
+              className="gap-1.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-lg transition-all duration-300 text-xs sm:text-sm"
             >
-              <History className="h-4 w-4" />
-              <span className="hidden sm:inline">History</span>
+              <History className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span>History</span>
             </TabsTrigger>
           </TabsList>
         </div>

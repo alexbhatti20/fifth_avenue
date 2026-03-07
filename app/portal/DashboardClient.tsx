@@ -61,6 +61,7 @@ import type {
   BillingStats,
   BillingStatsServer,
   WaiterDashboardStats,
+  RiderDashboardStats,
 } from '@/lib/server-queries';
 
 // Date range type
@@ -218,6 +219,7 @@ interface DashboardClientProps {
   initialBillingStats: BillingStatsServer | null;
   initialPendingBillingOrders: { orders: any[]; pendingCount: number; onlineOrdersCount: number };
   initialWaiterStats: WaiterDashboardStats | null;
+  initialRiderStats: RiderDashboardStats | null;
   currentPreset: string;
   currentDateRange: { startDate: string; endDate: string };
 }
@@ -1540,113 +1542,51 @@ function BillingDashboard({
 }
 
 // Delivery Rider Dashboard with Date Filter
-function DeliveryDashboard() {
-  const { employee } = usePortalAuth();
-  const [dateRange, setDateRange] = useState<DateRange>({
-    ...getDateRange('today'),
-    preset: 'today'
-  });
-  const [stats, setStats] = useState({
-    total_deliveries: 0,
-    total_deliveries_today: 0,
-    pending_deliveries: 0,
-    completed: 0,
-    completed_today: 0,
-    total_tips: 0,
-    avg_delivery_time: 0,
-    total_earnings: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+// Delivery Rider Dashboard — fully SSR, no client-side Supabase calls
+function DeliveryDashboard({
+  initialStats,
+  currentPreset,
+  currentDateRange,
+}: {
+  initialStats: RiderDashboardStats | null;
+  currentPreset: string;
+  currentDateRange: { startDate: string; endDate: string };
+}) {
+  const stats = {
+    total_deliveries: initialStats?.total_deliveries ?? 0,
+    total_deliveries_today: initialStats?.total_deliveries_today ?? 0,
+    pending_deliveries: initialStats?.pending_deliveries ?? 0,
+    completed: initialStats?.completed ?? 0,
+    completed_today: initialStats?.completed_today ?? 0,
+    total_tips: initialStats?.total_tips ?? 0,
+    avg_delivery_time: initialStats?.avg_delivery_time ?? 25,
+    total_earnings: initialStats?.total_earnings ?? 0,
+  };
 
-  const fetchStats = useCallback(async () => {
-    if (!employee?.id) {
-      setIsLoading(false);
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      const { data: rpcData, error: rpcError } = await getAuthenticatedClient().rpc('get_rider_dashboard_stats', {
-        p_rider_id: employee.id,
-        p_start_date: dateRange.startDate,
-        p_end_date: dateRange.endDate
-      });
-      
-      if (rpcData && !rpcError) {
-        setStats({
-          total_deliveries: rpcData.total_deliveries || 0,
-          total_deliveries_today: rpcData.total_deliveries_today || 0,
-          pending_deliveries: rpcData.pending_deliveries || 0,
-          completed: rpcData.completed || 0,
-          completed_today: rpcData.completed_today || 0,
-          total_tips: rpcData.total_tips || 0,
-          avg_delivery_time: rpcData.avg_delivery_time || 25,
-          total_earnings: rpcData.total_earnings || 0,
-        });
-        setPendingOrders(rpcData.pending_orders || []);
-      } else {
-        const { data: deliveries } = await supabase
-          .from('delivery_history')
-          .select('*')
-          .eq('rider_id', employee?.id)
-          .gte('created_at', dateRange.startDate)
-          .lte('created_at', dateRange.endDate);
-        
-        if (deliveries) {
-          setStats({
-            total_deliveries: deliveries.length,
-            total_deliveries_today: deliveries.length,
-            pending_deliveries: deliveries.filter(d => d.status === 'assigned' || d.status === 'picked_up').length,
-            completed: deliveries.filter(d => d.status === 'delivered').length,
-            completed_today: deliveries.filter(d => d.status === 'delivered').length,
-            total_tips: deliveries.reduce((sum, d) => sum + (d.tip_amount || 0), 0),
-            avg_delivery_time: 25,
-            total_earnings: 0,
-          });
-        }
-      }
-    } catch (err) {
-      // Handle error silently
-    } finally {
-      setIsLoading(false);
-    }
-  }, [employee?.id, dateRange]);
-
-  useEffect(() => {
-    fetchStats();
-    
-    // Refresh every 30 seconds only for today
-    if (dateRange.preset === 'today') {
-      const interval = setInterval(fetchStats, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [fetchStats, dateRange.preset]);
-
-  const isToday = dateRange.preset === 'today';
+  const isToday = currentPreset === 'today';
 
   return (
     <div className="space-y-6">
       {/* Date Filter */}
       <div className="flex justify-between items-center">
         <div className="text-sm text-muted-foreground">
-          {isToday ? 'Live data (refreshes every 30s)' : `${dateRange.startDate} to ${dateRange.endDate}`}
+          {isToday ? 'Live data' : `${currentDateRange.startDate} to ${currentDateRange.endDate}`}
         </div>
-        <DateRangePicker currentPreset={dateRange.preset} currentDateRange={{ startDate: dateRange.startDate, endDate: dateRange.endDate }} />
+        <DateRangePicker currentPreset={currentPreset} currentDateRange={currentDateRange} />
       </div>
-      
+
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title={isToday ? "Today's Deliveries" : "Total Deliveries"}
-          value={isLoading ? '...' : (isToday ? stats.total_deliveries_today : stats.total_deliveries)}
+          value={isToday ? stats.total_deliveries_today : stats.total_deliveries}
           change={`${isToday ? stats.completed_today : stats.completed} completed`}
           changeType="positive"
           icon={<Truck className="h-5 w-5" />}
         />
         <StatsCard
           title="Pending"
-          value={isLoading ? '...' : stats.pending_deliveries}
+          value={stats.pending_deliveries}
           change="Ready for pickup"
           changeType="neutral"
           icon={<Package className="h-5 w-5" />}
@@ -1660,7 +1600,7 @@ function DeliveryDashboard() {
         />
         <StatsCard
           title="Avg Time"
-          value={`${stats.avg_delivery_time || 25} min`}
+          value={`${stats.avg_delivery_time} min`}
           change="Per delivery"
           changeType="neutral"
           icon={<Timer className="h-5 w-5" />}
@@ -1834,6 +1774,7 @@ export default function DashboardClient({
   initialBillingStats,
   initialPendingBillingOrders,
   initialWaiterStats,
+  initialRiderStats,
   currentPreset,
   currentDateRange,
 }: DashboardClientProps) {
@@ -1918,7 +1859,11 @@ export default function DashboardClient({
             title="Delivery Dashboard"
             description={`${greeting}, ${employee?.name?.split(' ')[0] || 'Rider'}! Your deliveries and performance.`}
           />
-          <DeliveryDashboard />
+          <DeliveryDashboard
+            initialStats={initialRiderStats}
+            currentPreset={currentPreset}
+            currentDateRange={currentDateRange}
+          />
         </>
       );
     default:

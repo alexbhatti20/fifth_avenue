@@ -10,6 +10,7 @@ import {
   getBillingPendingOrdersServer,
   getSSRCurrentEmployee,
   getWaiterDashboardStatsServer,
+  getRiderDashboardStatsServer,
 } from '@/lib/server-queries';
 import DashboardClient from './DashboardClient';
 
@@ -67,6 +68,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const currentEmployee = await getSSRCurrentEmployee();
   const empAny = currentEmployee as any;
   const isWaiter = empAny?.role === 'waiter';
+  const isRider = empAny?.role === 'delivery_rider';
 
   // Fetch all dashboard data on the server (hidden from browser)
   const [
@@ -77,25 +79,29 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     billingStats,
     pendingBillingOrders,
     waiterStats,
+    riderStats,
   ] = await Promise.all([
-    isWaiter
+    isWaiter || isRider
       ? Promise.resolve(null)
       : getAdminDashboardStatsServer(
           useToday ? undefined : dateRange.startDate,
           useToday ? undefined : dateRange.endDate
         ),
-    isWaiter
+    isWaiter || isRider
       ? Promise.resolve(null)
       : getHourlySalesAdvancedServer(
           useToday ? undefined : dateRange.startDate,
           useToday ? undefined : dateRange.endDate
         ),
-    getTablesStatusServer(),
-    getRecentOrdersServer(10),
+    isRider ? Promise.resolve([]) : getTablesStatusServer(),
+    isRider ? Promise.resolve([]) : getRecentOrdersServer(10),
     getBillingStatsServer(),
     getBillingPendingOrdersServer(5),
     isWaiter && empAny?.id
       ? getWaiterDashboardStatsServer(empAny.id, dateRange.startDate, dateRange.endDate)
+      : Promise.resolve(null),
+    isRider && empAny?.id
+      ? getRiderDashboardStatsServer(empAny.id, dateRange.startDate, dateRange.endDate)
       : Promise.resolve(null),
   ]);
 
@@ -103,11 +109,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     <DashboardClient
       initialStats={stats}
       initialHourlySales={hourlySales}
-      initialTables={tables}
-      initialOrders={orders}
+      initialTables={tables as any}
+      initialOrders={orders as any}
       initialBillingStats={billingStats}
       initialPendingBillingOrders={pendingBillingOrders}
       initialWaiterStats={waiterStats}
+      initialRiderStats={riderStats}
       currentPreset={preset}
       currentDateRange={dateRange}
     />

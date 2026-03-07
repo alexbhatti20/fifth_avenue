@@ -689,7 +689,7 @@ export default function OffersTab({ menuItems, initialOffers, initialStats }: Of
         }
       }}>
         <DialogContent className="sm:max-w-lg overflow-hidden p-0">
-          <div className="relative bg-gradient-to-br from-purple-500 via-indigo-500 to-blue-500 p-6 pb-8">
+          <div className="relative bg-gradient-to-br from-red-600 via-red-500 to-rose-500 p-6 pb-8">
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRoLTJ2LTRoMnYtMmg0djJoMnY0aC0ydjJoLTR2LTJ6bTAtNGgydi0yaDJ2Mmgydi0yaC0ydi0yaC0ydjJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30" />
             <div className="relative">
               <DialogHeader className="space-y-2">
@@ -712,8 +712,8 @@ export default function OffersTab({ menuItems, initialOffers, initialStats }: Of
             {bulkSendingIndex === -1 ? (
               <>
                 <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border border-purple-200/50 dark:border-purple-800/50">
-                    <p className="text-sm font-medium text-purple-700 dark:text-purple-300 mb-2">Active offers to notify:</p>
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 border border-orange-200/50 dark:border-orange-800/50">
+                    <p className="text-sm font-medium text-orange-700 dark:text-orange-300 mb-2">Active offers to notify:</p>
                     <div className="flex flex-wrap gap-2">
                       {offers.filter(o => o.status === 'active').map(offer => (
                         <Badge key={offer.id} variant="secondary" className="bg-white dark:bg-zinc-800">

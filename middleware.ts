@@ -39,6 +39,7 @@ const CSP = [
   "img-src 'self' data: https: blob:",
   "font-src 'self' https://fonts.gstatic.com data:",
   "connect-src 'self' http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:* https://zoirobroast.me https://*.zoirobroast.me https://*.supabase.co wss://*.supabase.co https://*.upstash.io https://www.google-analytics.com https://vercel.live wss://ws-us3.pusher.com https://api.brevo.com",
+  "worker-src blob: 'self'",
   "frame-src 'self' https://vercel.live https://www.google.com https://zoirobroast.me",
   "frame-ancestors 'self' https://zoirobroast.me",
   "base-uri 'self'",

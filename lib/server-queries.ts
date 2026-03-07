@@ -74,6 +74,36 @@ export async function getAuthenticatedClient() {
   return supabase;
 }
 
+/**
+ * Like getAuthenticatedClient() but returns null when there is no valid,
+ * non-expired JWT cookie. Use this for RPCs that require authentication and
+ * must NOT fall through to the anon role (e.g. functions returning PII).
+ */
+export async function getAuthenticatedClientOrNull() {
+  try {
+    const cookieStore = await cookies();
+    const sbToken = cookieStore.get('sb-access-token')?.value;
+    const authToken = cookieStore.get('auth_token')?.value;
+    const accessToken = sbToken || authToken;
+
+    if (!accessToken) return null;
+
+    try {
+      const parts = accessToken.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+        if (payload.exp * 1000 < Date.now()) return null;
+      }
+    } catch {
+      // Can't verify expiry — still attempt the call with the token
+    }
+
+    return createAuthenticatedClient(accessToken);
+  } catch {
+    return null;
+  }
+}
+
 // =============================================
 // SSR AUTH FUNCTIONS
 // Get current user info server-side from cookies
@@ -1143,7 +1173,9 @@ export async function getWaiterDashboardStatsServer(
 ): Promise<WaiterDashboardStats | null> {
   if (!isSupabaseConfigured) return null;
   try {
-    const client = await getAuthenticatedClient();
+    const client = await getAuthenticatedClientOrNull();
+    if (!client) return null; // no valid JWT — refuse to call with anon role
+
     const today = new Date().toISOString().split('T')[0];
     const start = startDate || today;
     const end = endDate || today;
@@ -1156,13 +1188,10 @@ export async function getWaiterDashboardStatsServer(
     });
 
     if (error) {
-      // Serialize error properly for debugging (PostgresError doesn't stringify well)
-      console.error('[SSR] getWaiterDashboardStatsServer RPC error:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      });
+      console.error(
+        '[SSR] getWaiterDashboardStatsServer RPC error:',
+        JSON.stringify(error, Object.getOwnPropertyNames(error))
+      );
       return null;
     }
 
@@ -1181,6 +1210,70 @@ export async function getWaiterDashboardStatsServer(
     };
   } catch (e: any) {
     console.error('[SSR] getWaiterDashboardStatsServer exception:', e?.message || e);
+    return null;
+  }
+}
+
+// =============================================
+// RIDER DASHBOARD STATS (Server-Side SSR)
+// Hides Supabase RPC from browser network tab
+// =============================================
+
+export interface RiderDashboardStats {
+  total_deliveries: number;
+  total_deliveries_today: number;
+  pending_deliveries: number;
+  completed: number;
+  completed_today: number;
+  total_tips: number;
+  avg_delivery_time: number;
+  total_earnings: number;
+}
+
+export async function getRiderDashboardStatsServer(
+  riderId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<RiderDashboardStats | null> {
+  if (!isSupabaseConfigured) return null;
+  try {
+    const client = await getAuthenticatedClientOrNull();
+    if (!client) return null; // no valid JWT — refuse to call with anon role
+
+    const today = new Date().toISOString().split('T')[0];
+    const start = startDate || today;
+    const end = endDate || today;
+
+    const { data, error } = await client.rpc('get_rider_dashboard_stats', {
+      p_rider_id: riderId,
+      p_start_date: start,
+      p_end_date: end,
+    });
+
+    if (error) {
+      // Use JSON.stringify with getOwnPropertyNames so non-enumerable Error
+      // properties (message, stack) are also captured — prevents the {} void log.
+      console.error(
+        '[SSR] getRiderDashboardStatsServer RPC error:',
+        JSON.stringify(error, Object.getOwnPropertyNames(error))
+      );
+      return null;
+    }
+
+    if (!data) return null;
+
+    return {
+      total_deliveries: data.total_deliveries || 0,
+      total_deliveries_today: data.total_deliveries_today || 0,
+      pending_deliveries: data.pending_deliveries || 0,
+      completed: data.completed || 0,
+      completed_today: data.completed_today || 0,
+      total_tips: data.total_tips || 0,
+      avg_delivery_time: data.avg_delivery_time || 25,
+      total_earnings: data.total_earnings || 0,
+    };
+  } catch (e: any) {
+    console.error('[SSR] getRiderDashboardStatsServer exception:', e?.message || e);
     return null;
   }
 }

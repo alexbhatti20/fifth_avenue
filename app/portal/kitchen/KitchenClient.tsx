@@ -67,14 +67,26 @@ import { toast } from 'sonner';
 // FIX #18: Import shared timer for performance
 import { useSharedTimer } from '@/lib/shared-timer';
 import type { KitchenOrder, KitchenStats } from '@/lib/server-queries';
-// Server Actions for hidden API calls
-import {
-  updateKitchenOrderStatusServer,
-  fetchKitchenOrdersServer,
-  fetchKitchenStatsServer,
-  fetchKitchenCompletedOrdersServer,
-  fetchKitchenCompletedStatsServer,
-} from '@/lib/actions';
+
+// ── Authenticated API helpers (go through /api/portal/kitchen, never anon) ──
+async function kitchenGET() {
+  const res = await fetch('/api/portal/kitchen', { credentials: 'include', cache: 'no-store' });
+  if (!res.ok) throw new Error(`Kitchen API error: ${res.status}`);
+  return res.json();
+}
+async function kitchenPOST(body: Record<string, unknown>) {
+  const res = await fetch('/api/portal/kitchen', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
 
 // Props interface for SSR data
 interface KitchenClientProps {
@@ -490,8 +502,39 @@ function KDSColumnView({
     },
   ];
 
+  const [mobileTab, setMobileTab] = useState<'confirmed' | 'preparing' | 'ready'>('confirmed');
+
   return (
-    <div className="grid grid-cols-3 gap-4 h-[calc(100vh-280px)]">
+    <div>
+      {/* Mobile: tab selector for columns */}
+      <div className="flex sm:hidden gap-1 mb-3 p-1 rounded-2xl bg-muted">
+        {columns.map((col) => {
+          const count = orders.filter(o => o.status === col.status).length;
+          return (
+            <button
+              key={col.status}
+              onClick={() => setMobileTab(col.status as any)}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all',
+                mobileTab === col.status
+                  ? `bg-gradient-to-r ${col.headerGradient} text-white shadow-md`
+                  : 'text-muted-foreground'
+              )}
+            >
+              {col.icon}
+              <span>{col.title}</span>
+              {count > 0 && (
+                <span className={cn(
+                  'min-w-[18px] h-[18px] rounded-full text-[10px] font-bold flex items-center justify-center px-1',
+                  mobileTab === col.status ? 'bg-white/30 text-white' : 'bg-primary/10 text-primary'
+                )}>{count}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+    <div className="hidden sm:grid grid-cols-3 gap-4 h-[calc(100vh-300px)]">
       {columns.map((col) => {
         const columnOrders = orders.filter((o) => o.status === col.status);
         
@@ -679,6 +722,91 @@ function KDSColumnView({
           </motion.div>
         );
       })}
+    </div>
+
+      {/* Mobile: single column based on selected tab */}
+      <div className="sm:hidden">
+        {columns
+          .filter(col => col.status === mobileTab)
+          .map((col) => {
+            const columnOrders = orders.filter(o => o.status === col.status);
+            return (
+              <div key={col.status} className="space-y-3">
+                <AnimatePresence mode="popLayout">
+                  {columnOrders.map((order) => (
+                    <motion.div
+                      key={order.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, x: 80 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+                      className="relative rounded-2xl p-[2.5px] overflow-hidden"
+                      style={{
+                        background: `linear-gradient(135deg, ${col.cardBorderGradient[0]}, ${col.cardBorderGradient[1]}, ${col.cardBorderGradient[2]})`,
+                      }}
+                    >
+                      <div className="p-4 rounded-[14px] bg-white dark:bg-zinc-900">
+                        {/* Header row */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className={cn('px-2.5 py-1 rounded-xl flex items-center justify-center font-bold text-white text-xs shadow-md', col.accentColor)}>
+                              #{order.order_number}
+                            </div>
+                            <OrderTypeBadge type={order.order_type} tableNumber={order.table_number} />
+                          </div>
+                          <LiveTimer createdAt={order.created_at} compact />
+                        </div>
+                        {/* Customer */}
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+                          <User className="h-3 w-3" />
+                          <span className="truncate">{order.customer_name}</span>
+                          <span className="ml-auto flex items-center gap-1">
+                            <Package className="h-3 w-3" />
+                            {order.total_items || order.items?.length || 0}
+                          </span>
+                        </div>
+                        {/* Items */}
+                        <div className="space-y-1.5 mb-3">
+                          {order.items?.slice(0, 4).map((item, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm p-2 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                              <span className={cn('w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs text-white flex-shrink-0', col.accentColor)}>{item.quantity}</span>
+                              <span className="truncate flex-1 font-medium">{item.name}</span>
+                              {item.notes && <AlertTriangle className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />}
+                            </div>
+                          ))}
+                          {order.items?.length > 4 && (
+                            <p className="text-xs text-muted-foreground text-center py-1 bg-gray-50 dark:bg-zinc-800/30 rounded-lg">+{order.items.length - 4} more</p>
+                          )}
+                        </div>
+                        {order.notes && (
+                          <div className="mb-3 p-2 rounded-xl bg-orange-500/10 border border-orange-500/30">
+                            <p className="text-orange-600 text-xs font-bold flex items-center gap-1"><AlertTriangle className="h-3 w-3" /><span className="truncate">{order.notes}</span></p>
+                          </div>
+                        )}
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" className="flex-shrink-0" onClick={() => onViewDetails(order)}><Eye className="h-4 w-4" /></Button>
+                          {col.nextStatus && (
+                            <Button size="sm" className={cn('flex-1 text-white shadow-lg', col.accentColor, 'hover:opacity-90')} onClick={() => onStatusChange(order.id, col.nextStatus!)}>
+                              <ArrowRight className="h-4 w-4 mr-1" />{col.nextAction}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                {columnOrders.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                    <ChefHat className="h-10 w-10 mb-2 opacity-40" />
+                    <p className="text-sm font-medium">No orders here</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+      </div>
     </div>
   );
 }
@@ -963,9 +1091,16 @@ function CompletedOrdersTab() {
         params.endDate = customEnd;
       }
 
+      const postBody = {
+        filterType: params.filterType,
+        startDate: params.startDate,
+        endDate: params.endDate,
+        limit: params.limit,
+        offset: params.offset,
+      };
       const [ordersResult, statsResult] = await Promise.all([
-        fetchKitchenCompletedOrdersServer(params),
-        fetchKitchenCompletedStatsServer(params),
+        kitchenPOST({ action: 'completed_orders', ...postBody }),
+        kitchenPOST({ action: 'completed_stats', ...postBody }),
       ]);
 
       if (ordersResult.success) {
@@ -1384,43 +1519,20 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
     }
   };
 
-  // Fetch orders using Server Action (hidden from Network tab)
+  // Fetch orders using authenticated API route (never anon)
   const fetchOrders = useCallback(async () => {
     try {
-      // Use Server Action instead of direct supabase call
-      const result = await fetchKitchenOrdersServer();
-      
-      if (result.success && result.data) {
-        setOrders(result.data);
+      const result = await kitchenGET();
+      if (result.success) {
+        if (result.orders) setOrders(result.orders);
+        if (result.stats)  setStats(result.stats);
       }
-      
-      // Fetch stats using Server Action
-      const statsResult = await fetchKitchenStatsServer();
-      if (statsResult.success && statsResult.data) {
-        setStats(statsResult.data);
-      } else {
-        // Calculate stats from orders as fallback
-        const currentOrders = orders;
-        const confirmedCount = currentOrders.filter(o => o.status === 'confirmed').length;
-        const preparingCount = currentOrders.filter(o => o.status === 'preparing').length;
-        const readyCount = currentOrders.filter(o => o.status === 'ready').length;
-        setStats({
-          pending_count: 0,
-          confirmed_count: confirmedCount,
-          preparing_count: preparingCount,
-          ready_count: readyCount,
-          total_today: currentOrders.length,
-          completed_today: 0,
-          avg_prep_time_mins: null,
-          orders_this_hour: 0,
-        });
-      }
-    } catch (error) {
-      
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to fetch kitchen orders');
     } finally {
       setIsLoading(false);
     }
-  }, [orders]);
+  }, []);  // no deps — stable function reference
 
   // Real-time subscription via shared ORDERS channel (deduplicated across portal)
   useEffect(() => {
@@ -1482,8 +1594,7 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
     });
     
     try {
-      // Use Server Action instead of direct supabase call (hidden from Network tab)
-      const result = await updateKitchenOrderStatusServer(orderId, newStatus);
+      const result = await kitchenPOST({ action: 'update_status', orderId, status: newStatus });
 
       if (!result.success) {
         throw new Error(result.error);
@@ -1546,7 +1657,7 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
       </div>
 
       {/* Enhanced Stats Grid - Animated Lava Gradient Cards */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         <StatsCard
           title="New Orders"
           value={stats?.confirmed_count || 0}
@@ -1596,17 +1707,17 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
         
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)}>
           <TabsList>
-            <TabsTrigger value="kds" className="gap-2">
-              <Zap className="h-4 w-4" />
-              <span className="hidden sm:inline">KDS</span>
+            <TabsTrigger value="kds" className="gap-1.5 text-xs sm:text-sm">
+              <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              KDS
             </TabsTrigger>
-            <TabsTrigger value="cards" className="gap-2">
-              <Package className="h-4 w-4" />
-              <span className="hidden sm:inline">Cards</span>
+            <TabsTrigger value="cards" className="gap-1.5 text-xs sm:text-sm">
+              <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Cards
             </TabsTrigger>
-            <TabsTrigger value="completed" className="gap-2">
-              <History className="h-4 w-4" />
-              <span className="hidden sm:inline">Completed</span>
+            <TabsTrigger value="completed" className="gap-1.5 text-xs sm:text-sm">
+              <History className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Done
             </TabsTrigger>
           </TabsList>
         </Tabs>
