@@ -2631,17 +2631,11 @@ export async function getOnlineOrderingSettingsAction(): Promise<{
   error?: string;
 }> {
   try {
-    const client = await getAuthenticatedClient();
-    const { data, error } = await client.rpc('get_online_ordering_setting_internal');
+    const { data, error } = await supabase.rpc('get_online_ordering_setting');
 
     if (error) throw error;
 
-    const result = data as any;
-    if (!result?.success) {
-      return { success: false, error: result?.error || 'Failed to get online ordering settings' };
-    }
-
-    const settings = result.settings || {};
+    const settings = (data as any) || {};
 
     return {
       success: true,
