@@ -46,30 +46,23 @@ async function getOnlineOrderingStatus(authClient?: ReturnType<typeof createAuth
   disabledMessage: string;
 }> {
   try {
-    let data: any = null;
-    let error: any = null;
+    let settings: any = null;
 
     if (authClient) {
-      const authRes = await authClient
-        .from('system_settings')
-        .select('value')
-        .eq('key', 'online_ordering_settings')
-        .maybeSingle();
-      data = authRes.data;
-      error = authRes.error;
+      const authRes = await authClient.rpc('get_online_ordering_setting');
+      if (!authRes.error && authRes.data) {
+        settings = authRes.data;
+      }
     }
 
-    if (error || !data) {
-      const publicRes = await publicClient
-        .from('system_settings')
-        .select('value')
-        .eq('key', 'online_ordering_settings')
-        .maybeSingle();
-      data = publicRes.data;
-      error = publicRes.error;
+    if (!settings) {
+      const publicRes = await publicClient.rpc('get_online_ordering_setting');
+      if (!publicRes.error && publicRes.data) {
+        settings = publicRes.data;
+      }
     }
 
-    if (error || !data) {
+    if (!settings) {
       return {
         enabled: true,
         disabledMessage: DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE,
@@ -77,9 +70,9 @@ async function getOnlineOrderingStatus(authClient?: ReturnType<typeof createAuth
     }
 
     return {
-      enabled: data.value?.enabled ?? true,
+      enabled: settings.enabled ?? true,
       disabledMessage:
-        (typeof data.value?.disabled_message === 'string' && data.value.disabled_message.trim()) ||
+        (typeof settings.disabled_message === 'string' && settings.disabled_message.trim()) ||
         DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE,
     };
   } catch {
