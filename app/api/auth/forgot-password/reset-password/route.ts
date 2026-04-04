@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { redis } from '@/lib/redis';
 import { supabase } from '@/lib/supabase';
+import { verifyCookieValue } from '@/lib/cookie-signing';
 
 const FORGOT_PASSWORD_VERIFIED_KEY = (email: string) => `forgot-password:verified:${email}`;
 const FORGOT_PASSWORD_ATTEMPTS_KEY = (email: string) => `forgot-password:attempts:${email}`;
+const FORGOT_PASSWORD_OTP_COOKIE = 'forgot_password_otp';
+const FORGOT_PASSWORD_VERIFIED_COOKIE = 'forgot_password_verified';
 
 interface VerifiedSession {
   token: string;
@@ -14,7 +17,11 @@ interface VerifiedSession {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, token, newPassword, confirmPassword } = await request.json();
+    const body = await request.json();
+    const email = typeof body?.email === 'string' ? body.email.toLowerCase().trim() : '';
+    const token = typeof body?.token === 'string' ? body.token.trim() : '';
+    const newPassword = typeof body?.newPassword === 'string' ? body.newPassword : '';
+    const confirmPassword = typeof body?.confirmPassword === 'string' ? body.confirmPassword : '';
 
     // Validate input
     if (!email || !token || !newPassword || !confirmPassword) {
@@ -50,37 +57,85 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = email;
 
     // Verify the session token
-    const sessionData = await redis?.get<string | VerifiedSession>(FORGOT_PASSWORD_VERIFIED_KEY(normalizedEmail));
-    
-    if (!sessionData) {
-      return NextResponse.json(
-        { error: 'Session expired. Please start the password reset process again.' },
-        { status: 400 }
-      );
+    let sessionValidated = false;
+
+    // Cookie fallback first.
+    const signedVerifiedCookie = request.cookies.get(FORGOT_PASSWORD_VERIFIED_COOKIE)?.value;
+    if (signedVerifiedCookie) {
+      try {
+        const verifiedPayload = await verifyCookieValue(signedVerifiedCookie);
+        if (verifiedPayload) {
+          const cookieSession = JSON.parse(decodeURIComponent(verifiedPayload)) as { token?: string; email?: string; expiresAt?: number };
+          if (
+            cookieSession?.token === token &&
+            cookieSession?.email === normalizedEmail &&
+            typeof cookieSession?.expiresAt === 'number' &&
+            Date.now() <= cookieSession.expiresAt
+          ) {
+            sessionValidated = true;
+          }
+        }
+      } catch {
+        sessionValidated = false;
+      }
     }
 
-    const session: VerifiedSession = typeof sessionData === 'string' 
-      ? JSON.parse(sessionData) 
-      : sessionData;
+    if (!sessionValidated) {
+      try {
+      const sessionData = await redis?.get<string | VerifiedSession>(FORGOT_PASSWORD_VERIFIED_KEY(normalizedEmail));
 
-    // Verify token matches
-    if (session.token !== token) {
-      return NextResponse.json(
-        { error: 'Invalid session. Please start the password reset process again.' },
-        { status: 400 }
-      );
+      if (sessionData) {
+        const session: VerifiedSession = typeof sessionData === 'string'
+          ? JSON.parse(sessionData)
+          : sessionData;
+
+        if (session.token !== token) {
+          return NextResponse.json(
+            { error: 'Invalid session. Please start the password reset process again.' },
+            { status: 400 }
+          );
+        }
+
+        if (Date.now() > session.expiresAt) {
+          await redis?.del(FORGOT_PASSWORD_VERIFIED_KEY(normalizedEmail));
+          return NextResponse.json(
+            { error: 'Session expired. Please start the password reset process again.' },
+            { status: 400 }
+          );
+        }
+
+        sessionValidated = true;
+      }
+      } catch {
+        sessionValidated = false;
+      }
     }
 
-    // Check if session has expired
-    if (Date.now() > session.expiresAt) {
-      await redis?.del(FORGOT_PASSWORD_VERIFIED_KEY(normalizedEmail));
-      return NextResponse.json(
-        { error: 'Session expired. Please start the password reset process again.' },
-        { status: 400 }
-      );
+    // DB fallback when Redis session is unavailable.
+    if (!sessionValidated) {
+      const { data: verifiedRecord, error: verifiedError } = await supabase
+        .from('otp_codes')
+        .select('id, expires_at, is_used')
+        .eq('email', normalizedEmail)
+        .eq('purpose', 'forgot-password-verified')
+        .eq('code', token)
+        .eq('is_used', false)
+        .gte('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (verifiedError || !verifiedRecord) {
+        return NextResponse.json(
+          { error: 'Session expired. Please start the password reset process again.' },
+          { status: 400 }
+        );
+      }
+
+      sessionValidated = true;
     }
 
     // Use RPC to update password directly in Supabase auth.users
@@ -114,13 +169,30 @@ export async function POST(request: NextRequest) {
     });
 
     // Clean up Redis keys
-    await redis?.del(FORGOT_PASSWORD_VERIFIED_KEY(normalizedEmail));
-    await redis?.del(FORGOT_PASSWORD_ATTEMPTS_KEY(normalizedEmail));
+    try {
+      await redis?.del(FORGOT_PASSWORD_VERIFIED_KEY(normalizedEmail));
+      await redis?.del(FORGOT_PASSWORD_ATTEMPTS_KEY(normalizedEmail));
+    } catch {
+      // Best-effort cleanup only.
+    }
 
-    return NextResponse.json({
+    await supabase
+      .from('otp_codes')
+      .update({ is_used: true })
+      .eq('email', normalizedEmail)
+      .eq('purpose', 'forgot-password-verified')
+      .eq('code', token)
+      .eq('is_used', false);
+
+    const response = NextResponse.json({
       success: true,
       message: 'Password reset successfully. You can now log in with your new password.'
     });
+
+    response.cookies.delete(FORGOT_PASSWORD_VERIFIED_COOKIE);
+    response.cookies.delete(FORGOT_PASSWORD_OTP_COOKIE);
+
+    return response;
   } catch (error: any) {
     return NextResponse.json(
       { 

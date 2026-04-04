@@ -306,7 +306,9 @@ export function useAuth(): UseAuthReturn {
 
   // Real-time ban detection subscription
   useEffect(() => {
-    if (!user?.id) {
+    const userId = user?.id;
+
+    if (!userId) {
       setIsBanned(false);
       setBanReason(null);
       return;
@@ -318,16 +320,26 @@ export function useAuth(): UseAuthReturn {
       setBanReason((user as any)?.ban_reason || 'Your account has been suspended.');
     }
 
+    const baseChannelName = `customer-ban-${userId}`;
+    const channelName = `${baseChannelName}-${crypto.randomUUID()}`;
+
+    // Defensive cleanup for stale channels left behind by strict mode remounts.
+    for (const existingChannel of supabase.getChannels()) {
+      if (existingChannel.topic.endsWith(baseChannelName)) {
+        supabase.removeChannel(existingChannel);
+      }
+    }
+
     // Subscribe to real-time changes for ban status
     const channel = supabase
-      .channel(`customer-ban-${user.id}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'customers',
-          filter: `id=eq.${user.id}`,
+          filter: `id=eq.${userId}`,
         },
         (payload) => {
           const newData = payload.new as { is_banned?: boolean; ban_reason?: string };
@@ -348,7 +360,7 @@ export function useAuth(): UseAuthReturn {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id]);
 
   // Step 1: Send login request - may return token directly or require OTP
   const sendLoginOTP = async (email: string, password: string): Promise<LoginResult> => {

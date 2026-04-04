@@ -1,4 +1,3 @@
-import Script from 'next/script';
 import { 
   generateRestaurantSchema, 
   generateWebsiteSchema, 
@@ -20,6 +19,17 @@ interface JsonLdProps {
   breadcrumbs?: { name: string; url: string }[];
   faqs?: { question: string; answer: string }[];
   product?: { name: string; description: string; price: number; image: string; category: string; };
+}
+
+function JsonLdScript({ id, schema }: { id: string; schema: object }) {
+  return (
+    <script
+      id={id}
+      type="application/ld+json"
+      suppressHydrationWarning
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
 }
 
 export default function JsonLd({ type = 'all', breadcrumbs, faqs, product }: JsonLdProps) {
@@ -60,68 +70,26 @@ export default function JsonLd({ type = 'all', breadcrumbs, faqs, product }: Jso
     }),
   };
 
-  return (
-    <Script
-      id="json-ld-merged"
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(mergedSchema) }}
-      strategy="beforeInteractive"
-    />
-  );
+  return <JsonLdScript id="json-ld-merged" schema={mergedSchema} />;
 }
 
 // Export individual schema components for specific pages
 export function RestaurantJsonLd() {
-  return (
-    <Script
-      id="restaurant-json-ld"
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(generateRestaurantSchema()) }}
-      strategy="beforeInteractive"
-    />
-  );
+  return <JsonLdScript id="restaurant-json-ld" schema={generateRestaurantSchema()} />;
 }
 
 export function BreadcrumbJsonLd({ items }: { items: { name: string; url: string }[] }) {
-  return (
-    <Script
-      id="breadcrumb-json-ld"
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(generateBreadcrumbSchema(items)) }}
-      strategy="beforeInteractive"
-    />
-  );
+  return <JsonLdScript id="breadcrumb-json-ld" schema={generateBreadcrumbSchema(items)} />;
 }
 
 export function FAQJsonLd({ faqs }: { faqs?: { question: string; answer: string }[] }) {
-  return (
-    <Script
-      id="faq-json-ld"
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(generateFAQSchema(faqs || FAQ_DATA)) }}
-      strategy="beforeInteractive"
-    />
-  );
+  return <JsonLdScript id="faq-json-ld" schema={generateFAQSchema(faqs || FAQ_DATA)} />;
 }
 
 export function ProductJsonLd({ product }: { product: { name: string; description: string; price: number; image: string; category: string; } }) {
-  return (
-    <Script
-      id="product-json-ld"
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(generateProductSchema(product)) }}
-      strategy="beforeInteractive"
-    />
-  );
+  return <JsonLdScript id="product-json-ld" schema={generateProductSchema(product)} />;
 }
 
 export function OfferJsonLd({ offer }: { offer: { name: string; description: string; price: number; originalPrice?: number; } }) {
-  return (
-    <Script
-      id="offer-json-ld"
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(generateOfferSchema(offer)) }}
-      strategy="beforeInteractive"
-    />
-  );
+  return <JsonLdScript id="offer-json-ld" schema={generateOfferSchema(offer)} />;
 }

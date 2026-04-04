@@ -30,6 +30,30 @@ interface UserProfile {
   is2FAEnabled?: boolean;
 }
 
+async function safeRedisGet<T>(key: string): Promise<T | null> {
+  try {
+    return await redis?.get<T>(key) || null;
+  } catch {
+    return null;
+  }
+}
+
+async function safeRedisSet(key: string, value: string, ex: number): Promise<void> {
+  try {
+    await redis?.set(key, value, { ex });
+  } catch {
+    // Cache is best-effort only.
+  }
+}
+
+async function safeRedisDel(key: string): Promise<void> {
+  try {
+    await redis?.del(key);
+  } catch {
+    // Cache is best-effort only.
+  }
+}
+
 /**
  * Get user profile from cache or database
  */
@@ -37,13 +61,13 @@ async function getUserProfile(email: string, forceRefresh: boolean = false): Pro
   // Skip cache if forceRefresh is true
   if (!forceRefresh) {
     // Try cache first
-    const cached = await redis?.get<string | UserProfile>(USER_CACHE_KEY(email));
+    const cached = await safeRedisGet<string | UserProfile>(USER_CACHE_KEY(email));
     if (cached) {
       return typeof cached === 'string' ? JSON.parse(cached) : cached;
     }
   } else {
     // Clear existing cache
-    await redis?.del(USER_CACHE_KEY(email));
+    await safeRedisDel(USER_CACHE_KEY(email));
   }
 
   if (!supabase) return null;
@@ -68,7 +92,7 @@ async function getUserProfile(email: string, forceRefresh: boolean = false): Pro
     };
     
     // Cache for 1 hour
-    await redis?.set(USER_CACHE_KEY(email), JSON.stringify(profile), { ex: 3600 });
+    await safeRedisSet(USER_CACHE_KEY(email), JSON.stringify(profile), 3600);
     return profile;
   }
 
@@ -93,7 +117,7 @@ async function getUserProfile(email: string, forceRefresh: boolean = false): Pro
     };
     
     // Cache for 1 hour
-    await redis?.set(USER_CACHE_KEY(email), JSON.stringify(profile), { ex: 3600 });
+    await safeRedisSet(USER_CACHE_KEY(email), JSON.stringify(profile), 3600);
     return profile;
   }
 
@@ -117,7 +141,7 @@ async function getUserProfile(email: string, forceRefresh: boolean = false): Pro
     };
     
     // Cache for 1 hour
-    await redis?.set(USER_CACHE_KEY(email), JSON.stringify(profile), { ex: 3600 });
+    await safeRedisSet(USER_CACHE_KEY(email), JSON.stringify(profile), 3600);
     return profile;
   }
 
