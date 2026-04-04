@@ -253,7 +253,7 @@ export async function POST(request: NextRequest) {
         if (signedOtpCookie) {
           response.cookies.set(FORGOT_PASSWORD_OTP_COOKIE, signedOtpCookie, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: false,
             sameSite: 'lax',
             path: '/',
             maxAge: OTP_EXPIRY_SECONDS,
