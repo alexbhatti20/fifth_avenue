@@ -16,10 +16,11 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
+  const { slug } = await params;
   const categories = await getMenuCategories();
-  const category = categories.find((c) => c.slug === params.slug);
+  const category = categories.find((c) => c.slug === slug);
 
   if (!category) {
     return {
@@ -36,15 +37,17 @@ export async function generateMetadata({
 export default async function MenuCategoryPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
+  const { slug } = await params;
+
   // Parallel fetch with multi-layer caching
   const [categories, items] = await Promise.all([
     getMenuCategories(),
-    getMenuItemsByCategory(params.slug),
+    getMenuItemsByCategory(slug),
   ]);
 
-  const currentCategory = categories.find((c) => c.slug === params.slug);
+  const currentCategory = categories.find((c) => c.slug === slug);
 
   if (!currentCategory) {
     notFound();
@@ -58,7 +61,7 @@ export default async function MenuCategoryPage({
           <a
             key={category.id}
             href={`/menu/${category.slug}`}
-            className={category.slug === params.slug ? 'active' : ''}
+            className={category.slug === slug ? 'active' : ''}
           >
             {category.name}
           </a>
