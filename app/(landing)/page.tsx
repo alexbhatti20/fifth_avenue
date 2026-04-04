@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { getMenuCategories, getActiveDeals, getSiteContent } from '@/lib/queries';
 import { getActiveOffers } from '@/lib/server-queries';
 import { pageMetadata, SITE_URL } from '@/lib/seo';
-import { BreadcrumbJsonLd } from '@/components/seo/JsonLd';
+import JsonLd, { BreadcrumbJsonLd } from '@/components/seo/JsonLd';
 import Hero from '@/components/custom/Hero';
 import FeaturedMenu from '@/components/custom/FeaturedMenu';
 import About from '@/components/custom/About';
@@ -24,6 +24,7 @@ export default async function Home() {
 
   return (
     <>
+      <JsonLd type="home" />
       <BreadcrumbJsonLd items={[{ name: 'Home', url: SITE_URL }]} />
       <main>
         <Hero />
