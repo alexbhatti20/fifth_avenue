@@ -592,116 +592,11 @@ export function generateRestaurantSchema() {
     ],
     servesCuisine: BUSINESS_INFO.cuisine,
     menu: `${SITE_URL}/menu`,
-    hasMenu: {
-      '@type': 'Menu',
-      '@id': `${SITE_URL}/menu#menu`,
-      name: 'ZOIRO Injected Broast Menu',
-      description: 'Full menu with broast chicken, burgers, wings, deals and more',
-      hasMenuSection: [
-        {
-          '@type': 'MenuSection',
-          name: 'Broast Chicken',
-          description: 'Crispy broasted chicken pieces and buckets',
-        },
-        {
-          '@type': 'MenuSection',
-          name: 'Burgers',
-          description: 'Zinger burgers, chicken burgers, and special burgers',
-        },
-        {
-          '@type': 'MenuSection',
-          name: 'Wings',
-          description: 'Spicy wings, hot wings, BBQ wings',
-        },
-        {
-          '@type': 'MenuSection',
-          name: 'Deals & Combos',
-          description: 'Family meals, combo deals, and special offers',
-        },
-      ],
-    },
     priceRange: BUSINESS_INFO.priceRange,
     acceptsReservations: BUSINESS_INFO.acceptsReservations,
     paymentAccepted: BUSINESS_INFO.paymentMethods.join(', '),
     currenciesAccepted: 'PKR',
-    areaServed: {
-      '@type': 'GeoCircle',
-      geoMidpoint: {
-        '@type': 'GeoCoordinates',
-        latitude: BUSINESS_INFO.geo.latitude,
-        longitude: BUSINESS_INFO.geo.longitude,
-      },
-      geoRadius: `${BUSINESS_INFO.deliveryRadius} km`,
-    },
-    // Service Options
-    hasDeliveryMethod: [
-      {
-        '@type': 'DeliveryMethod',
-        name: 'Home Delivery',
-      },
-    ],
-    hasDriveThroughService: false,
-    smokingAllowed: false,
-    // Actions
-    potentialAction: [
-      {
-        '@type': 'OrderAction',
-        target: {
-          '@type': 'EntryPoint',
-          urlTemplate: `${SITE_URL}/menu`,
-          actionPlatform: [
-            'http://schema.org/DesktopWebPlatform',
-            'http://schema.org/MobileWebPlatform',
-          ],
-        },
-        deliveryMethod: ['http://purl.org/goodrelations/v1#DeliveryModeOwnFleet'],
-      },
-      {
-        '@type': 'ReserveAction',
-        target: {
-          '@type': 'EntryPoint',
-          urlTemplate: `${SITE_URL}/contact`,
-        },
-      },
-    ],
     sameAs: Object.values(SOCIAL_LINKS),
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.8',
-      reviewCount: '847',
-      bestRating: '5',
-      worstRating: '1',
-    },
-    review: [
-      {
-        '@type': 'Review',
-        reviewRating: {
-          '@type': 'Rating',
-          ratingValue: '5',
-          bestRating: '5',
-        },
-        author: {
-          '@type': 'Person',
-          name: 'Ahmed Khan',
-        },
-        reviewBody: 'Best broast chicken in Vehari! Crispy, juicy, and amazing taste. Fast delivery too!',
-        datePublished: '2024-12-15',
-      },
-      {
-        '@type': 'Review',
-        reviewRating: {
-          '@type': 'Rating',
-          ratingValue: '5',
-          bestRating: '5',
-        },
-        author: {
-          '@type': 'Person',
-          name: 'Fatima Ali',
-        },
-        reviewBody: 'Family loves their zinger burgers and chicken wings. Great deals for family dinners!',
-        datePublished: '2024-11-28',
-      },
-    ],
   };
 }
 
@@ -1072,8 +967,6 @@ export function generateHomePageSchema() {
     generateRestaurantSchema(),
     generateWebsiteSchema(),
     generateOrganizationSchema(),
-    generateLocalBusinessSchema(),
     generateFAQSchema(),
-    generateServiceSchema(),
   ];
 }
