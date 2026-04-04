@@ -43,7 +43,7 @@ function OfferCard({ offer, index }: { offer: SpecialOffer; index: number }) {
   const [expanded, setExpanded] = useState(false);
   const [added, setAdded] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { addToCart, applyOffer } = useCart();
+  const { addToCart, applyOffer, onlineOrderingEnabled, onlineOrderingMessage } = useCart();
   const { toast } = useToast();
   const router = useRouter();
   const { user } = useAuth();
@@ -54,6 +54,15 @@ function OfferCard({ offer, index }: { offer: SpecialOffer; index: number }) {
   }, []);
 
   const handleOrderNow = () => {
+    if (!onlineOrderingEnabled) {
+      toast({
+        title: 'Online Ordering Unavailable',
+        description: onlineOrderingMessage,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     let addedCount = 0;
     const names: string[] = [];
 
@@ -67,7 +76,7 @@ function OfferCard({ offer, index }: { offer: SpecialOffer; index: number }) {
         if (!item.menu_item_id) return;
         const price = safePrice(item.offer_price, item.original_price);
         if (!price) return; // skip if no valid price
-        addToCart(
+        const added = addToCart(
           {
             id: item.menu_item_id,
             name: item.menu_item?.name ?? "Item",
@@ -82,6 +91,8 @@ function OfferCard({ offer, index }: { offer: SpecialOffer; index: number }) {
           item.size_variant ?? undefined,
           price
         );
+        if (!added) return;
+
         names.push(item.menu_item?.name ?? "Item");
         addedCount++;
       });
@@ -93,7 +104,7 @@ function OfferCard({ offer, index }: { offer: SpecialOffer; index: number }) {
         if (!deal.deal_id) return;
         const price = safePrice(deal.offer_price, deal.original_price);
         if (!price) return;
-        addToCart(
+        const added = addToCart(
           {
             id: `deal-${deal.deal_id}`,
             name: deal.deal?.name ?? "Deal",
@@ -106,6 +117,8 @@ function OfferCard({ offer, index }: { offer: SpecialOffer; index: number }) {
           undefined,
           price
         );
+        if (!added) return;
+
         names.push(deal.deal?.name ?? "Deal");
         addedCount++;
       });

@@ -4513,6 +4513,46 @@ export interface TaxSettingsServer {
   label: string;
 }
 
+export interface OnlineOrderingSettingsServer {
+  enabled: boolean;
+  disabled_message: string;
+  updated_at: string | null;
+}
+
+const DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE =
+  'Online ordering is currently unavailable. Please visit us in-store or try again later.';
+
+/**
+ * Get online-ordering settings (SSR/public)
+ */
+export async function getOnlineOrderingSettingsServer(): Promise<OnlineOrderingSettingsServer> {
+  const defaults: OnlineOrderingSettingsServer = {
+    enabled: true,
+    disabled_message: DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE,
+    updated_at: null,
+  };
+
+  if (!isSupabaseConfigured) return defaults;
+
+  try {
+    const { data, error } = await supabase.rpc('get_online_ordering_setting');
+
+    if (error || !data) return defaults;
+
+    const settings = data as any;
+
+    return {
+      enabled: settings.enabled ?? true,
+      disabled_message:
+        (typeof settings.disabled_message === 'string' && settings.disabled_message.trim()) ||
+        DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE,
+      updated_at: settings.updated_at ?? null,
+    };
+  } catch {
+    return defaults;
+  }
+}
+
 /**
  * Get tax settings (SSR)
  */

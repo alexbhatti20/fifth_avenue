@@ -1,6 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { getOnlineOrderingSettingsAction } from '@/lib/actions';
 
 // Size variant type
 export interface SizeVariant {
@@ -54,7 +56,7 @@ export interface AppliedOffer {
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (item: MenuItem, size?: string, price?: number) => void;
+  addToCart: (item: MenuItem, size?: string, price?: number) => boolean;
   removeFromCart: (cartItemId: string) => void;
   updateQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -64,12 +66,16 @@ interface CartContextType {
   appliedOffer: AppliedOffer | null;
   applyOffer: (offer: AppliedOffer) => void;
   removeOffer: () => void;
+  onlineOrderingEnabled: boolean;
+  onlineOrderingMessage: string;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const CART_STORAGE_KEY = 'zoiro-cart';
 const OFFER_STORAGE_KEY = 'zoiro-applied-offer';
+const DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE =
+  'Online ordering is currently unavailable. Please visit us in-store or try again later.';
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -91,10 +97,37 @@ const generateCartItemId = (itemId: string, size?: string): string => {
   return size ? `${itemId}-${size.toLowerCase().replace(/\s+/g, '-')}` : itemId;
 };
 
-export function CartProvider({ children }: { children: ReactNode }) {
+interface CartProviderProps {
+  children: ReactNode;
+  orderingGuardMode?: 'customer' | 'staff';
+  initialOnlineOrderingEnabled?: boolean;
+  initialOnlineOrderingMessage?: string;
+}
+
+export function CartProvider({
+  children,
+  orderingGuardMode = 'customer',
+  initialOnlineOrderingEnabled = true,
+  initialOnlineOrderingMessage = DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE,
+}: CartProviderProps) {
+  const { toast } = useToast();
   const [items, setItems] = useState<CartItem[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
   const [appliedOffer, setAppliedOffer] = useState<AppliedOffer | null>(null);
+  const [onlineOrderingEnabled, setOnlineOrderingEnabled] = useState(
+    orderingGuardMode === 'customer' ? initialOnlineOrderingEnabled : true
+  );
+  const [onlineOrderingMessage, setOnlineOrderingMessage] = useState(
+    initialOnlineOrderingMessage || DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE
+  );
+
+  const notifyOnlineOrderingDisabled = useCallback(() => {
+    toast({
+      title: 'Online Ordering Unavailable',
+      description: onlineOrderingMessage,
+      variant: 'destructive',
+    });
+  }, [onlineOrderingMessage, toast]);
 
   // Load cart + applied offer from localStorage on mount
   useEffect(() => {
@@ -133,17 +166,47 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, isHydrated]);
 
+  useEffect(() => {
+    if (orderingGuardMode !== 'customer') {
+      setOnlineOrderingEnabled(true);
+      return;
+    }
+
+    let cancelled = false;
+
+    getOnlineOrderingSettingsAction()
+      .then((result) => {
+        if (cancelled || !result.success || !result.settings) return;
+        setOnlineOrderingEnabled(result.settings.enabled ?? true);
+        setOnlineOrderingMessage(
+          result.settings.disabled_message || DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE
+        );
+      })
+      .catch(() => {
+        // Silent fail - keep SSR/default values
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orderingGuardMode]);
+
   const getCartItemId = useCallback((itemId: string, size?: string): string => {
     return generateCartItemId(itemId, size);
   }, []);
 
-  const addToCart = useCallback((item: MenuItem, size?: string, price?: number) => {
+  const addToCart = useCallback((item: MenuItem, size?: string, price?: number): boolean => {
+    if (orderingGuardMode === 'customer' && !onlineOrderingEnabled) {
+      notifyOnlineOrderingDisabled();
+      return false;
+    }
+
     const cartItemId = generateCartItemId(item.id, size);
     const itemPrice = price ?? item.price;
     
     // Validate price is a positive number
     if (typeof itemPrice !== 'number' || itemPrice <= 0 || isNaN(itemPrice)) {
-      return; // Don't add items with invalid prices
+      return false; // Don't add items with invalid prices
     }
 
     setItems((prevItems) => {
@@ -162,7 +225,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         cartItemId 
       }];
     });
-  }, []);
+
+    return true;
+  }, [notifyOnlineOrderingDisabled, onlineOrderingEnabled, orderingGuardMode]);
 
   const removeFromCart = useCallback((cartItemId: string) => {
     setItems((prevItems) => prevItems.filter((i) => (i.cartItemId || i.id) !== cartItemId));
@@ -173,10 +238,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setItems((prevItems) => prevItems.filter((i) => (i.cartItemId || i.id) !== cartItemId));
       return;
     }
+
+    if (orderingGuardMode === 'customer' && !onlineOrderingEnabled) {
+      const currentItem = items.find((i) => (i.cartItemId || i.id) === cartItemId);
+      if (currentItem && quantity > currentItem.quantity) {
+        notifyOnlineOrderingDisabled();
+        return;
+      }
+    }
+
     setItems((prevItems) =>
       prevItems.map((i) => ((i.cartItemId || i.id) === cartItemId ? { ...i, quantity } : i))
     );
-  }, []);
+  }, [items, notifyOnlineOrderingDisabled, onlineOrderingEnabled, orderingGuardMode]);
 
   const clearCart = useCallback(() => {
     setItems([]);
@@ -212,7 +286,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
     appliedOffer,
     applyOffer,
     removeOffer,
-  }), [items, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice, getCartItemId, appliedOffer, applyOffer, removeOffer]);
+    onlineOrderingEnabled,
+    onlineOrderingMessage,
+  }), [
+    items,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    totalItems,
+    totalPrice,
+    getCartItemId,
+    appliedOffer,
+    applyOffer,
+    removeOffer,
+    onlineOrderingEnabled,
+    onlineOrderingMessage,
+  ]);
 
   return (
     <CartContext.Provider value={contextValue}>
@@ -223,7 +313,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
 const SSR_CART_DEFAULT: CartContextType = {
   items: [],
-  addToCart: () => {},
+  addToCart: () => false,
   removeFromCart: () => {},
   updateQuantity: () => {},
   clearCart: () => {},
@@ -233,6 +323,8 @@ const SSR_CART_DEFAULT: CartContextType = {
   appliedOffer: null,
   applyOffer: () => {},
   removeOffer: () => {},
+  onlineOrderingEnabled: true,
+  onlineOrderingMessage: DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE,
 };
 
 export function useCart() {

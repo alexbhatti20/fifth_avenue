@@ -103,7 +103,9 @@ export default function FeaturedMenu({ menuItems }: FeaturedMenuProps) {
   const cardsY = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [0, 0] : [50, -50]);
 
   const handleAddToCart = (item: typeof featuredItems[0]) => {
-    addToCart(item);
+    const added = addToCart(item);
+    if (!added) return;
+
     toast({
       title: "Added to cart!",
       description: `${item.name} has been added to your cart.`,

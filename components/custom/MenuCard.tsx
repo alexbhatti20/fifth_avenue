@@ -64,7 +64,9 @@ export default function MenuCard({ item, index }: MenuCardProps) {
   const quantity = cartItem?.quantity || 0;
 
   const handleAddToCart = () => {
-    addToCart(item);
+    const added = addToCart(item);
+    if (!added) return;
+
     toast({
       title: "Added to cart! 🛒",
       description: `${item.name} has been added to your cart.`,

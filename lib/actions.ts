@@ -1,7 +1,7 @@
 'use server';
 
 import { supabase } from '@/lib/supabase';
-import { getAuthenticatedClient } from '@/lib/server-queries';
+import { getAuthenticatedClient, getSSRCurrentEmployee } from '@/lib/server-queries';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import {
@@ -2614,6 +2614,101 @@ export interface TaxSettingsData {
   rate: number;   // percentage, e.g. 5 = 5%
   enabled: boolean;
   label: string;  // e.g. "GST"
+}
+
+export interface OnlineOrderingSettingsData {
+  enabled: boolean;
+  disabled_message: string;
+  updated_at?: string | null;
+}
+
+const DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE =
+  'Online ordering is currently unavailable. Please visit us in-store or try again later.';
+
+export async function getOnlineOrderingSettingsAction(): Promise<{
+  success: boolean;
+  settings?: OnlineOrderingSettingsData;
+  error?: string;
+}> {
+  try {
+    const client = await getAuthenticatedClient();
+    const { data, error } = await client.rpc('get_online_ordering_setting_internal');
+
+    if (error) throw error;
+
+    const result = data as any;
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to get online ordering settings' };
+    }
+
+    const settings = result.settings || {};
+
+    return {
+      success: true,
+      settings: {
+        enabled: settings.enabled ?? true,
+        disabled_message:
+          (typeof settings.disabled_message === 'string' && settings.disabled_message.trim()) ||
+          DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE,
+        updated_at: settings.updated_at ?? null,
+      },
+    };
+  } catch (error: any) {
+    console.error('[Server Action] getOnlineOrderingSettingsAction error:', error);
+    return { success: false, error: error.message || 'Failed to get online ordering settings' };
+  }
+}
+
+export async function updateOnlineOrderingSettingsAction(
+  settings: Pick<OnlineOrderingSettingsData, 'enabled' | 'disabled_message'>
+): Promise<{
+  success: boolean;
+  settings?: OnlineOrderingSettingsData;
+  error?: string;
+}> {
+  try {
+    const employee = await getSSRCurrentEmployee();
+    if (!employee || employee.role !== 'admin') {
+      return { success: false, error: 'Unauthorized. Admin access required.' };
+    }
+
+    const client = await getAuthenticatedClient();
+    const sanitizedMessage = settings.disabled_message?.trim() || DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE;
+    const { data, error } = await client.rpc('upsert_online_ordering_setting_internal', {
+      p_enabled: settings.enabled,
+      p_disabled_message: sanitizedMessage,
+    });
+
+    if (error) throw error;
+
+    const result = data as any;
+    if (!result?.success) {
+      return { success: false, error: result?.error || 'Failed to save online ordering settings' };
+    }
+
+    const resultSettings = result.settings || {};
+
+    revalidatePath('/portal/settings');
+    revalidatePath('/menu');
+    revalidatePath('/cart');
+    revalidatePath('/offers');
+    revalidatePath('/favorites');
+    revalidatePath('/');
+
+    return {
+      success: true,
+      settings: {
+        enabled: resultSettings.enabled ?? settings.enabled,
+        disabled_message:
+          (typeof resultSettings.disabled_message === 'string' && resultSettings.disabled_message.trim()) ||
+          sanitizedMessage,
+        updated_at: resultSettings.updated_at ?? null,
+      },
+    };
+  } catch (error: any) {
+    console.error('[Server Action] updateOnlineOrderingSettingsAction error:', error);
+    return { success: false, error: error.message || 'Failed to save online ordering settings' };
+  }
 }
 
 export async function getTaxSettingsAction(): Promise<{

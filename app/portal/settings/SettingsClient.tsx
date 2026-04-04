@@ -45,6 +45,7 @@ import {
   Calendar,
   Keyboard,
   Calculator,
+  ShoppingCart,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -95,6 +96,8 @@ import {
   disable2FAAction,
   getTaxSettingsAction,
   updateTaxSettingsAction,
+  getOnlineOrderingSettingsAction,
+  updateOnlineOrderingSettingsAction,
 } from '@/lib/actions';
 import { uploadEmployeeAvatar, deleteStorageFile } from '@/lib/storage';
 
@@ -156,6 +159,12 @@ export interface TaxSettings {
   label: string;
 }
 
+export interface OnlineOrderingSettings {
+  enabled: boolean;
+  disabled_message: string;
+  updated_at?: string | null;
+}
+
 export interface MaintenanceStatus {
   is_enabled: boolean;
   enabled_at: string | null;
@@ -185,6 +194,156 @@ const getCacheBustedUrl = (url: string | null | undefined): string | null => {
   return `${url.split('?')[0]}?t=${Date.now()}`;
 };
 
+
+// ONLINE ORDERING SETTINGS FORM
+// Admin-only toggle to enable/disable customer online ordering flow
+function OnlineOrdersSettingsForm({ initialSettings }: { initialSettings: OnlineOrderingSettings | null }) {
+  const defaults: OnlineOrderingSettings = {
+    enabled: true,
+    disabled_message: 'Online ordering is currently unavailable. Please visit us in-store or try again later.',
+    updated_at: null,
+  };
+
+  const hasSSRData = useRef(!!initialSettings);
+  const hasFetched = useRef(false);
+
+  const [settings, setSettings] = useState<OnlineOrderingSettings>(initialSettings ?? defaults);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(!initialSettings);
+
+  useEffect(() => {
+    if (hasSSRData.current || hasFetched.current) {
+      setIsLoading(false);
+      return;
+    }
+
+    hasFetched.current = true;
+    getOnlineOrderingSettingsAction()
+      .then((result) => {
+        if (result.success && result.settings) {
+          setSettings(result.settings as OnlineOrderingSettings);
+        }
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
+
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    try {
+      const result = await updateOnlineOrderingSettingsAction({
+        enabled: settings.enabled,
+        disabled_message: settings.disabled_message,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save online ordering settings');
+      }
+
+      if (result.settings) {
+        setSettings(result.settings as OnlineOrderingSettings);
+      }
+
+      toast.success('Online ordering settings saved', {
+        description: settings.enabled
+          ? 'Customers can now add items to cart and place orders online.'
+          : 'Online ordering is now disabled for customers.',
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save online ordering settings');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4" /> Online Orders Management
+          </CardTitle>
+          <CardDescription>
+            Control whether customers can add items to cart and place orders from the website.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg border p-4 bg-muted/30">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="font-medium text-sm">
+                  {settings.enabled ? 'Online Ordering Enabled' : 'Online Ordering Disabled'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {settings.enabled
+                    ? 'Customers can place delivery and pickup orders from the website.'
+                    : 'Customers cannot add items to cart or place new online orders.'}
+                </p>
+              </div>
+              <Badge
+                variant={settings.enabled ? 'default' : 'destructive'}
+                className={settings.enabled ? 'bg-emerald-600 hover:bg-emerald-600' : ''}
+              >
+                {settings.enabled ? 'Enabled' : 'Disabled'}
+              </Badge>
+            </div>
+            <div className="mt-4 flex items-center justify-between rounded-md border bg-background px-3 py-2">
+              <div>
+                <p className="text-sm font-medium">Allow Customer Online Orders</p>
+                <p className="text-xs text-muted-foreground">Turn off during outages, menu updates, or busy windows.</p>
+              </div>
+              <Switch
+                checked={settings.enabled}
+                onCheckedChange={(enabled) => setSettings((prev) => ({ ...prev, enabled }))}
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          {!settings.enabled && (
+            <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Customers are currently blocked from cart actions and checkout. They will see your message below.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="ordering-disabled-message">Message Shown To Customers When Ordering Is Disabled</Label>
+            <Textarea
+              id="ordering-disabled-message"
+              value={settings.disabled_message}
+              onChange={(e) => setSettings((prev) => ({ ...prev, disabled_message: e.target.value }))}
+              placeholder="Online ordering is currently unavailable. Please visit us in-store or try again later."
+              rows={3}
+              maxLength={240}
+            />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>This message appears when customers try to add to cart or place an order.</span>
+              <span>{settings.disabled_message.length}/240</span>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button onClick={handleSave} disabled={isSubmitting || !settings.disabled_message.trim()}>
+            <Save className="h-4 w-4 mr-2" />
+            {isSubmitting ? 'Saving...' : 'Save Online Ordering Settings'}
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
 // Personal Settings - Uses SSR data or fetches fresh from DB via RPC
 function PersonalSettings({ 
   employeeId, 
@@ -3050,6 +3209,7 @@ interface SettingsClientProps {
   initial2FAStatus?: boolean;
   initialMaintenanceStatus?: MaintenanceStatus | null;
   initialTaxSettings?: TaxSettings | null;
+  initialOnlineOrderingSettings?: OnlineOrderingSettings | null;
   hasSSRData?: boolean;
 }
 
@@ -3062,6 +3222,7 @@ export default function SettingsClient({
   initial2FAStatus = false,
   initialMaintenanceStatus = null,
   initialTaxSettings = null,
+  initialOnlineOrderingSettings = null,
   hasSSRData = false,
 }: SettingsClientProps) {
   // Get context as fallback when SSR data is not available
@@ -3136,6 +3297,9 @@ export default function SettingsClient({
                 <TabsTrigger value="payment-methods" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
                   <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Payments
                 </TabsTrigger>
+                <TabsTrigger value="orders-management" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+                  <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Orders
+                </TabsTrigger>
                 <TabsTrigger value="billing-settings" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
                   <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Billing
                 </TabsTrigger>
@@ -3189,6 +3353,9 @@ export default function SettingsClient({
                 initialStats={initialPaymentStats}
                 hasSSRData={hasSSRData} 
               />
+            </TabsContent>
+            <TabsContent value="orders-management">
+              <OnlineOrdersSettingsForm initialSettings={initialOnlineOrderingSettings} />
             </TabsContent>
             <TabsContent value="billing-settings">
               <TaxSettingsForm initialSettings={initialTaxSettings} />

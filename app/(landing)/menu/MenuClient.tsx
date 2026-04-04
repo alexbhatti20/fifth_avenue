@@ -408,12 +408,14 @@ export default function MenuClient({
       return;
     }
     
-    addToCart({
+    const added = addToCart({
       id: item.id,
       name: item.name,
       price: item.price,
       image: item.images?.[0] || "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&h=600&fit=crop&q=80",
     });
+    if (!added) return;
+
     toast({
       title: "Added to cart!",
       description: `${item.name} has been added to your cart.`,
@@ -427,12 +429,14 @@ export default function MenuClient({
       return;
     }
     
-    addToCart({
+    const added = addToCart({
       id: `deal-${deal.id}`,
       name: deal.name,
       price: deal.discounted_price,
       image: deal.image_url || deal.items?.[0]?.image || "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&h=600&fit=crop&q=80",
     });
+    if (!added) return;
+
     toast({
       title: "Deal added to cart!",
       description: `${deal.name} has been added to your cart.`,
@@ -1369,7 +1373,9 @@ export default function MenuClient({
                         className="rounded-full px-6" 
                         disabled={selectedItem.has_variants && !selectedSize}
                         onClick={() => { 
-                          addToCart(selectedItem, selectedSize || undefined, priceToUse); 
+                          const added = addToCart(selectedItem, selectedSize || undefined, priceToUse);
+                          if (!added) return;
+
                           toast({
                             title: "Added to cart!",
                             description: `${selectedItem.name}${selectedSize ? ` (${selectedSize})` : ''} has been added.`,

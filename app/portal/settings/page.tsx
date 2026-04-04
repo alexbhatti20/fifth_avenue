@@ -12,6 +12,7 @@ import {
   get2FAStatusServer,
   getMaintenanceStatusServer,
   getTaxSettingsServer,
+  getOnlineOrderingSettingsServer,
 } from '@/lib/server-queries';
 
 export const dynamic = 'force-dynamic';
@@ -31,13 +32,15 @@ export default async function SettingsPage() {
     paymentMethodsData,
     twoFAStatus,
     maintenanceStatus,
-    taxSettings
+    taxSettings,
+    onlineOrderingSettings,
   ] = await Promise.all([
     isAdmin ? getWebsiteSettingsServer() : Promise.resolve(null),
     isAdmin ? getPaymentMethodsServer() : Promise.resolve({ methods: [], stats: null }),
     employeeId ? get2FAStatusServer(employeeId) : Promise.resolve({ is_enabled: false }),
     isAdmin ? getMaintenanceStatusServer() : Promise.resolve(null),
     isAdmin ? getTaxSettingsServer() : Promise.resolve(null),
+    isAdmin ? getOnlineOrderingSettingsServer() : Promise.resolve(null),
   ]);
 
   return (
@@ -49,6 +52,7 @@ export default async function SettingsPage() {
       initial2FAStatus={twoFAStatus.is_enabled}
       initialMaintenanceStatus={maintenanceStatus}
       initialTaxSettings={taxSettings}
+      initialOnlineOrderingSettings={onlineOrderingSettings}
       hasSSRData={!!employee}
     />
   );

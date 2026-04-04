@@ -31,7 +31,7 @@ export default function OfferPopup({ onClose, initialOffers = [] }: OfferPopupPr
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const totalTimeRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
-  const { addToCart, applyOffer } = useCart();
+  const { addToCart, applyOffer, onlineOrderingEnabled, onlineOrderingMessage } = useCart();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -173,6 +173,15 @@ export default function OfferPopup({ onClose, initialOffers = [] }: OfferPopupPr
   const handleGrabDeal = async (offer: SpecialOffer) => {
     await handleOfferClick(offer);
 
+    if (!onlineOrderingEnabled) {
+      toast({
+        title: 'Online Ordering Unavailable',
+        description: onlineOrderingMessage,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     let addedCount = 0;
     const summaryLines: string[] = [];
 
@@ -197,7 +206,7 @@ export default function OfferPopup({ onClose, initialOffers = [] }: OfferPopupPr
           resolvedSize = firstAvailable?.size;
         }
 
-        addToCart(
+        const added = addToCart(
           {
             id: item.menu_item_id,
             name: menuItem?.name ?? 'Item',
@@ -214,6 +223,8 @@ export default function OfferPopup({ onClose, initialOffers = [] }: OfferPopupPr
           resolvedSize,
           offerPrice
         );
+        if (!added) return;
+
         const itemName = menuItem?.name ?? 'Item';
         const sizeSuffix = resolvedSize ? ` (${resolvedSize})` : '';
         const priceLine = item.original_price > offerPrice
@@ -230,7 +241,7 @@ export default function OfferPopup({ onClose, initialOffers = [] }: OfferPopupPr
         if (!deal.deal_id) return;
         const price = safePrice(deal.offer_price, deal.original_price);
         if (!price) return;
-        addToCart(
+        const added = addToCart(
           {
             id: `deal-${deal.deal_id}`,
             name: deal.deal?.name ?? 'Deal',
@@ -243,6 +254,8 @@ export default function OfferPopup({ onClose, initialOffers = [] }: OfferPopupPr
           undefined,
           price
         );
+        if (!added) return;
+
         const dealLine = deal.original_price > price
           ? `${deal.deal?.name ?? 'Deal'}: Rs.${deal.original_price} → Rs.${price}`
           : `${deal.deal?.name ?? 'Deal'}: Rs.${price}`;

@@ -10,6 +10,7 @@ import JsonLd from '@/components/seo/JsonLd'
 import GlobalGoogleAuthHandler from '@/components/auth/GlobalGoogleAuthHandler'
 import { ALL_KEYWORDS, SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/lib/seo'
 import PageLoader from '@/components/custom/PageLoader'
+import { getOnlineOrderingSettingsServer } from '@/lib/server-queries'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const bebasNeue = Bebas_Neue({ 
@@ -133,11 +134,13 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const onlineOrderingSettings = await getOnlineOrderingSettingsServer()
+
   return (
     <html lang="en" dir="ltr">
       <head>
@@ -157,7 +160,10 @@ export default function RootLayout({
         <JsonLd type="home" />
         <GlobalGoogleAuthHandler />
         
-        <CartProvider>
+        <CartProvider
+          initialOnlineOrderingEnabled={onlineOrderingSettings.enabled}
+          initialOnlineOrderingMessage={onlineOrderingSettings.disabled_message}
+        >
           <FavoritesProvider>
             {children}
             <FloatingCartButton />

@@ -18,7 +18,7 @@ export default async function PortalLayout({
   const employee = await getSSRCurrentEmployee() as Employee | null;
 
   return (
-    <CartProvider>
+    <CartProvider orderingGuardMode="staff">
       <NetworkStatusProvider>
         <PortalProvider initialEmployee={employee}>{children}</PortalProvider>
       </NetworkStatusProvider>

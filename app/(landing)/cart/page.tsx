@@ -78,7 +78,18 @@ const itemVariants = {
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, updateQuantity, removeFromCart, clearCart, totalPrice, totalItems, appliedOffer, removeOffer } = useCart();
+  const {
+    items,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+    totalPrice,
+    totalItems,
+    appliedOffer,
+    removeOffer,
+    onlineOrderingEnabled,
+    onlineOrderingMessage,
+  } = useCart();
   const { user } = useAuth();
   const { toast } = useToast();
   const hasAutoFilledRef = useRef(false);
@@ -263,6 +274,15 @@ export default function CartPage() {
   };
 
   const handlePlaceOrder = async () => {
+    if (!onlineOrderingEnabled) {
+      toast({
+        title: "Online Ordering Unavailable",
+        description: onlineOrderingMessage,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!customerInfo.name || !customerInfo.phone) {
       toast({
         title: "Missing Information",
@@ -647,6 +667,20 @@ export default function CartPage() {
             </motion.div>
           </div>
         </section>
+
+        {!onlineOrderingEnabled && (
+          <div className="container-custom mb-4">
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-red-700 dark:text-red-300">Online ordering is currently disabled</p>
+                  <p className="text-sm text-red-700/90 dark:text-red-200/90 mt-1">{onlineOrderingMessage}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <section className="py-8">
           <div className="container-custom">
@@ -1174,7 +1208,7 @@ export default function CartPage() {
                   <Button
                     className="w-full mt-6 h-12 bg-primary hover:bg-primary/90 font-semibold"
                     onClick={handlePlaceOrder}
-                    disabled={isSubmitting || (paymentMethod === "online" && (!selectedOnlineMethod || !transactionId.trim()))}
+                    disabled={!onlineOrderingEnabled || isSubmitting || (paymentMethod === "online" && (!selectedOnlineMethod || !transactionId.trim()))}
                   >
                     {isSubmitting ? (
                       <motion.span

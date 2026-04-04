@@ -38,6 +38,58 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 // Public client for reading menu data (public tables)
 const publicClient = createClient();
 
+const DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE =
+  'Online ordering is currently unavailable. Please visit us in-store or try again later.';
+
+async function getOnlineOrderingStatus(authClient?: ReturnType<typeof createAuthenticatedClient>): Promise<{
+  enabled: boolean;
+  disabledMessage: string;
+}> {
+  try {
+    let data: any = null;
+    let error: any = null;
+
+    if (authClient) {
+      const authRes = await authClient
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'online_ordering_settings')
+        .maybeSingle();
+      data = authRes.data;
+      error = authRes.error;
+    }
+
+    if (error || !data) {
+      const publicRes = await publicClient
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'online_ordering_settings')
+        .maybeSingle();
+      data = publicRes.data;
+      error = publicRes.error;
+    }
+
+    if (error || !data) {
+      return {
+        enabled: true,
+        disabledMessage: DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE,
+      };
+    }
+
+    return {
+      enabled: data.value?.enabled ?? true,
+      disabledMessage:
+        (typeof data.value?.disabled_message === 'string' && data.value.disabled_message.trim()) ||
+        DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE,
+    };
+  } catch {
+    return {
+      enabled: true,
+      disabledMessage: DEFAULT_ONLINE_ORDERING_DISABLED_MESSAGE,
+    };
+  }
+}
+
 // Validate order items
 async function validateAndCalculateItems(items: OrderItem[]): Promise<{
   valid: boolean;
@@ -385,6 +437,18 @@ export async function POST(request: NextRequest) {
     // Validate order type (must match database enum)
     if (!['online', 'walk-in', 'dine-in'].includes(body.order_type)) {
       return NextResponse.json({ error: 'Invalid order type' }, { status: 400 });
+    }
+
+    // Global customer ordering gate (admin-controlled)
+    const orderingStatus = await getOnlineOrderingStatus(authClient);
+    if (!orderingStatus.enabled) {
+      return NextResponse.json(
+        {
+          error: orderingStatus.disabledMessage,
+          code: 'ONLINE_ORDERING_DISABLED',
+        },
+        { status: 503 }
+      );
     }
 
     // Validate online orders have address (for delivery)

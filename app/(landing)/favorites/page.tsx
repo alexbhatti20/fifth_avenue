@@ -97,12 +97,14 @@ export default function FavoritesPage() {
       return;
     }
 
-    addToCart({
+    const added = addToCart({
       id: item.id,
       name: item.name,
       price: item.price,
       image: item.image_url,
     });
+
+    if (!added) return;
 
     toast({
       title: "Added to Cart! 🛒",
