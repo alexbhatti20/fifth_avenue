@@ -3,7 +3,6 @@ import {
   generateWebsiteSchema, 
   generateLocalBusinessSchema,
   generateBreadcrumbSchema,
-  generateFAQSchema,
   generateOrganizationSchema,
   generateServiceSchema,
   generateHomePageSchema,
@@ -11,13 +10,11 @@ import {
   generateOfferSchema,
   SITE_URL,
   SITE_NAME,
-  FAQ_DATA,
 } from '@/lib/seo';
 
 interface JsonLdProps {
-  type?: 'restaurant' | 'website' | 'local-business' | 'breadcrumb' | 'faq' | 'organization' | 'service' | 'home' | 'all';
+  type?: 'restaurant' | 'website' | 'local-business' | 'breadcrumb' | 'organization' | 'service' | 'home' | 'all';
   breadcrumbs?: { name: string; url: string }[];
-  faqs?: { question: string; answer: string }[];
   product?: { name: string; description: string; price: number; image: string; category: string; };
 }
 
@@ -32,7 +29,7 @@ function JsonLdScript({ id, schema }: { id: string; schema: object }) {
   );
 }
 
-export default function JsonLd({ type = 'all', breadcrumbs, faqs, product }: JsonLdProps) {
+export default function JsonLd({ type = 'all', breadcrumbs, product }: JsonLdProps) {
   let schemas: object[] = [];
 
   if (type === 'home' || type === 'all') {
@@ -53,18 +50,32 @@ export default function JsonLd({ type = 'all', breadcrumbs, faqs, product }: Jso
     if (type === 'service') {
       schemas.push(generateServiceSchema());
     }
-    if (type === 'faq') {
-      schemas.push(generateFAQSchema(faqs));
-    }
     if (type === 'breadcrumb' && breadcrumbs) {
       schemas.push(generateBreadcrumbSchema(breadcrumbs));
     }
   }
 
+  const dedupedSchemas = schemas.filter((schema, index, array) => {
+    const current = schema as { '@type'?: string; '@id'?: string };
+    const currentType = current['@type'];
+    const currentId = current['@id'];
+
+    // Keep only one FAQPage even if multiple sources try to inject it.
+    if (currentType === 'FAQPage') {
+      return array.findIndex((s) => (s as { '@type'?: string })['@type'] === 'FAQPage') === index;
+    }
+
+    if (currentId) {
+      return array.findIndex((s) => (s as { '@id'?: string })['@id'] === currentId) === index;
+    }
+
+    return true;
+  });
+
   // Use single merged JSON-LD for better performance
   const mergedSchema = {
     '@context': 'https://schema.org',
-    '@graph': schemas.map(s => {
+    '@graph': dedupedSchemas.map(s => {
       const { '@context': _, ...rest } = s as any;
       return rest;
     }),
@@ -80,10 +91,6 @@ export function RestaurantJsonLd() {
 
 export function BreadcrumbJsonLd({ items }: { items: { name: string; url: string }[] }) {
   return <JsonLdScript id="breadcrumb-json-ld" schema={generateBreadcrumbSchema(items)} />;
-}
-
-export function FAQJsonLd({ faqs }: { faqs?: { question: string; answer: string }[] }) {
-  return <JsonLdScript id="faq-json-ld" schema={generateFAQSchema(faqs || FAQ_DATA)} />;
 }
 
 export function ProductJsonLd({ product }: { product: { name: string; description: string; price: number; image: string; category: string; } }) {
