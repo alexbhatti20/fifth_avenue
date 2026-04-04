@@ -7,8 +7,16 @@ import { verifyCookieValue } from '@/lib/cookie-signing';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+function normalizeOrigin(origin: string): string {
+  try {
+    return new URL(origin).origin;
+  } catch {
+    return origin.replace(/\/+$/, '');
+  }
+}
+
 // ─── Allowed CORS origins (computed once at module load) ──────────────────────
-const ALLOWED_ORIGINS: string[] = [
+const ALLOWED_ORIGINS: string[] = Array.from(new Set([
   'https://zoirobroast.me',
   'https://www.zoirobroast.me',
   ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
@@ -18,7 +26,7 @@ const ALLOWED_ORIGINS: string[] = [
         'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'http://127.0.0.1:3002',
       ]
     : []),
-];
+].map(normalizeOrigin)));
 
 // ─── SEO bot pattern (compiled once) ─────────────────────────────────────────
 const SEO_BOT_RE =
@@ -212,18 +220,21 @@ export async function middleware(request: NextRequest) {
     h.set('X-Robots-Tag', 'noindex, nofollow');
 
     const origin = request.headers.get('origin');
+    const normalizedOrigin = origin ? normalizeOrigin(origin) : null;
+    const requestOrigin = request.nextUrl.origin;
+    const isSameOrigin = !!normalizedOrigin && normalizedOrigin === requestOrigin;
     const isLocalhost = !!origin && LOCALHOST_ORIGIN_RE.test(origin);
-    const isAllowed  = !!origin && ALLOWED_ORIGINS.includes(origin);
+    const isAllowed = !!normalizedOrigin && ALLOWED_ORIGINS.includes(normalizedOrigin);
 
     if (origin) {
-      if (isAllowed || (process.env.NODE_ENV !== 'production' && isLocalhost)) {
-        h.set('Access-Control-Allow-Origin', origin);
+      if (isSameOrigin || isAllowed || (process.env.NODE_ENV !== 'production' && isLocalhost)) {
+        h.set('Access-Control-Allow-Origin', normalizedOrigin || origin);
       } else if (process.env.NODE_ENV !== 'production') {
         h.set('Access-Control-Allow-Origin', origin); // dev: allow any origin
       }
       // Production + unlisted origin → no ACAO header → browser enforces same-origin
     } else {
-      h.set('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]); // same-origin / SSR
+      h.set('Access-Control-Allow-Origin', requestOrigin); // same-origin / SSR
     }
 
     h.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
@@ -241,6 +252,7 @@ export async function middleware(request: NextRequest) {
     if (
       process.env.NODE_ENV === 'production' &&
       origin &&
+      !isSameOrigin &&
       !isAllowed &&
       !SEO_BOT_RE.test(userAgent)
     ) {
