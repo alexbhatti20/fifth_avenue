@@ -204,7 +204,12 @@ export default function UnifiedAuth() {
         body: JSON.stringify({ email: formData.email }),
       });
 
-      const result: UserCheckResult = await response.json();
+      const result = await response.json() as UserCheckResult & { error?: string };
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to check user. Please try again.');
+      }
+
       setUserCheck(result);
 
       if (result.exists) {
@@ -247,7 +252,7 @@ export default function UnifiedAuth() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to check user. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to check user. Please try again.",
         variant: "destructive",
       });
     } finally {

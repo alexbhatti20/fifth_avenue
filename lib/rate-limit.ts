@@ -57,35 +57,50 @@ interface RateLimitResult {
   blockedUntil: number | null;
 }
 
+function allowWithoutRedis(config: RateLimitConfig): RateLimitResult {
+  return {
+    allowed: true,
+    remaining: config.maxAttempts,
+    resetAt: Date.now() + config.windowMs,
+    blockedUntil: null,
+  };
+}
+
 /**
  * Check and update login rate limit
  */
 export async function checkLoginRateLimit(ip: string): Promise<RateLimitResult> {
   const config = RATE_LIMITS.login;
+  if (!redis) return allowWithoutRedis(config);
+
   const blockedKey = KEYS.loginBlocked(ip);
   const attemptsKey = KEYS.loginAttempts(ip);
 
-  // Check if blocked
-  const blockedUntil = await redis.get<number>(blockedKey);
-  if (blockedUntil && Date.now() < blockedUntil) {
+  try {
+    // Check if blocked
+    const blockedUntil = await redis.get<number>(blockedKey);
+    if (blockedUntil && Date.now() < blockedUntil) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: null,
+        blockedUntil,
+      };
+    }
+
+    // Get current attempts
+    const attempts = await redis.get<number>(attemptsKey) || 0;
+    const remaining = Math.max(0, config.maxAttempts - attempts);
+
     return {
-      allowed: false,
-      remaining: 0,
-      resetAt: null,
-      blockedUntil,
+      allowed: attempts < config.maxAttempts,
+      remaining,
+      resetAt: Date.now() + config.windowMs,
+      blockedUntil: null,
     };
+  } catch {
+    return allowWithoutRedis(config);
   }
-
-  // Get current attempts
-  const attempts = await redis.get<number>(attemptsKey) || 0;
-  const remaining = Math.max(0, config.maxAttempts - attempts);
-
-  return {
-    allowed: attempts < config.maxAttempts,
-    remaining,
-    resetAt: Date.now() + config.windowMs,
-    blockedUntil: null,
-  };
 }
 
 /**
@@ -93,48 +108,59 @@ export async function checkLoginRateLimit(ip: string): Promise<RateLimitResult> 
  */
 export async function recordLoginFailure(ip: string): Promise<RateLimitResult> {
   const config = RATE_LIMITS.login;
+  if (!redis) return allowWithoutRedis(config);
+
   const blockedKey = KEYS.loginBlocked(ip);
   const attemptsKey = KEYS.loginAttempts(ip);
 
-  // Increment attempts
-  const attempts = await redis.incr(attemptsKey);
-  
-  // Set expiry on first attempt
-  if (attempts === 1) {
-    await redis.expire(attemptsKey, Math.floor(config.windowMs / 1000));
-  }
-
-  // Block if exceeded
-  if (attempts >= config.maxAttempts) {
-    const blockedUntil = Date.now() + config.blockDurationMs;
-    await redis.set(blockedKey, blockedUntil, {
-      ex: Math.floor(config.blockDurationMs / 1000),
-    });
+  try {
+    // Increment attempts
+    const attempts = await redis.incr(attemptsKey);
     
-    return {
-      allowed: false,
-      remaining: 0,
-      resetAt: null,
-      blockedUntil,
-    };
-  }
+    // Set expiry on first attempt
+    if (attempts === 1) {
+      await redis.expire(attemptsKey, Math.floor(config.windowMs / 1000));
+    }
 
-  return {
-    allowed: true,
-    remaining: config.maxAttempts - attempts,
-    resetAt: Date.now() + config.windowMs,
-    blockedUntil: null,
-  };
+    // Block if exceeded
+    if (attempts >= config.maxAttempts) {
+      const blockedUntil = Date.now() + config.blockDurationMs;
+      await redis.set(blockedKey, blockedUntil, {
+        ex: Math.floor(config.blockDurationMs / 1000),
+      });
+      
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: null,
+        blockedUntil,
+      };
+    }
+
+    return {
+      allowed: true,
+      remaining: config.maxAttempts - attempts,
+      resetAt: Date.now() + config.windowMs,
+      blockedUntil: null,
+    };
+  } catch {
+    return allowWithoutRedis(config);
+  }
 }
 
 /**
  * Clear login rate limit on successful login
  */
 export async function clearLoginRateLimit(ip: string): Promise<void> {
+  if (!redis) return;
   const attemptsKey = KEYS.loginAttempts(ip);
   const blockedKey = KEYS.loginBlocked(ip);
-  await redis.del(attemptsKey);
-  await redis.del(blockedKey);
+  try {
+    await redis.del(attemptsKey);
+    await redis.del(blockedKey);
+  } catch {
+    // Best-effort cleanup only.
+  }
 }
 
 /**
@@ -142,40 +168,46 @@ export async function clearLoginRateLimit(ip: string): Promise<void> {
  */
 export async function checkRegistrationRateLimit(ip: string): Promise<RateLimitResult> {
   const config = RATE_LIMITS.registration;
+  if (!redis) return allowWithoutRedis(config);
+
   const blockedKey = KEYS.registerBlocked(ip);
   const attemptsKey = KEYS.registerAttempts(ip);
 
-  // Check global cooldown first
-  const globalCooldown = await redis.get<number>(KEYS.globalCooldown());
-  if (globalCooldown && Date.now() < globalCooldown) {
+  try {
+    // Check global cooldown first
+    const globalCooldown = await redis.get<number>(KEYS.globalCooldown());
+    if (globalCooldown && Date.now() < globalCooldown) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: null,
+        blockedUntil: globalCooldown,
+      };
+    }
+
+    // Check if IP is blocked
+    const blockedUntil = await redis.get<number>(blockedKey);
+    if (blockedUntil && Date.now() < blockedUntil) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: null,
+        blockedUntil,
+      };
+    }
+
+    const attempts = await redis.get<number>(attemptsKey) || 0;
+    const remaining = Math.max(0, config.maxAttempts - attempts);
+
     return {
-      allowed: false,
-      remaining: 0,
-      resetAt: null,
-      blockedUntil: globalCooldown,
+      allowed: attempts < config.maxAttempts,
+      remaining,
+      resetAt: Date.now() + config.windowMs,
+      blockedUntil: null,
     };
+  } catch {
+    return allowWithoutRedis(config);
   }
-
-  // Check if IP is blocked
-  const blockedUntil = await redis.get<number>(blockedKey);
-  if (blockedUntil && Date.now() < blockedUntil) {
-    return {
-      allowed: false,
-      remaining: 0,
-      resetAt: null,
-      blockedUntil,
-    };
-  }
-
-  const attempts = await redis.get<number>(attemptsKey) || 0;
-  const remaining = Math.max(0, config.maxAttempts - attempts);
-
-  return {
-    allowed: attempts < config.maxAttempts,
-    remaining,
-    resetAt: Date.now() + config.windowMs,
-    blockedUntil: null,
-  };
 }
 
 /**
@@ -184,62 +216,73 @@ export async function checkRegistrationRateLimit(ip: string): Promise<RateLimitR
 export async function recordRegistrationFailure(ip: string): Promise<RateLimitResult> {
   const config = RATE_LIMITS.registration;
   const globalConfig = RATE_LIMITS.globalFailure;
+  if (!redis) return allowWithoutRedis(config);
+
   const blockedKey = KEYS.registerBlocked(ip);
   const attemptsKey = KEYS.registerAttempts(ip);
   const globalFailuresKey = KEYS.globalFailures();
   const globalCooldownKey = KEYS.globalCooldown();
 
-  // Increment IP attempts
-  const attempts = await redis.incr(attemptsKey);
-  if (attempts === 1) {
-    await redis.expire(attemptsKey, Math.floor(config.windowMs / 1000));
-  }
+  try {
+    // Increment IP attempts
+    const attempts = await redis.incr(attemptsKey);
+    if (attempts === 1) {
+      await redis.expire(attemptsKey, Math.floor(config.windowMs / 1000));
+    }
 
-  // Increment global failures
-  const globalFailures = await redis.incr(globalFailuresKey);
-  if (globalFailures === 1) {
-    await redis.expire(globalFailuresKey, Math.floor(globalConfig.windowMs / 1000));
-  }
+    // Increment global failures
+    const globalFailures = await redis.incr(globalFailuresKey);
+    if (globalFailures === 1) {
+      await redis.expire(globalFailuresKey, Math.floor(globalConfig.windowMs / 1000));
+    }
 
-  // Check for global cooldown
-  if (globalFailures >= globalConfig.maxAttempts) {
-    const cooldownUntil = Date.now() + globalConfig.blockDurationMs;
-    await redis.set(globalCooldownKey, cooldownUntil, {
-      ex: Math.floor(globalConfig.blockDurationMs / 1000),
-    });
-  }
+    // Check for global cooldown
+    if (globalFailures >= globalConfig.maxAttempts) {
+      const cooldownUntil = Date.now() + globalConfig.blockDurationMs;
+      await redis.set(globalCooldownKey, cooldownUntil, {
+        ex: Math.floor(globalConfig.blockDurationMs / 1000),
+      });
+    }
 
-  // Block IP if exceeded
-  if (attempts >= config.maxAttempts) {
-    const blockedUntil = Date.now() + config.blockDurationMs;
-    await redis.set(blockedKey, blockedUntil, {
-      ex: Math.floor(config.blockDurationMs / 1000),
-    });
-    
+    // Block IP if exceeded
+    if (attempts >= config.maxAttempts) {
+      const blockedUntil = Date.now() + config.blockDurationMs;
+      await redis.set(blockedKey, blockedUntil, {
+        ex: Math.floor(config.blockDurationMs / 1000),
+      });
+      
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: null,
+        blockedUntil,
+      };
+    }
+
     return {
-      allowed: false,
-      remaining: 0,
-      resetAt: null,
-      blockedUntil,
+      allowed: true,
+      remaining: config.maxAttempts - attempts,
+      resetAt: Date.now() + config.windowMs,
+      blockedUntil: null,
     };
+  } catch {
+    return allowWithoutRedis(config);
   }
-
-  return {
-    allowed: true,
-    remaining: config.maxAttempts - attempts,
-    resetAt: Date.now() + config.windowMs,
-    blockedUntil: null,
-  };
 }
 
 /**
  * Clear registration rate limit on success
  */
 export async function clearRegistrationRateLimit(ip: string): Promise<void> {
+  if (!redis) return;
   const attemptsKey = KEYS.registerAttempts(ip);
   const blockedKey = KEYS.registerBlocked(ip);
-  await redis.del(attemptsKey);
-  await redis.del(blockedKey);
+  try {
+    await redis.del(attemptsKey);
+    await redis.del(blockedKey);
+  } catch {
+    // Best-effort cleanup only.
+  }
 }
 
 /**
@@ -247,28 +290,34 @@ export async function clearRegistrationRateLimit(ip: string): Promise<void> {
  */
 export async function checkOTPRateLimit(email: string): Promise<RateLimitResult> {
   const config = RATE_LIMITS.otp;
+  if (!redis) return allowWithoutRedis(config);
+
   const blockedKey = KEYS.otpBlocked(email);
   const attemptsKey = KEYS.otpAttempts(email);
 
-  const blockedUntil = await redis.get<number>(blockedKey);
-  if (blockedUntil && Date.now() < blockedUntil) {
+  try {
+    const blockedUntil = await redis.get<number>(blockedKey);
+    if (blockedUntil && Date.now() < blockedUntil) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: null,
+        blockedUntil,
+      };
+    }
+
+    const attempts = await redis.get<number>(attemptsKey) || 0;
+    const remaining = Math.max(0, config.maxAttempts - attempts);
+
     return {
-      allowed: false,
-      remaining: 0,
-      resetAt: null,
-      blockedUntil,
+      allowed: attempts < config.maxAttempts,
+      remaining,
+      resetAt: Date.now() + config.windowMs,
+      blockedUntil: null,
     };
+  } catch {
+    return allowWithoutRedis(config);
   }
-
-  const attempts = await redis.get<number>(attemptsKey) || 0;
-  const remaining = Math.max(0, config.maxAttempts - attempts);
-
-  return {
-    allowed: attempts < config.maxAttempts,
-    remaining,
-    resetAt: Date.now() + config.windowMs,
-    blockedUntil: null,
-  };
 }
 
 /**
@@ -276,44 +325,55 @@ export async function checkOTPRateLimit(email: string): Promise<RateLimitResult>
  */
 export async function recordOTPFailure(email: string): Promise<RateLimitResult> {
   const config = RATE_LIMITS.otp;
+  if (!redis) return allowWithoutRedis(config);
+
   const blockedKey = KEYS.otpBlocked(email);
   const attemptsKey = KEYS.otpAttempts(email);
 
-  const attempts = await redis.incr(attemptsKey);
-  if (attempts === 1) {
-    await redis.expire(attemptsKey, Math.floor(config.windowMs / 1000));
-  }
+  try {
+    const attempts = await redis.incr(attemptsKey);
+    if (attempts === 1) {
+      await redis.expire(attemptsKey, Math.floor(config.windowMs / 1000));
+    }
 
-  if (attempts >= config.maxAttempts) {
-    const blockedUntil = Date.now() + config.blockDurationMs;
-    await redis.set(blockedKey, blockedUntil, {
-      ex: Math.floor(config.blockDurationMs / 1000),
-    });
-    
+    if (attempts >= config.maxAttempts) {
+      const blockedUntil = Date.now() + config.blockDurationMs;
+      await redis.set(blockedKey, blockedUntil, {
+        ex: Math.floor(config.blockDurationMs / 1000),
+      });
+      
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: null,
+        blockedUntil,
+      };
+    }
+
     return {
-      allowed: false,
-      remaining: 0,
-      resetAt: null,
-      blockedUntil,
+      allowed: true,
+      remaining: config.maxAttempts - attempts,
+      resetAt: Date.now() + config.windowMs,
+      blockedUntil: null,
     };
+  } catch {
+    return allowWithoutRedis(config);
   }
-
-  return {
-    allowed: true,
-    remaining: config.maxAttempts - attempts,
-    resetAt: Date.now() + config.windowMs,
-    blockedUntil: null,
-  };
 }
 
 /**
  * Clear OTP rate limit on success
  */
 export async function clearOTPRateLimit(email: string): Promise<void> {
+  if (!redis) return;
   const attemptsKey = KEYS.otpAttempts(email);
   const blockedKey = KEYS.otpBlocked(email);
-  await redis.del(attemptsKey);
-  await redis.del(blockedKey);
+  try {
+    await redis.del(attemptsKey);
+    await redis.del(blockedKey);
+  } catch {
+    // Best-effort cleanup only.
+  }
 }
 
 /**
@@ -321,28 +381,34 @@ export async function clearOTPRateLimit(email: string): Promise<void> {
  */
 export async function checkPasswordChangeRateLimit(userId: string): Promise<RateLimitResult> {
   const config = RATE_LIMITS.passwordChange;
+  if (!redis) return allowWithoutRedis(config);
+
   const blockedKey = KEYS.passwordChangeBlocked(userId);
   const attemptsKey = KEYS.passwordChangeAttempts(userId);
 
-  const blockedUntil = await redis.get<number>(blockedKey);
-  if (blockedUntil && Date.now() < blockedUntil) {
+  try {
+    const blockedUntil = await redis.get<number>(blockedKey);
+    if (blockedUntil && Date.now() < blockedUntil) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: null,
+        blockedUntil,
+      };
+    }
+
+    const attempts = await redis.get<number>(attemptsKey) || 0;
+    const remaining = Math.max(0, config.maxAttempts - attempts);
+
     return {
-      allowed: false,
-      remaining: 0,
-      resetAt: null,
-      blockedUntil,
+      allowed: attempts < config.maxAttempts,
+      remaining,
+      resetAt: Date.now() + config.windowMs,
+      blockedUntil: null,
     };
+  } catch {
+    return allowWithoutRedis(config);
   }
-
-  const attempts = await redis.get<number>(attemptsKey) || 0;
-  const remaining = Math.max(0, config.maxAttempts - attempts);
-
-  return {
-    allowed: attempts < config.maxAttempts,
-    remaining,
-    resetAt: Date.now() + config.windowMs,
-    blockedUntil: null,
-  };
 }
 
 /**
@@ -350,44 +416,55 @@ export async function checkPasswordChangeRateLimit(userId: string): Promise<Rate
  */
 export async function recordPasswordChangeFailure(userId: string): Promise<RateLimitResult> {
   const config = RATE_LIMITS.passwordChange;
+  if (!redis) return allowWithoutRedis(config);
+
   const blockedKey = KEYS.passwordChangeBlocked(userId);
   const attemptsKey = KEYS.passwordChangeAttempts(userId);
 
-  const attempts = await redis.incr(attemptsKey);
-  if (attempts === 1) {
-    await redis.expire(attemptsKey, Math.floor(config.windowMs / 1000));
-  }
+  try {
+    const attempts = await redis.incr(attemptsKey);
+    if (attempts === 1) {
+      await redis.expire(attemptsKey, Math.floor(config.windowMs / 1000));
+    }
 
-  if (attempts >= config.maxAttempts) {
-    const blockedUntil = Date.now() + config.blockDurationMs;
-    await redis.set(blockedKey, blockedUntil, {
-      ex: Math.floor(config.blockDurationMs / 1000),
-    });
-    
+    if (attempts >= config.maxAttempts) {
+      const blockedUntil = Date.now() + config.blockDurationMs;
+      await redis.set(blockedKey, blockedUntil, {
+        ex: Math.floor(config.blockDurationMs / 1000),
+      });
+      
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: null,
+        blockedUntil,
+      };
+    }
+
     return {
-      allowed: false,
-      remaining: 0,
-      resetAt: null,
-      blockedUntil,
+      allowed: true,
+      remaining: config.maxAttempts - attempts,
+      resetAt: Date.now() + config.windowMs,
+      blockedUntil: null,
     };
+  } catch {
+    return allowWithoutRedis(config);
   }
-
-  return {
-    allowed: true,
-    remaining: config.maxAttempts - attempts,
-    resetAt: Date.now() + config.windowMs,
-    blockedUntil: null,
-  };
 }
 
 /**
  * Clear password change rate limit on success
  */
 export async function clearPasswordChangeRateLimit(userId: string): Promise<void> {
+  if (!redis) return;
   const attemptsKey = KEYS.passwordChangeAttempts(userId);
   const blockedKey = KEYS.passwordChangeBlocked(userId);
-  await redis.del(attemptsKey);
-  await redis.del(blockedKey);
+  try {
+    await redis.del(attemptsKey);
+    await redis.del(blockedKey);
+  } catch {
+    // Best-effort cleanup only.
+  }
 }
 
 /**

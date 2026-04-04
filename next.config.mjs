@@ -64,28 +64,6 @@ const nextConfig = {
         ],
       },
       {
-        // CORS for API routes
-        source: '/api/:path*',
-        headers: [
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: isProd ? 'https://zoirobroast.me' : '*',
-          },
-          {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-          },
-          {
-            key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-CSRF-Token',
-          },
-          {
-            key: 'Access-Control-Allow-Credentials',
-            value: 'true',
-          },
-        ],
-      },
-      {
         // Cache static assets
         source: '/assets/:path*',
         headers: [
