@@ -141,6 +141,7 @@ async function isAdminFromEmployeeData(request: NextRequest): Promise<boolean> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const userAgent = request.headers.get('user-agent') || '';
+  const isSeoBot = SEO_BOT_RE.test(userAgent);
 
   // ── 1. Block attack probes before anything else (fastest possible exit) ────
   if (ATTACK_RE.test(pathname)) {
@@ -177,7 +178,7 @@ export async function middleware(request: NextRequest) {
   const shouldCheckMaintenance =
     !MAINTENANCE_BYPASS.some(p => pathname.startsWith(p) || pathname === p);
 
-  if (shouldCheckMaintenance && supabaseUrl && supabaseKey) {
+  if (shouldCheckMaintenance && !isSeoBot && supabaseUrl && supabaseKey) {
     // Fast path: JWT already confirms admin → skip the DB round-trip entirely
     const token = inspectToken(request);
     const jwtIsAdmin = token.valid && token.role === 'admin';
@@ -254,7 +255,7 @@ export async function middleware(request: NextRequest) {
       origin &&
       !isSameOrigin &&
       !isAllowed &&
-      !SEO_BOT_RE.test(userAgent)
+      !isSeoBot
     ) {
       return new NextResponse(JSON.stringify({ error: 'Origin not allowed' }), {
         status: 403,
