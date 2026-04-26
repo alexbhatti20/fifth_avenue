@@ -21,7 +21,11 @@ const navLinks = [
   { name: "CONTACT", path: "/contact" },
 ];
 
-export default function Navbar() {
+interface NavbarProps {
+  bookingEnabled?: boolean;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ bookingEnabled = true }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -267,3 +271,4 @@ export default function Navbar() {
     </header>
   );
 }
+export default Navbar;
