@@ -79,6 +79,7 @@ interface MenuItemCardProps {
   quantity: number;
   isItemFavorite: boolean;
   isToggling: boolean;
+  isMobileDevice: boolean;
   categoryName?: string;
   priority?: boolean;
   onOpen: () => void;
@@ -93,6 +94,7 @@ function MenuItemCard({
   quantity,
   isItemFavorite,
   isToggling,
+  isMobileDevice,
   categoryName,
   priority = false,
   onOpen,
@@ -182,7 +184,14 @@ function MenuItemCard({
               </div>
             ) : (
               <Button
-                onClick={(e) => { e.stopPropagation(); item.has_variants ? onOpen() : onAddToCart(); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isMobileDevice || item.has_variants) {
+                    onOpen();
+                    return;
+                  }
+                  onAddToCart();
+                }}
                 className="rounded-none bg-black hover:bg-[#ED1C24] text-white h-12 w-12 p-0 transition-colors border-2 border-black shadow-[3px_3px_0px_0px_rgba(255,210,0,1)]"
               >
                 <Plus className="w-8 h-8" strokeWidth={3} />
@@ -873,6 +882,7 @@ export default function MenuClient({
                         quantity={quantity}
                         isItemFavorite={isItemFavorite}
                         isToggling={isToggling}
+                        isMobileDevice={isMobileDevice}
                         categoryName={categoryName}
                         priority={index === 0}
                         onOpen={() => openItemDetail(item)}

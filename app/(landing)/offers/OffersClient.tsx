@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Gift, Clock, Flame, Tag, ArrowRight, Search, X, BadgePercent, ChevronDown, ShoppingCart, CheckCircle2, LogIn, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

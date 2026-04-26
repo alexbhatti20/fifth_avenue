@@ -6,7 +6,8 @@ import { Clock, Star, Minus, Plus, Users, Package, ChevronLeft, ChevronRight, Ta
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Deal, CartItem } from "@/context/CartContext";
+import { CartItem } from "@/context/CartContext";
+import type { Deal } from "@/lib/server-queries";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1200&h=1200&fit=crop&q=80";
 
@@ -136,7 +137,7 @@ export default function MenuDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[92vw] sm:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl p-0 overflow-hidden max-h-none sm:max-h-none border-[8px] border-black rounded-none bg-white shadow-[24px_24px_0px_0px_rgba(0,0,0,1)]">
+      <DialogContent className="inset-x-2 sm:inset-auto max-w-[94vw] sm:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl p-0 overflow-y-auto sm:overflow-hidden max-h-[88dvh] sm:max-h-[90vh] border-[4px] sm:border-[8px] border-black rounded-none bg-white shadow-[14px_14px_0px_0px_rgba(0,0,0,1)] sm:shadow-[24px_24px_0px_0px_rgba(0,0,0,1)]">
         <DialogTitle className="sr-only">
           {selectedItem?.name || selectedDeal?.name || "Item Details"}
         </DialogTitle>
