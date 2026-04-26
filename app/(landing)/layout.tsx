@@ -2,6 +2,7 @@ import { ReactNode, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { getOnlineBookingSettingServer } from "@/lib/server-queries";
 import Navbar from "@/components/custom/Navbar";
+import MobileBottomNav from "@/components/custom/MobileBottomNav";
 
 const Footer = dynamic(() => import("@/components/custom/Footer"), {
   ssr: true,
@@ -23,8 +24,11 @@ export default async function LandingLayout({ children }: LandingLayoutProps) {
   return (
     <div className="fa-landing-theme">
       <Navbar bookingEnabled={bookingSetting.enabled} />
-      {children}
-      <Footer />
+      <div className="pb-28 md:pb-0">
+        {children}
+        <Footer />
+      </div>
+      <MobileBottomNav />
       <Suspense fallback={null}>
         <OfferPopupServer />
       </Suspense>

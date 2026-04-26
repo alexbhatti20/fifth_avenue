@@ -12,18 +12,18 @@ import type { SpecialOffer } from "@/types/offers";
 export const revalidate = 300; // 5 minutes SSR cache (matches RPC cache)
 
 export const metadata: Metadata = {
-  title: "Zoiro Broast Offers & Deals - Hot Discounts | Vehari",
+  title: "Fifth Avenue Offers & Deals - Hot Discounts",
   description:
-    "Best offers & discounts at Zoiro Broast Vehari. Get up to 50% off on broasted chicken, burgers, wings & family deals. Limited time offers – grab them now!",
+    "Best offers and discounts at Fifth Avenue. Get limited-time savings on favourite menu items and family deals.",
   keywords: [
     "zoiro offers", "zoiro deals", "zoiro discount", "zoiro broast deals",
     "zoiro broast vehari offers", "broast discount vehari", "fast food deals vehari",
     "zoiro special offers", "zoiro coupon", "zoiro promo",
   ],
   openGraph: {
-    title: "Zoiro Broast Hot Offers & Deals – Limited Time!",
+    title: "Fifth Avenue Hot Offers & Deals - Limited Time!",
     description:
-      "Exclusive discounts on our crispy broasted chicken, burgers, wings & more. Grab Zoiro Broast deals before they expire!",
+      "Exclusive discounts on signature items and family deals. Grab Fifth Avenue offers before they expire!",
     type: "website",
   },
 };

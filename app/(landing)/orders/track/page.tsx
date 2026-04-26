@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase";
 import TrackOrderClient from "./TrackOrderClient";
 
 export const metadata: Metadata = {
-  title: "Track Order | ZOIRO Injected Broast",
+  title: "Track Order | Fifth Avenue",
   description: "Track your order status in real-time.",
 };
 

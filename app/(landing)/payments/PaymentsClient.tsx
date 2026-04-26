@@ -42,11 +42,11 @@ const paymentMethodIcons = {
 };
 
 const statusConfig = {
-  pending: { color: "text-yellow-500", bg: "bg-yellow-500/10", label: "Pending" },
-  completed: { color: "text-green-500", bg: "bg-green-500/10", label: "Completed" },
-  failed: { color: "text-red-500", bg: "bg-red-500/10", label: "Failed" },
-  refunded: { color: "text-blue-500", bg: "bg-blue-500/10", label: "Refunded" },
-  pending_verification: { color: "text-orange-500", bg: "bg-orange-500/10", label: "Verifying" },
+  pending: { color: "text-black", bg: "bg-[#FFD200]/40", label: "Pending" },
+  completed: { color: "text-[#008A45]", bg: "bg-[#008A45]/12", label: "Completed" },
+  failed: { color: "text-[#ED1C24]", bg: "bg-[#ED1C24]/10", label: "Failed" },
+  refunded: { color: "text-[#1E1E1E]", bg: "bg-black/10", label: "Refunded" },
+  pending_verification: { color: "text-black", bg: "bg-[#F28C00]/20", label: "Verifying" },
 } as const;
 
 const defaultStatus = { color: "text-gray-500", bg: "bg-gray-500/10", label: "Unknown" };
@@ -152,12 +152,12 @@ export default function PaymentsClient({ initialPayments }: PaymentsClientProps)
 
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F8F8]">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         >
-          <RefreshCw className="w-8 h-8 text-primary" />
+          <RefreshCw className="w-8 h-8 text-[#FFD200]" />
         </motion.div>
       </div>
     );
@@ -165,31 +165,30 @@ export default function PaymentsClient({ initialPayments }: PaymentsClientProps)
 
   return (
     <>
-      <div className="min-h-screen pt-32 pb-16 bg-gradient-to-b from-background to-secondary/20">
+      <div className="min-h-screen pt-32 pb-16 bg-[#F8F8F8]">
         <div className="container-custom max-w-4xl">
-          <Button variant="ghost" onClick={() => router.back()} className="mb-6">
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+            className="mb-8 border-2 border-black rounded-none font-bebas text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
+            BACK
           </Button>
 
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8 relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/10 via-green-500/10 to-primary/10 p-6 border"
+            className="mb-8 border-l-8 border-black pl-6"
           >
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent"
-              animate={{ x: ['-100%', '100%'] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-            />
-            <div className="relative z-10">
-              <h1 className="text-3xl md:text-4xl font-bold mb-2 flex items-center gap-3">
-                <CreditCard className="h-8 w-8 text-primary" />
-                Payment History
+            <div>
+              <h1 className="font-bebas text-6xl md:text-7xl tracking-tighter leading-[0.85] uppercase text-black mb-2 flex items-center gap-3">
+                <CreditCard className="h-10 w-10 text-[#ED1C24]" />
+                PAYMENT HISTORY
               </h1>
-              <p className="text-muted-foreground">
-                View all your payments and transaction history
+              <p className="font-caveat text-2xl text-black/50 italic">
+                Every payment run in one place.
               </p>
             </div>
           </motion.div>
@@ -202,35 +201,35 @@ export default function PaymentsClient({ initialPayments }: PaymentsClientProps)
             className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8"
           >
             <motion.div 
-              className="bg-gradient-to-br from-green-500/10 via-card to-card rounded-2xl border shadow-lg p-4 md:p-6 relative overflow-hidden"
+              className="bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-4 md:p-6 relative overflow-hidden"
               whileHover={{ scale: 1.05, boxShadow: "0 20px 50px rgba(0, 255, 0, 0.2)" }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <div className="absolute top-0 right-0 w-20 h-20 bg-green-500/20 rounded-full blur-2xl" />
-              <p className="text-sm text-muted-foreground mb-1 relative z-10">Total Paid</p>
-              <p className="text-2xl md:text-3xl font-bold text-green-500 relative z-10">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-[#008A45]/20 rounded-full blur-2xl" />
+              <p className="text-sm text-black/50 mb-1 relative z-10 font-bebas tracking-widest">TOTAL PAID</p>
+              <p className="text-2xl md:text-3xl font-bebas text-[#008A45] relative z-10">
                 Rs. {totalPaid.toLocaleString()}
               </p>
             </motion.div>
             <motion.div 
-              className="bg-gradient-to-br from-yellow-500/10 via-card to-card rounded-2xl border shadow-lg p-4 md:p-6 relative overflow-hidden"
+              className="bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-4 md:p-6 relative overflow-hidden"
               whileHover={{ scale: 1.05, boxShadow: "0 20px 50px rgba(255, 255, 0, 0.2)" }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-500/20 rounded-full blur-2xl" />
-              <p className="text-sm text-muted-foreground mb-1 relative z-10">Pending</p>
-              <p className="text-2xl md:text-3xl font-bold text-yellow-500 relative z-10">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-[#FFD200]/30 rounded-full blur-2xl" />
+              <p className="text-sm text-black/50 mb-1 relative z-10 font-bebas tracking-widest">PENDING</p>
+              <p className="text-2xl md:text-3xl font-bebas text-black relative z-10">
                 Rs. {totalPending.toLocaleString()}
               </p>
             </motion.div>
             <motion.div 
-              className="bg-gradient-to-br from-primary/10 via-card to-card rounded-2xl border shadow-lg p-4 md:p-6 col-span-2 md:col-span-1 relative overflow-hidden"
+              className="bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-4 md:p-6 col-span-2 md:col-span-1 relative overflow-hidden"
               whileHover={{ scale: 1.05, boxShadow: "0 20px 50px rgba(0, 100, 255, 0.2)" }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <div className="absolute top-0 right-0 w-20 h-20 bg-primary/20 rounded-full blur-2xl" />
-              <p className="text-sm text-muted-foreground mb-1 relative z-10">Total Orders</p>
-              <p className="text-2xl md:text-3xl font-bold relative z-10">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-black/10 rounded-full blur-2xl" />
+              <p className="text-sm text-black/50 mb-1 relative z-10 font-bebas tracking-widest">TOTAL ORDERS</p>
+              <p className="text-2xl md:text-3xl font-bebas text-black relative z-10">
                 {payments.length}
               </p>
             </motion.div>
@@ -244,7 +243,7 @@ export default function PaymentsClient({ initialPayments }: PaymentsClientProps)
             className="flex justify-end mb-6"
           >
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] border-2 border-black rounded-none font-bebas text-base h-12 bg-white">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -265,8 +264,8 @@ export default function PaymentsClient({ initialPayments }: PaymentsClientProps)
               className="text-center py-16"
             >
               <CreditCard className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No payments found</h3>
-              <p className="text-muted-foreground">
+              <h3 className="font-bebas text-5xl tracking-tighter uppercase text-black mb-2">NO PAYMENTS FOUND</h3>
+              <p className="font-caveat text-2xl text-black/50 italic">
                 {statusFilter !== "all"
                   ? "Try changing the filter"
                   : "Your payment history will appear here"}
@@ -295,16 +294,16 @@ export default function PaymentsClient({ initialPayments }: PaymentsClientProps)
                       transition: { type: "spring", stiffness: 400, damping: 25 }
                     }}
                     onClick={() => router.push(`/orders/${payment.order_id}`)}
-                    className="bg-gradient-to-br from-card via-card to-primary/5 rounded-2xl border shadow-lg p-4 md:p-6 relative overflow-hidden cursor-pointer"
+                    className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-4 md:p-6 relative overflow-hidden cursor-pointer"
                   >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#FFD200]/20 rounded-full blur-2xl" />
                     <div className="flex items-center justify-between relative z-10">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                          <PaymentIcon className="h-6 w-6 text-primary" />
+                        <div className="w-12 h-12 rounded-none bg-black text-[#FFD200] border-2 border-black flex items-center justify-center">
+                          <PaymentIcon className="h-6 w-6" />
                         </div>
                         <div>
-                          <p className="font-semibold">Order #{payment.order_number}</p>
+                          <p className="font-bebas text-2xl leading-none">ORDER #{payment.order_number}</p>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-3 w-3" />
                             {new Date(payment.created_at).toLocaleDateString()}
@@ -318,9 +317,9 @@ export default function PaymentsClient({ initialPayments }: PaymentsClientProps)
 
                       <div className="flex items-center gap-4">
                         <div className="text-right">
-                          <p className="font-bold text-lg">Rs. {payment.amount}</p>
+                          <p className="font-bebas text-3xl leading-none">RS. {payment.amount}</p>
                           <div
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${status.bg} ${status.color}`}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-none border border-black/20 text-xs font-bebas tracking-wider uppercase ${status.bg} ${status.color}`}
                           >
                             {payment.payment_status === "completed" ? (
                               <CheckCircle className="h-3 w-3" />
@@ -341,7 +340,7 @@ export default function PaymentsClient({ initialPayments }: PaymentsClientProps)
                               e.stopPropagation();
                               setSelectedProof(payment.proof_url);
                             }}
-                            className="rounded-full"
+                            className="rounded-none border-2 border-black font-bebas"
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             Proof
@@ -353,14 +352,14 @@ export default function PaymentsClient({ initialPayments }: PaymentsClientProps)
                     </div>
 
                     {payment.transaction_id && (
-                      <div className="mt-4 pt-4 border-t text-sm text-muted-foreground">
+                      <div className="mt-4 pt-4 border-t-2 border-black/10 text-sm text-muted-foreground">
                         <span className="font-medium">Transaction ID:</span>{" "}
-                        <span className="font-mono bg-muted px-2 py-0.5 rounded">{payment.transaction_id}</span>
+                        <span className="font-mono bg-[#FFF4CC] border border-black/20 px-2 py-0.5 rounded-none">{payment.transaction_id}</span>
                       </div>
                     )}
 
                     {payment.online_payment_details && (
-                      <div className="mt-3 pt-3 border-t text-sm space-y-1">
+                      <div className="mt-3 pt-3 border-t-2 border-black/10 text-sm space-y-1">
                         {payment.online_payment_details.method_name && (
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <span className="font-medium">Payment Method:</span>
@@ -391,7 +390,7 @@ export default function PaymentsClient({ initialPayments }: PaymentsClientProps)
                     <div className="mt-4 pt-4 border-t">
                       <Button 
                         variant="outline" 
-                        className="w-full rounded-xl group"
+                        className="w-full rounded-none border-2 border-black font-bebas text-lg group"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(`/orders/${payment.order_id}`);
@@ -411,12 +410,12 @@ export default function PaymentsClient({ initialPayments }: PaymentsClientProps)
       </div>
 
       <Dialog open={!!selectedProof} onOpenChange={() => setSelectedProof(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg border-4 border-black rounded-none">
           <DialogHeader>
-            <DialogTitle>Payment Proof</DialogTitle>
+            <DialogTitle className="font-bebas text-4xl tracking-tight">PAYMENT PROOF</DialogTitle>
           </DialogHeader>
           {selectedProof && (
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-secondary">
+            <div className="relative aspect-video border-2 border-black overflow-hidden bg-[#FFF4CC]">
               <img
                 src={selectedProof}
                 alt="Payment proof"
@@ -427,7 +426,7 @@ export default function PaymentsClient({ initialPayments }: PaymentsClientProps)
           <Button
             variant="outline"
             onClick={() => selectedProof && window.open(selectedProof, "_blank")}
-            className="w-full rounded-xl"
+            className="w-full rounded-none border-2 border-black font-bebas text-lg"
           >
             <Download className="h-4 w-4 mr-2" />
             Download Image

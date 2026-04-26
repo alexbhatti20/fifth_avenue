@@ -191,310 +191,266 @@ export default function LoyaltyClient({
   const tier = loyaltyData?.tier || "bronze";
   const tierInfo = tierConfig[tier];
 
-  const CARD_TITLE_CLASS = "bg-gradient-to-r from-red-600 via-orange-500 to-red-500 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] font-extrabold tracking-widest uppercase";
-  const FIELD_LABEL_CLASS = "bg-gradient-to-r from-red-500 via-rose-400 to-orange-400 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] font-semibold tracking-widest text-xs uppercase";
-
   return (
-    <div className="min-h-screen pt-32 pb-16 bg-gradient-to-b from-background to-secondary/20">
-      <div className="container-custom max-w-3xl">
-        {/* Back Button */}
-        <Button variant="ghost" onClick={() => router.back()} className="mb-6">
+    <div className="min-h-screen pt-32 pb-16 bg-[#F8F8F8] selection:bg-[#FFD200]">
+      <div className="container-custom max-w-4xl px-4">
+        {/* Back Button - Brutalist Style */}
+        <Button 
+          variant="outline" 
+          onClick={() => router.back()} 
+          className="mb-8 border-2 border-black rounded-none font-bebas text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+        >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          BACK TO STREETS
         </Button>
 
-          {/* Page Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-8"
-          >
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-widest uppercase bg-gradient-to-r from-red-600 via-rose-500 to-orange-500 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
-              Loyalty Rewards
-            </h1>
-            <p className="text-muted-foreground mt-2 text-sm tracking-wide">Earn points, unlock rewards & climb the tiers</p>
-          </motion.div>
+        {/* Page Header */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="mb-12 border-l-8 border-black pl-6"
+        >
+          <h1 className="font-bebas text-6xl md:text-8xl text-black leading-[0.8] tracking-tighter uppercase">
+            LOYALTY <br />
+            <span className="text-[#ED1C24] drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">SQUAD</span>
+          </h1>
+          <div className="flex items-center gap-2 mt-4">
+            <span className="font-caveat text-2xl text-black/60 italic">Level up your street cred.</span>
+            <Sparkles className="w-5 h-5 text-[#FFD200] fill-[#FFD200]" />
+          </div>
+        </motion.div>
 
-          {/* Loyalty Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            whileHover={!isMobileDevice ? { scale: 1.05, rotateY: 5, boxShadow: "0 30px 80px rgba(0, 0, 0, 0.3)" } : {}}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className={`relative overflow-hidden rounded-3xl p-6 md:p-8 mb-8 bg-gradient-to-br ${tierInfo.color} text-white shadow-2xl`}
-            style={!isMobileDevice ? { transformStyle: "preserve-3d", perspective: 1000 } : {}}
-          >
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Loyalty Card & Progress */}
+          <div className="lg:col-span-7 space-y-8">
+            {/* Loyalty Card - Urban Engine Style */}
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-              animate={!isMobileDevice ? { x: ['-100%', '200%'] } : {}}
-              transition={!isMobileDevice ? { duration: 3, repeat: Infinity, ease: "linear" } : {}}
-            />
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full translate-y-1/2 -translate-x-1/2" />
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={`relative overflow-hidden border-[6px] border-black p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] ${tier === "bronze" ? "bg-white" : "bg-[#FFD200]"}`}
+            >
+              {/* Branding Overlays */}
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                 <span className="font-bebas text-6xl rotate-90 inline-block origin-top-right">FIFTH AVE</span>
+              </div>
+
+              <div className="relative z-10">
+                <div className="flex items-start justify-between mb-12">
+                  <div>
+                    <span className="font-bebas text-sm tracking-[0.2em] text-black/40 block mb-2">MEMBERSHIP CARD</span>
+                    <div className="flex items-center gap-3">
+                      <div className="bg-black text-white p-2 border-2 border-black shadow-[4px_4px_0_0_rgba(237,28,36,1)]">
+                         <Trophy className="w-8 h-8 fill-[#FFD200]" />
+                      </div>
+                      <h2 className="font-bebas text-5xl text-black leading-none uppercase">{tier} LEVEL</h2>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bebas text-6xl text-black opacity-20">{tierInfo.icon}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <span className="font-bebas text-sm tracking-widest text-black/60 block mb-1">TOTAL STREET POINTS</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-bebas text-7xl text-black leading-none">{loyaltyData?.total_points || 0}</span>
+                      <span className="font-bebas text-2xl text-[#ED1C24]">PTS</span>
+                    </div>
+                  </div>
+
+                  {tier !== "platinum" && (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-end">
+                         <span className="font-bebas text-sm text-black/60">PROGRESS TO {tier === "bronze" ? "SILVER" : tier === "silver" ? "GOLD" : "PLATINUM"}</span>
+                         <span className="font-bebas text-xl text-black">{loyaltyData?.points_to_next_tier || 0} PTS TO GO</span>
+                      </div>
+                      <div className="h-6 bg-black/10 border-2 border-black overflow-hidden">
+                        <motion.div
+                          className="h-full bg-black"
+                          initial={{ width: 0 }}
+                          animate={{
+                            width: `${((loyaltyData?.total_points || 0) / (tierConfig[tier === "bronze" ? "silver" : tier === "silver" ? "gold" : "platinum"].points)) * 100}%`,
+                          }}
+                          transition={{ duration: 1.5, ease: "circOut" }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-12 pt-8 border-t-2 border-black/10 flex justify-between items-end">
+                   <div className="font-bebas text-xl text-black tracking-widest">
+                     EST. 2024 <br/>
+                     <span className="text-[#ED1C24]">CITY STREETS</span>
+                   </div>
+                   <div className="bg-black text-white px-4 py-1 font-bebas text-lg tracking-widest">
+                     FIFTH AVENUE
+                   </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* How to Earn - Blocky List */}
+            <div className="bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(255,210,0,1)]">
+              <h3 className="font-bebas text-3xl text-black mb-6 flex items-center gap-3">
+                <Star className="w-6 h-6 fill-[#ED1C24] text-[#ED1C24]" />
+                GRAB MORE POINTS
+              </h3>
+              <div className="grid gap-4">
+                {[
+                  { title: "ORDER THE CLASSICS", desc: "1 PTS PER RS. 10 SPENT", icon: "🍗" },
+                  { title: "STREET REVIEWS", desc: "+50 PTS PER REVIEW", icon: "⭐" },
+                  { title: "INVITE THE SQUAD", desc: "+100 PTS PER REFERRAL", icon: "👥" },
+                ].map((item, i) => (
+                  <motion.div 
+                    key={i} 
+                    className="flex items-center gap-4 p-4 bg-black/[0.03] border-2 border-black hover:bg-[#FFD200]/10 transition-colors"
+                  >
+                    <span className="text-3xl">{item.icon}</span>
+                    <div>
+                      <p className="font-bebas text-xl text-black leading-tight">{item.title}</p>
+                      <p className="font-source-sans text-sm font-bold text-black/50">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Promo Codes & History */}
+          <div className="lg:col-span-5 space-y-8">
+            {/* Check Promo Code - Urban Tool Style */}
+            <div className="bg-black text-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+              <h3 className="font-bebas text-2xl text-[#FFD200] mb-4 flex items-center gap-2">
+                <Ticket className="w-6 h-6" />
+                VERIFY CODE
+              </h3>
+              <div className="flex gap-2">
+                <Input
+                  value={promoInput}
+                  onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setCheckedPromo(null); }}
+                  placeholder="ENTER CODE..."
+                  className="bg-white/10 border-2 border-white/20 text-white placeholder:text-white/40 font-bebas text-lg rounded-none h-12 focus-visible:ring-[#FFD200]"
+                />
+                <Button 
+                  onClick={handleCheckPromo} 
+                  disabled={isChecking || !promoInput.trim()} 
+                  className="bg-[#FFD200] text-black hover:bg-white rounded-none font-bebas text-lg h-12 px-6"
+                >
+                  {isChecking ? <RefreshCw className="h-5 w-5 animate-spin" /> : "SCAN"}
+                </Button>
+              </div>
+
+              {checkedPromo && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`mt-4 p-4 border-2 border-dashed relative z-10 ${checkedPromo.valid ? "border-green-400 bg-green-400/10" : "border-red-400 bg-red-400/10"}`}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    {checkedPromo.valid ? <CheckCircle className="h-5 w-5 text-green-400" /> : <XCircle className="h-5 w-5 text-red-400" />}
+                    <span className="font-bebas text-xl uppercase">{checkedPromo.valid ? "VALID SQUAD CODE" : "INVALID CODE"}</span>
+                  </div>
+                  {checkedPromo.promo && (
+                    <div className="font-source-sans text-sm font-bold opacity-80">
+                      {checkedPromo.promo.name}: {checkedPromo.promo.promo_type === 'percentage' ? checkedPromo.promo.value + '% OFF' : 'RS. ' + checkedPromo.promo.value + ' OFF'}
+                    </div>
+                  )}
+                  {checkedPromo.error && <p className="text-xs text-red-400 mt-1">{checkedPromo.error}</p>}
+                </motion.div>
+              )}
             </div>
 
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <p className="text-white font-bold tracking-widest text-xs uppercase mb-1 opacity-90">Your Tier</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-3xl">{tierInfo.icon}</span>
-                    <h2 className="text-2xl md:text-3xl font-bold capitalize">{tier}</h2>
-                  </div>
-                </div>
-                <Trophy className="w-12 h-12 opacity-50" />
-              </div>
+            {/* My Promo Codes - Ticket Style */}
+            <div className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(237,28,36,1)]">
+              <h3 className="font-bebas text-3xl text-black mb-6 flex items-center gap-3">
+                <Gift className="w-6 h-6 fill-[#ED1C24] text-[#ED1C24]" />
+                MY REWARDS
+              </h3>
 
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <p className="text-white font-bold tracking-widest text-xs uppercase mb-1 opacity-90">Total Points</p>
-                  <p className="text-3xl md:text-4xl font-bold">{loyaltyData?.total_points || 0}</p>
+              {promoCodes.length === 0 ? (
+                <div className="text-center py-8">
+                  <Sparkles className="h-10 w-10 mx-auto mb-3 text-black/10" />
+                  <p className="font-caveat text-xl text-black/40 italic">No rewards in your pocket yet.</p>
                 </div>
-                {tier !== "platinum" && (
-                  <div>
-                    <p className="text-white font-bold tracking-widest text-xs uppercase mb-1 opacity-90">Points to Next Tier</p>
-                    <p className="text-3xl md:text-4xl font-bold">{loyaltyData?.points_to_next_tier || 0}</p>
-                  </div>
-                )}
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  {promoCodes.map((promo, index) => {
+                    const isExpired = promo.is_expired || new Date(promo.expires_at) < new Date();
+                    const isUsable = !promo.is_used && !isExpired && promo.is_active;
+                    
+                    return (
+                      <motion.div
+                        key={promo.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className={`relative p-4 border-4 transition-all group ${promo.is_used ? "border-black/10 opacity-50 bg-black/5" : isExpired ? "border-red-100 bg-red-50/50" : "border-black bg-white hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"}`}
+                      >
+                        {/* Ticket Notch */}
+                        <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-4 h-6 bg-[#F8F8F8] border-r-4 border-black rounded-r-full" />
+                        <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-4 h-6 bg-[#F8F8F8] border-l-4 border-black rounded-l-full" />
 
-              {tier !== "platinum" && (
-                <div className="mt-6">
-                  <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full bg-white"
-                      initial={{ width: 0 }}
-                      animate={{
-                        width: `${((loyaltyData?.total_points || 0) / (tierConfig[tier === "bronze" ? "silver" : tier === "silver" ? "gold" : "platinum"].points)) * 100}%`,
-                      }}
-                      transition={{ duration: 1, ease: "easeOut" }}
-                    />
-                  </div>
+                        <div className="flex justify-between items-start mb-2">
+                           <span className="font-bebas text-2xl text-black">{promo.code}</span>
+                           {isUsable && (
+                             <button 
+                               onClick={() => copyPromoCode(promo.code)}
+                               className="text-black/40 hover:text-black transition-colors"
+                             >
+                               <Copy className="h-5 w-5" />
+                             </button>
+                           )}
+                        </div>
+                        <div className="font-bebas text-lg text-[#ED1C24]">
+                          {promo.promo_type === "percentage" ? `${promo.value}% OFF` : `RS. ${promo.value} OFF`}
+                        </div>
+                        <div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed border-black/10">
+                           <span className="font-source-sans text-[10px] font-bold text-black/40 uppercase">MIN {promo.loyalty_points_required} PTS REQUIRED</span>
+                           {promo.is_used ? (
+                             <span className="font-bebas text-xs bg-black text-white px-2">USED</span>
+                           ) : isExpired ? (
+                             <span className="font-bebas text-xs bg-red-500 text-white px-2">EXPIRED</span>
+                           ) : (
+                             <span className="font-bebas text-xs bg-green-500 text-white px-2">READY</span>
+                           )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               )}
             </div>
-          </motion.div>
 
-          {/* Earn Points Info */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-gradient-to-br from-card via-card to-red-500/5 rounded-2xl border shadow-lg p-6 mb-6 relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl" />
-            <h3 className="font-extrabold mb-4 flex items-center gap-2 relative z-10">
-              <Star className="h-5 w-5 text-red-500" />
-              <span className={CARD_TITLE_CLASS}>How to Earn Points</span>
-            </h3>
-            <div className="grid gap-4 md:grid-cols-3 relative z-10">
-              {[
-                { icon: "🛒", title: "Order Food", desc: "1 point per Rs. 10 spent" },
-                { icon: "⭐", title: "Leave Reviews", desc: "+50 points per review" },
-                { icon: "👥", title: "Refer Friends", desc: "+100 points per referral" },
-              ].map((item, i) => (
-                <motion.div 
-                  key={i} 
-                  className="flex items-start gap-3 p-3 bg-secondary/50 rounded-xl"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 + i * 0.1 }}
-                >
-                  <span className="text-2xl">{item.icon}</span>
-                  <div>
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-sm text-muted-foreground">{item.desc}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
+            {/* Points History - Simple Brutalist List */}
+            <div className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+              <h3 className="font-bebas text-3xl text-black mb-6 flex items-center gap-3">
+                <Clock className="w-6 h-6 text-black" />
+                HISTORY
+              </h3>
 
-          {/* Check Promo Code */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-gradient-to-br from-card via-card to-primary/5 rounded-2xl border shadow-lg p-6 mb-6 relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-40 h-40 bg-primary/10 rounded-full blur-3xl" />
-            <h3 className="font-extrabold mb-4 flex items-center gap-2 relative z-10">
-              <Ticket className="h-5 w-5 text-red-500" />
-              <span className={CARD_TITLE_CLASS}>Check Promo Code</span>
-            </h3>
-            <div className="flex gap-2 relative z-10">
-              <Input
-                value={promoInput}
-                onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setCheckedPromo(null); }}
-                placeholder="Enter promo code to check"
-                className="flex-1"
-              />
-              <Button onClick={handleCheckPromo} disabled={isChecking || !promoInput.trim()} className="rounded-xl">
-                {isChecking ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Check"}
-              </Button>
-            </div>
-
-            {checkedPromo && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`mt-4 p-4 rounded-xl border relative z-10 ${
-                  checkedPromo.valid ? "bg-green-500/10 border-green-500/30" : checkedPromo.found ? "bg-yellow-500/10 border-yellow-500/30" : "bg-red-500/10 border-red-500/30"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    checkedPromo.valid ? "bg-green-500/20" : checkedPromo.found ? "bg-yellow-500/20" : "bg-red-500/20"
-                  }`}>
-                    {checkedPromo.valid ? <CheckCircle className="h-5 w-5 text-green-500" /> : checkedPromo.found ? <Clock className="h-5 w-5 text-yellow-500" /> : <XCircle className="h-5 w-5 text-red-500" />}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-bold">{checkedPromo.promo?.code || promoInput}</p>
-                      {checkedPromo.source === "customer_reward" && <span className="text-xs bg-purple-500/20 text-purple-600 px-2 py-0.5 rounded-full">Loyalty Reward</span>}
-                      {checkedPromo.valid && <span className="text-xs bg-green-500/20 text-green-600 px-2 py-0.5 rounded-full">Valid</span>}
-                      {checkedPromo.promo?.is_used && <span className="text-xs bg-gray-500/20 text-gray-600 px-2 py-0.5 rounded-full">Already Used</span>}
-                    </div>
-                    {checkedPromo.promo && (
-                      <>
-                        <p className="text-sm font-medium">{checkedPromo.promo.name}</p>
-                        <p className="text-sm text-muted-foreground">{checkedPromo.promo.description}</p>
-                        <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Percent className="h-3 w-3" />
-                            {checkedPromo.promo.promo_type === "percentage" ? `${checkedPromo.promo.value}% off` : `Rs. ${checkedPromo.promo.value} off`}
-                          </span>
-                          {checkedPromo.promo.max_discount && <span>Max: Rs. {checkedPromo.promo.max_discount}</span>}
-                          {(checkedPromo.promo.expires_at || checkedPromo.promo.valid_until) && (
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              Expires: {format(new Date(checkedPromo.promo.expires_at || checkedPromo.promo.valid_until!), 'dd MMM yyyy')}
-                            </span>
-                          )}
-                        </div>
-                      </>
-                    )}
-                    {checkedPromo.error && <p className="text-sm text-red-500 mt-1">{checkedPromo.error}</p>}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </motion.div>
-
-          {/* My Promo Codes */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-gradient-to-br from-card via-card to-red-500/5 rounded-2xl border shadow-lg p-6 mb-6 relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-40 h-40 bg-red-500/10 rounded-full blur-3xl" />
-            <h3 className="font-extrabold mb-4 flex items-center gap-2 relative z-10">
-              <Gift className="h-5 w-5 text-red-500" />
-              <span className={CARD_TITLE_CLASS}>My Reward Codes</span>
-            </h3>
-            <p className="text-xs text-muted-foreground mb-4 relative z-10">
-              These promo codes were awarded to you based on your loyalty points.
-            </p>
-
-            {promoCodes.length === 0 ? (
-              <div className="text-center py-8 relative z-10">
-                <Sparkles className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-                <p className="text-muted-foreground">No reward codes yet. Keep earning points!</p>
-              </div>
-            ) : (
-              <div className="space-y-3 relative z-10">
-                {promoCodes.map((promo, index) => {
-                  const isExpired = promo.is_expired || new Date(promo.expires_at) < new Date();
-                  const isUsable = !promo.is_used && !isExpired && promo.is_active;
-                  
-                  return (
-                    <motion.div
-                      key={promo.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className={`flex items-center justify-between p-4 rounded-xl border ${
-                        promo.is_used ? "bg-gray-500/10 opacity-60" : isExpired ? "bg-red-500/5 opacity-60" : "bg-gradient-to-r from-green-500/10 to-green-500/5 border-green-500/20"
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                          promo.is_used ? "bg-gray-500/10" : isExpired ? "bg-red-500/10" : "bg-green-500/10"
-                        }`}>
-                          {promo.is_used ? <CheckCircle className="h-6 w-6 text-gray-500" /> : isExpired ? <Clock className="h-6 w-6 text-red-500" /> : <Award className="h-6 w-6 text-green-500" />}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-bold text-lg">{promo.code}</p>
-                            {promo.is_used && <span className="text-xs bg-gray-500/20 text-gray-600 px-2 py-0.5 rounded-full">Used</span>}
-                            {isExpired && !promo.is_used && <span className="text-xs bg-red-500/20 text-red-600 px-2 py-0.5 rounded-full">Expired</span>}
-                            {isUsable && <span className="text-xs bg-green-500/20 text-green-600 px-2 py-0.5 rounded-full">Active</span>}
-                          </div>
-                          <p className="text-sm text-muted-foreground">{promo.name || promo.description}</p>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                            <span className="font-medium text-primary">
-                              {promo.promo_type === "percentage" ? `${promo.value}% off` : `Rs. ${promo.value} off`}
-                              {promo.max_discount && ` (max Rs. ${promo.max_discount})`}
-                            </span>
-                            <span className="flex items-center gap-1"><Trophy className="h-3 w-3" />{promo.loyalty_points_required} pts</span>
-                          </div>
-                        </div>
-                      </div>
-                      {isUsable && (
-                        <Button size="sm" variant="outline" onClick={() => copyPromoCode(promo.code)} className="rounded-full border-green-500/30">
-                          <Copy className="h-4 w-4 mr-1" />Copy
-                        </Button>
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
-          </motion.div>
-
-          {/* Points History */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-gradient-to-br from-card via-card to-red-500/5 rounded-2xl border shadow-lg p-6 relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-40 h-40 bg-red-500/10 rounded-full blur-3xl" />
-            <h3 className="font-extrabold mb-4 flex items-center gap-2 relative z-10">
-              <Clock className="h-5 w-5 text-red-500" />
-              <span className={CARD_TITLE_CLASS}>Points History</span>
-            </h3>
-
-            {pointsHistory.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8 relative z-10">
-                No points history yet. Start earning by placing orders!
-              </p>
-            ) : (
-              <div className="space-y-3 relative z-10">
-                {pointsHistory.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between py-3 border-b last:border-0">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        item.type === "earned" ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
-                      }`}>
-                        {item.type === "earned" ? <CheckCircle className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
-                      </div>
+              {pointsHistory.length === 0 ? (
+                <p className="font-caveat text-xl text-black/40 italic py-4">The streets are quiet... no history here.</p>
+              ) : (
+                <div className="space-y-4">
+                  {pointsHistory.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between pb-4 border-b-2 border-black/10 last:border-0 last:pb-0">
                       <div>
-                        <p className="font-medium">{item.description}</p>
-                        <p className="text-xs text-muted-foreground">{format(new Date(item.created_at), 'dd MMM yyyy')}</p>
+                        <p className="font-bebas text-lg text-black leading-none mb-1">{item.description}</p>
+                        <p className="font-source-sans text-[10px] font-bold text-black/40 uppercase">{format(new Date(item.created_at), 'dd MMM yyyy')}</p>
+                      </div>
+                      <div className={`font-bebas text-2xl ${item.type === "earned" ? "text-green-600" : "text-[#ED1C24]"}`}>
+                        {item.type === "earned" ? "+" : "-"}{item.points}
                       </div>
                     </div>
-                    <span className={`font-bold ${item.type === "earned" ? "text-green-500" : "text-red-500"}`}>
-                      {item.type === "earned" ? "+" : "-"}{item.points}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
+    </div>
   );
 }

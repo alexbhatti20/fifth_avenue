@@ -24,12 +24,12 @@ export async function generateMetadata({
 
   if (!category) {
     return {
-      title: 'Menu - ZOIRO Injected Broast',
+      title: 'Menu - Fifth Avenue',
     };
   }
 
   return {
-    title: `${category.name} - ZOIRO Injected Broast Menu`,
+    title: `${category.name} - Fifth Avenue Menu`,
     description: `Browse our ${category.name} menu. Order online for delivery or pickup.`,
   };
 }

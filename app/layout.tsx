@@ -21,18 +21,18 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#dc2626' },
-    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+    { media: '(prefers-color-scheme: light)', color: '#f4c400' },
+    { media: '(prefers-color-scheme: dark)', color: '#111111' },
   ],
 }
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} - Chasing Flavours | Best Injected Broast in Vehari`,
+    default: `${SITE_NAME} | Chasing Flavours`,
     template: `%s | ${SITE_NAME}`,
   },
-  description: `${SITE_NAME} - Chasing Flavours. Experience the best injected broast and fast food in Vehari with our signature urban flavors and fast delivery.`,
+  description: `${SITE_NAME} brings bold street food, signature flavour, and fast delivery with a high-energy Fifth Avenue experience.`,
   keywords: ALL_KEYWORDS,
   authors: [{ name: SITE_NAME, url: SITE_URL }],
   creator: SITE_NAME,
@@ -64,8 +64,8 @@ export const metadata: Metadata = {
     alternateLocale: ['ur_PK'],
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} - Chasing Flavours | Best Injected Broast`,
-    description: `Experience the best injected broast and fast food in Vehari with our signature urban flavors at ${SITE_NAME}.`,
+    title: `${SITE_NAME} | Chasing Flavours`,
+    description: `${SITE_NAME} serves bold street food, premium quality, and fast delivery from the Fifth Avenue kitchen.`,
     images: [
       {
         url: '/assets/zoiro-og-image.jpg',
@@ -80,8 +80,8 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     site: '@fifthavenue',
     creator: '@fifthavenue',
-    title: `${SITE_NAME} - Chasing Flavours`,
-    description: `${SITE_NAME} - Order crispy injected broast chicken, burgers, pizza & more. Fast delivery in Vehari!`,
+    title: `${SITE_NAME} | Chasing Flavours`,
+    description: `${SITE_NAME} serves bold street food with fast delivery and signature flavour.`,
     images: ['/assets/zoiro-og-image.jpg'],
   },
   robots: {
@@ -141,8 +141,8 @@ export default async function RootLayout({
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
 
         {/* Additional SEO meta tags */}
-        <meta name="theme-color" content="#dc2626" />
-        <meta name="msapplication-TileColor" content="#dc2626" />
+        <meta name="theme-color" content="#f4c400" />
+        <meta name="msapplication-TileColor" content="#f4c400" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
       <body className={`${playfair.variable} ${sourceSans.variable} ${bebas.variable} ${caveat.variable}`}>

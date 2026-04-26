@@ -53,23 +53,23 @@ interface OrderHistory {
 
 // Order type config for display
 const ORDER_TYPE_CONFIG: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
-  'dine-in': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', icon: <Utensils className="h-3 w-3" />, label: 'Dine In' },
-  'dine_in': { color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', icon: <Utensils className="h-3 w-3" />, label: 'Dine In' },
-  'online': { color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', icon: <ShoppingBag className="h-3 w-3" />, label: 'Online' },
-  'walk-in': { color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', icon: <User className="h-3 w-3" />, label: 'Walk-in' },
-  'takeaway': { color: 'bg-green-500/10 text-green-600 border-green-500/20', icon: <Package className="h-3 w-3" />, label: 'Takeaway' },
+  'dine-in': { color: 'bg-black text-[#FFD200] border-black', icon: <Utensils className="h-3 w-3" />, label: 'Dine In' },
+  'dine_in': { color: 'bg-black text-[#FFD200] border-black', icon: <Utensils className="h-3 w-3" />, label: 'Dine In' },
+  'online': { color: 'bg-[#FFD200]/20 text-black border-black/20', icon: <ShoppingBag className="h-3 w-3" />, label: 'Online' },
+  'walk-in': { color: 'bg-[#FFF4CC] text-black border-black/20', icon: <User className="h-3 w-3" />, label: 'Walk-in' },
+  'takeaway': { color: 'bg-[#F28C00]/20 text-black border-[#F28C00]/30', icon: <Package className="h-3 w-3" />, label: 'Takeaway' },
 };
 
 // Status config for display
 const STATUS_CONFIG: Record<string, { color: string; bgColor: string; icon: React.ReactNode; label: string }> = {
-  'pending': { color: 'text-yellow-600', bgColor: 'bg-yellow-500/10', icon: <Clock className="h-5 w-5" />, label: 'Pending' },
-  'confirmed': { color: 'text-blue-600', bgColor: 'bg-blue-500/10', icon: <CheckCircle className="h-5 w-5" />, label: 'In Kitchen' },
-  'preparing': { color: 'text-orange-600', bgColor: 'bg-orange-500/10', icon: <Utensils className="h-5 w-5" />, label: 'Preparing' },
-  'ready': { color: 'text-green-600', bgColor: 'bg-green-500/10', icon: <Package className="h-5 w-5" />, label: 'Ready' },
-  'delivering': { color: 'text-purple-600', bgColor: 'bg-purple-500/10', icon: <Truck className="h-5 w-5" />, label: 'Out for Delivery' },
-  'delivered': { color: 'text-green-700', bgColor: 'bg-green-600/10', icon: <CheckCircle className="h-5 w-5" />, label: 'Completed' },
-  'completed': { color: 'text-green-700', bgColor: 'bg-green-600/10', icon: <CheckCircle className="h-5 w-5" />, label: 'Completed' },
-  'cancelled': { color: 'text-red-600', bgColor: 'bg-red-500/10', icon: <XCircle className="h-5 w-5" />, label: 'Cancelled' },
+  'pending': { color: 'text-black', bgColor: 'bg-[#FFD200]/40', icon: <Clock className="h-5 w-5" />, label: 'Pending' },
+  'confirmed': { color: 'text-[#FFD200]', bgColor: 'bg-black', icon: <CheckCircle className="h-5 w-5" />, label: 'In Kitchen' },
+  'preparing': { color: 'text-black', bgColor: 'bg-[#F28C00]/35', icon: <Utensils className="h-5 w-5" />, label: 'Preparing' },
+  'ready': { color: 'text-black', bgColor: 'bg-[#FFD200]/35', icon: <Package className="h-5 w-5" />, label: 'Ready' },
+  'delivering': { color: 'text-white', bgColor: 'bg-[#1E1E1E]', icon: <Truck className="h-5 w-5" />, label: 'Out for Delivery' },
+  'delivered': { color: 'text-[#008A45]', bgColor: 'bg-[#008A45]/15', icon: <CheckCircle className="h-5 w-5" />, label: 'Completed' },
+  'completed': { color: 'text-[#008A45]', bgColor: 'bg-[#008A45]/15', icon: <CheckCircle className="h-5 w-5" />, label: 'Completed' },
+  'cancelled': { color: 'text-[#ED1C24]', bgColor: 'bg-[#ED1C24]/10', icon: <XCircle className="h-5 w-5" />, label: 'Cancelled' },
 };
 
 // Get context-aware status label
@@ -274,48 +274,43 @@ export default function OrderHistoryClient({ initialOrders }: OrderHistoryClient
 
   if (!mounted || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F8F8]">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         >
-          <RefreshCw className="w-8 h-8 text-primary" />
+          <RefreshCw className="w-8 h-8 text-[#FFD200]" />
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pt-32 pb-16 bg-gradient-to-b from-background to-secondary/20">
+    <div className="min-h-screen pt-32 pb-16 bg-[#F8F8F8]">
       <div className="container-custom">
           {/* Back Button */}
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => router.push("/orders")}
-            className="mb-6"
+            className="mb-8 border-2 border-black rounded-none font-bebas text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Orders
+            BACK TO ORDERS
           </Button>
 
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8 relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 border"
+            className="mb-10 border-l-8 border-black pl-6"
           >
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent"
-              animate={{ x: ['-100%', '100%'] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-            />
-            <div className="relative z-10">
-              <h1 className="text-3xl md:text-4xl font-bold mb-2 flex items-center gap-3">
-                <History className="h-8 w-8 text-primary" />
-                Order History
+            <div>
+              <h1 className="font-bebas text-6xl md:text-7xl text-black leading-[0.85] tracking-tighter uppercase mb-2 flex items-center gap-3">
+                <History className="h-10 w-10 text-[#ED1C24]" />
+                ORDER HISTORY
               </h1>
-              <p className="text-muted-foreground">
-                View all your past orders and download invoices
+              <p className="font-caveat text-2xl text-black/50 italic">
+                Every street run, one timeline.
               </p>
             </div>
           </motion.div>
@@ -326,7 +321,7 @@ export default function OrderHistoryClient({ initialOrders }: OrderHistoryClient
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ scale: 1.01, boxShadow: "0 10px 40px rgba(0, 0, 0, 0.1)" }}
             transition={{ delay: 0.1 }}
-            className="bg-gradient-to-br from-card via-card to-primary/5 rounded-2xl border shadow-lg p-4 mb-6"
+            className="bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-4 mb-6"
           >
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
@@ -335,11 +330,11 @@ export default function OrderHistoryClient({ initialOrders }: OrderHistoryClient
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by order number..."
-                  className="pl-10"
+                  className="pl-10 border-2 border-black rounded-none font-bebas text-lg h-12 focus-visible:ring-[#FFD200]"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
+                <SelectTrigger className="w-full md:w-[180px] border-2 border-black rounded-none font-bebas text-base h-12">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -350,7 +345,7 @@ export default function OrderHistoryClient({ initialOrders }: OrderHistoryClient
                 </SelectContent>
               </Select>
               <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
+                <SelectTrigger className="w-full md:w-[180px] border-2 border-black rounded-none font-bebas text-base h-12">
                   <SelectValue placeholder="Filter by date" />
                 </SelectTrigger>
                 <SelectContent>

@@ -1,9 +1,9 @@
 import { Metadata } from 'next';
 
 // Site-wide constants
-export const SITE_NAME = 'ZOIRO Injected Broast';
-export const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://zoirobroast.me';
-export const SITE_DESCRIPTION = 'Zoiro Broast Vehari - Order crispy broast chicken, spicy wings, juicy burgers & fresh meals online. ZOIRO Injected Broast is the best broast restaurant in Vehari with fast home delivery. View our full menu, deals & prices. Call +92 304 629 2822';
+export const SITE_NAME = 'FIFTH AVENUE';
+export const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://fifth-avenue-weld.vercel.app';
+export const SITE_DESCRIPTION = 'FIFTH AVENUE - Chasing Flavours with bold street food, premium quality ingredients, and fast delivery.';
 
 // =============================================
 // COMPREHENSIVE KEYWORD STRATEGY FOR VEHARI
@@ -331,8 +331,8 @@ export function generateBaseMetadata(overrides?: Partial<Metadata>): Metadata {
   return {
     metadataBase: new URL(SITE_URL),
     title: {
-      default: `Zoiro Broast Vehari - Best Broast Chicken & Menu`,
-      template: `%s | Zoiro Broast Vehari`,
+      default: `${SITE_NAME} | Chasing Flavours`,
+      template: `%s | ${SITE_NAME}`,
     },
     description: SITE_DESCRIPTION,
     keywords: ALL_KEYWORDS,
@@ -350,17 +350,17 @@ export function generateBaseMetadata(overrides?: Partial<Metadata>): Metadata {
       alternateLocale: ['ur_PK'],
       url: SITE_URL,
       siteName: SITE_NAME,
-      title: `Zoiro Broast Vehari - Best Broast Chicken & Menu`,
+      title: `${SITE_NAME} | Chasing Flavours`,
       description: SITE_DESCRIPTION,
       images: [DEFAULT_OG_IMAGE],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `Zoiro Broast Vehari - Best Broast Chicken & Menu`,
+      title: `${SITE_NAME} - Chasing Flavours`,
       description: SITE_DESCRIPTION,
       images: [DEFAULT_OG_IMAGE.url],
-      creator: '@zoirobroast',
-      site: '@zoirobroast',
+      creator: '@fifthavenue',
+      site: '@fifthavenue',
     },
     robots: {
       index: true,
@@ -391,31 +391,27 @@ export function generateBaseMetadata(overrides?: Partial<Metadata>): Metadata {
 // Page-specific metadata generators
 export const pageMetadata = {
   home: (): Metadata => generateBaseMetadata({
-    title: 'Zoiro Broast Vehari - Best Broast Chicken, Menu & Fast Delivery | ZOIRO Injected Broast',
-    description: 'Zoiro Broast Vehari - Order crispy broast chicken, spicy wings, zinger burgers & family meals. View our full menu with prices. Best broast in Vehari with fast home delivery. Call +92 304 629 2822',
-    keywords: [...BRAND_KEYWORDS, ...PRIMARY_KEYWORDS, 'home delivery', 'food order online', 'vehari restaurant', 'zoiro broast vehari menu', 'zoiro menu', 'zoiro broast menu'],
+    title: `${SITE_NAME} | Bold Street Food & Fast Delivery`,
+    description: `${SITE_NAME} serves bold street food with signature flavour, fresh quality, and fast delivery.`,
+    keywords: [...BRAND_KEYWORDS, ...PRIMARY_KEYWORDS, 'home delivery', 'food order online', 'vehari restaurant', 'fifth avenue vehari menu', 'fifth avenue menu'],
     openGraph: {
-      title: 'Zoiro Broast Vehari - Best Broast Chicken, Menu & Fast Delivery',
-      description: 'Zoiro Broast - Order crispy broast chicken, spicy wings, zinger burgers & family meals. Fast delivery in Vehari!',
+      title: `${SITE_NAME} - Chasing Flavours | Best Street Food & Delivery`,
+      description: `${SITE_NAME} serves bold street food and signature flavour with fast delivery.`,
       url: SITE_URL,
       images: [DEFAULT_OG_IMAGE],
     },
   }),
 
   menu: (): Metadata => generateBaseMetadata({
-    title: 'Zoiro Broast Menu - Full Menu with Prices | Broast, Burgers, Wings & Deals in Vehari',
-    description: 'Zoiro Broast Vehari Menu - Explore our full menu: Crispy broast chicken, zinger burgers, spicy wings, family buckets, meal deals & more. View prices, order online for fast delivery!',
+    title: `${SITE_NAME} Menu - Full Menu with Prices | Broast, Pizza & Deals in Vehari`,
+    description: `${SITE_NAME} Vehari Menu - Explore our full menu: Artisan pizzas, crispy injected broast, burgers, and meal deals. View prices and order online for fast delivery!`,
     keywords: [
-      'zoiro menu', 'zoiro broast menu', 'zoiro vehari menu', 'zoiro broast vehari menu',
-      'zoro broast menu', 'zoiro price list', 'broast menu vehari',
-      'broast menu', 'chicken menu', 'fast food menu vehari',
-      'zinger burger', 'chicken wings', 'family bucket', 'meal deals',
-      'chicken nuggets', 'french fries', 'combo meals', 'party packages',
-      'zoiro broast price', 'zoiro deals', 'zoiro chicken menu',
+      'fifth avenue menu', 'fifth avenue vehari menu', 'pizza menu vehari', 'broast menu vehari',
+      'fifth avenue price list', 'fast food menu vehari',
     ],
     openGraph: {
-      title: 'Zoiro Broast Menu - Full Food Menu with Prices | Vehari',
-      description: 'View Zoiro Broast complete menu with prices. Broast chicken, burgers, wings, deals & more in Vehari!',
+      title: `${SITE_NAME} Menu - Full Food Menu with Prices | Vehari`,
+      description: `View ${SITE_NAME} complete menu with prices. Pizza, broast chicken, burgers, and more in Vehari!`,
       url: `${SITE_URL}/menu`,
     },
     alternates: {
@@ -424,16 +420,14 @@ export const pageMetadata = {
   }),
 
   contact: (): Metadata => generateBaseMetadata({
-    title: 'Zoiro Broast Contact - Location, Phone & Hours | Vehari',
-    description: 'Contact Zoiro Broast Vehari. Address: Near Baba G Kulfi, Faisal Town. Phone: +92 304 629 2822. Open Daily 11AM-11PM. Fast broast delivery available in Vehari!',
+    title: `${SITE_NAME} Contact - Location, Phone & Hours | Vehari`,
+    description: `Contact ${SITE_NAME} Vehari. Address: Faisal Town. Phone: 0304-1116617. Open Daily 11AM-11PM. Fast delivery available in Vehari!`,
     keywords: [
-      'zoiro broast contact', 'zoiro broast phone', 'zoiro broast location', 'zoiro broast address',
-      'zoiro broast vehari address', 'zoiro contact number', 'zoiro broast vehari',
-      'vehari restaurant contact', 'food delivery vehari', 'broast phone number vehari',
+      'fifth avenue contact', 'fifth avenue phone', 'fifth avenue location', 'fifth avenue address',
     ],
     openGraph: {
-      title: 'Zoiro Broast Vehari - Contact, Location & Phone',
-      description: 'Find Zoiro Broast at Faisal Town, Vehari. Call +92 304 629 2822 for orders!',
+      title: `${SITE_NAME} Vehari - Contact, Location & Phone`,
+      description: `Find ${SITE_NAME} at Faisal Town, Vehari. Call 0304-1116617 for orders!`,
       url: `${SITE_URL}/contact`,
     },
     alternates: {
@@ -450,7 +444,7 @@ export const pageMetadata = {
       follow: true,
     },
     openGraph: {
-      title: 'Your Cart - ZOIRO Injected Broast',
+      title: 'Your Cart - Fifth Avenue',
       description: 'Complete your food order. Fast delivery available!',
       url: `${SITE_URL}/cart`,
     },
@@ -461,7 +455,7 @@ export const pageMetadata = {
 
   favorites: (): Metadata => generateBaseMetadata({
     title: 'My Favorites - Saved Items',
-    description: 'Your favorite ZOIRO Injected Broast items saved for quick ordering. Easy reorder your loved dishes!',
+    description: 'Your favorite Fifth Avenue items saved for quick ordering. Reorder your loved dishes fast.',
     keywords: ['favorite food', 'saved items', 'quick order', 'reorder'],
     robots: {
       index: false,
@@ -473,14 +467,14 @@ export const pageMetadata = {
   }),
 
   loyalty: (): Metadata => generateBaseMetadata({
-    title: 'Zoiro Broast Loyalty Program - Earn Points & Get Free Meals',
-    description: 'Join Zoiro Broast Vehari loyalty program! Earn points on every order, unlock exclusive deals, get free meals & special discounts. Start saving today!',
+    title: 'Fifth Avenue Loyalty Program - Earn Points & Unlock Rewards',
+    description: 'Join the Fifth Avenue loyalty program. Earn points on every order and unlock exclusive rewards and discounts.',
     keywords: [
       'loyalty program', 'food rewards', 'earn points', 'free food',
       'discount codes', 'promo codes', 'customer rewards', 'special offers',
     ],
     openGraph: {
-      title: 'ZOIRO Injected Broast Loyalty Program - Earn & Save',
+      title: 'Fifth Avenue Loyalty Program - Earn & Save',
       description: 'Earn points on every order. Get free meals & exclusive deals!',
       url: `${SITE_URL}/loyalty`,
     },
@@ -490,15 +484,15 @@ export const pageMetadata = {
   }),
 
   reviews: (): Metadata => generateBaseMetadata({
-    title: 'Zoiro Broast Reviews & Ratings - Customer Feedback Vehari',
-    description: 'Read genuine customer reviews of Zoiro Broast Vehari. See why we are rated the best broast chicken restaurant in Vehari. Share your Zoiro Broast experience!',
+    title: 'Fifth Avenue Reviews & Ratings - Customer Feedback',
+    description: 'Read genuine customer reviews of Fifth Avenue and share your experience with our street-food favourites.',
     keywords: [
       'zoiro broast reviews', 'zoiro reviews', 'broast reviews vehari', 'customer ratings',
       'zoiro broast rating', 'vehari restaurant reviews', 'best rated restaurant vehari', 'zoiro broast feedback',
     ],
     openGraph: {
-      title: 'Zoiro Broast Reviews - Customer Feedback | Vehari',
-      description: 'See what customers say about Zoiro Broast. Rated best broast in Vehari!',
+      title: 'Fifth Avenue Reviews - Customer Feedback',
+      description: 'See what customers say about Fifth Avenue.',
       url: `${SITE_URL}/reviews`,
     },
     alternates: {
@@ -508,7 +502,7 @@ export const pageMetadata = {
 
   terms: (): Metadata => generateBaseMetadata({
     title: 'Terms & Conditions',
-    description: 'ZOIRO Injected Broast terms and conditions. Read about our ordering policy, delivery terms, refund policy, and service agreements.',
+    description: 'Fifth Avenue terms and conditions. Read about ordering policy, delivery terms, refund policy, and service agreements.',
     keywords: ['terms of service', 'conditions', 'ordering policy', 'delivery terms'],
     robots: {
       index: true,
@@ -521,7 +515,7 @@ export const pageMetadata = {
 
   privacy: (): Metadata => generateBaseMetadata({
     title: 'Privacy Policy',
-    description: 'ZOIRO Injected Broast privacy policy. Learn how we protect your personal data, handle your information, and ensure secure transactions.',
+    description: 'Fifth Avenue privacy policy. Learn how we protect your personal data, handle your information, and ensure secure transactions.',
     keywords: ['privacy policy', 'data protection', 'personal information', 'security'],
     robots: {
       index: true,
@@ -534,7 +528,7 @@ export const pageMetadata = {
 
   orders: (): Metadata => generateBaseMetadata({
     title: 'My Orders - Track Your Delivery',
-    description: 'Track your ZOIRO Injected Broast orders in real-time. View order history and reorder your favorites easily.',
+    description: 'Track your Fifth Avenue orders in real-time. View order history and reorder your favorites easily.',
     keywords: ['order tracking', 'delivery status', 'order history', 'track food'],
     robots: {
       index: false,

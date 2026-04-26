@@ -8,8 +8,8 @@ import { getServerCustomer, getOrderDetailsServer } from "@/lib/server-queries";
 import OrderDetailClient from "./OrderDetailClient";
 
 export const metadata: Metadata = {
-  title: "Order Details | Zoiro Broast",
-  description: "View your order details from Zoiro Broast.",
+  title: "Order Details | Fifth Avenue",
+  description: "View your order details from Fifth Avenue.",
 };
 
 interface PageProps {

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
-  'https://zoirobroast.me',
-  'https://www.zoirobroast.me',
+  'https://fifth-avenue-weld.vercel.app',
+  'https://fifth-avenue.me',
   process.env.NEXT_PUBLIC_APP_URL,
 ].filter(Boolean) as string[];
 

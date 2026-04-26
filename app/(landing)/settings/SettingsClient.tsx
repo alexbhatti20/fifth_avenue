@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { subscribeToPush, unsubscribeFromPush, isPushSupported } from "@/lib/push-notifications";
+import { cn } from "@/lib/utils";
 
 interface CustomerData {
   id: string;
@@ -332,105 +333,82 @@ export default function SettingsClient({ customer, notificationPreferences: init
   // ─────────────────────── Render ────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen pt-28 pb-20 bg-gradient-to-br from-rose-50 via-white to-red-50/40">
+    <div className="min-h-screen pt-32 pb-20 bg-[#F8F8F8] selection:bg-[#FFD200]">
       <div className="container-custom max-w-5xl">
 
         {/* Back */}
         <Button
-          variant="ghost"
+          variant="outline"
           onClick={() => router.back()}
-          className="mb-6 text-rose-700 hover:bg-rose-100 hover:text-rose-800 gap-1"
+          className="mb-8 border-2 border-black rounded-none font-bebas text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
         >
-          <ArrowLeft className="h-4 w-4" /> Back
+          <ArrowLeft className="h-4 w-4 mr-2" /> BACK TO STREETS
         </Button>
 
         {/* ══════ ADVANCED GRADIENT HEADER ══════ */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8 relative overflow-hidden rounded-3xl"
-          style={{
-            background: "linear-gradient(135deg, #C8102E 0%, #a30d26 35%, #7b001e 65%, #c0392b 100%)",
-          }}
+          className="mb-12 relative overflow-hidden border-[6px] border-black bg-black text-white p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]"
         >
-          {/* Animated shimmer */}
-          <motion.div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.12) 50%, transparent 70%)",
-            }}
-            animate={{ x: ["-120%", "120%"] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", repeatDelay: 2 }}
-          />
-          {/* Glowing orbs */}
-          <div className="absolute -top-10 -right-10 w-52 h-52 rounded-full opacity-20 pointer-events-none"
-            style={{ background: "radial-gradient(circle, #ff6b8a, transparent 70%)" }} />
-          <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full opacity-15 pointer-events-none"
-            style={{ background: "radial-gradient(circle, #ffd6de, transparent 70%)" }} />
-
-          <div className="relative z-10 p-7 flex flex-col sm:flex-row sm:items-center gap-5">
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl font-extrabold shadow-xl ring-4 ring-white/30"
-                style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.1))", color: "#fff" }}>
-                {(customer.name || customer.email).charAt(0).toUpperCase()}
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-400 rounded-full border-2 border-white flex items-center justify-center">
-                <div className="w-2 h-2 rounded-full bg-white" />
-              </div>
-            </div>
-
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-extrabold text-white tracking-[0.18em] truncate">
-                  {customer.name ? customer.name.toUpperCase() : "MY ACCOUNT"}
-                </h1>
-                <Sparkles className="h-4 w-4 text-yellow-300 flex-shrink-0" />
-              </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span className="flex items-center gap-1.5 text-rose-200 text-sm">
-                  <Mail className="h-3.5 w-3.5" /> {customer.email}
-                </span>
-                <span className="flex items-center gap-1.5 text-rose-200 text-sm">
-                  <Calendar className="h-3.5 w-3.5" /> Member since {memberSince}
-                </span>
-              </div>
-            </div>
-
-            {/* Badges */}
-            <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white border border-white/30 backdrop-blur-sm">
-                <Flame className="h-3 w-3 text-yellow-300" /> Premium Member
-              </span>
-            </div>
+          <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+            <span className="font-bebas text-8xl rotate-90 inline-block origin-top-right">SETTINGS</span>
           </div>
 
-          {/* Bottom accent bar */}
-          <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #ff6b8a, #ffd6de, #C8102E)" }} />
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-8">
+            {/* Urban Avatar */}
+            <div className="relative">
+              <div className="w-24 h-24 bg-[#FFD200] text-black flex items-center justify-center text-4xl font-bebas border-4 border-white shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)]">
+                {(customer.name || customer.email).charAt(0).toUpperCase()}
+              </div>
+              <div className="absolute -bottom-2 -right-2 bg-[#ED1C24] text-white p-1 border-2 border-white">
+                <Shield className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="font-bebas text-5xl md:text-6xl leading-none tracking-tighter uppercase">
+                  {customer.name ? customer.name : "STREET PROFILE"}
+                </h1>
+                <Sparkles className="h-6 w-6 text-[#FFD200] fill-[#FFD200]" />
+              </div>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                <span className="flex items-center gap-2 font-bebas text-xl text-[#FFD200] tracking-widest">
+                  <Mail className="h-4 w-4" /> {customer.email.toUpperCase()}
+                </span>
+                <span className="flex items-center gap-2 font-caveat text-2xl text-white/60">
+                  <Calendar className="h-5 w-5" /> SQUAD MEMBER SINCE {memberSince.toUpperCase()}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0">
+               <div className="bg-[#ED1C24] text-white px-6 py-2 border-4 border-white font-bebas text-2xl tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)]">
+                 PREMIUM SQUAD
+               </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* ══════ TABS ══════ */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
           <Tabs defaultValue="profile" className="space-y-6">
 
-            <TabsList className="grid w-full grid-cols-3 rounded-2xl h-13 p-1.5 gap-1 border border-rose-200/60 shadow-sm"
-              style={{ background: "linear-gradient(135deg, #fff1f2, #fff5f5)" }}>
+            <TabsList className="flex flex-wrap h-auto w-full rounded-none bg-black p-2 gap-2 border-4 border-black shadow-[6px_6px_0px_0px_rgba(255,210,0,1)]">
               <TabsTrigger value="profile"
-                className="rounded-xl gap-2 font-semibold text-rose-400 data-[state=active]:text-rose-700 data-[state=active]:shadow-sm data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-rose-200">
-                <User className="h-4 w-4" /> Profile
+                className="flex-1 min-w-[120px] rounded-none py-3 font-bebas text-2xl tracking-widest text-[#FFD200]/50 data-[state=active]:bg-[#FFD200] data-[state=active]:text-black transition-all">
+                <User className="h-5 w-5 mr-2" /> PROFILE
               </TabsTrigger>
               <TabsTrigger value="security"
-                className="rounded-xl gap-2 font-semibold text-rose-400 data-[state=active]:text-rose-700 data-[state=active]:shadow-sm data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-rose-200">
-                <Lock className="h-4 w-4" /> Security
+                className="flex-1 min-w-[120px] rounded-none py-3 font-bebas text-2xl tracking-widest text-[#FFD200]/50 data-[state=active]:bg-[#FFD200] data-[state=active]:text-black transition-all">
+                <Lock className="h-5 w-5 mr-2" /> SECURITY
               </TabsTrigger>
               <TabsTrigger value="alerts"
-                className="rounded-xl gap-2 font-semibold text-rose-400 data-[state=active]:text-rose-700 data-[state=active]:shadow-sm data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-rose-200">
-                <Bell className="h-4 w-4" /> Alerts
+                className="flex-1 min-w-[120px] rounded-none py-3 font-bebas text-2xl tracking-widest text-[#FFD200]/50 data-[state=active]:bg-[#FFD200] data-[state=active]:text-black transition-all">
+                <Bell className="h-5 w-5 mr-2" /> ALERTS
                 {prefsChanged.size > 0 && (
-                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white"
-                    style={{ background: "#C8102E" }}>
+                  <span className="ml-2 bg-[#ED1C24] text-white px-2 rounded-none text-xs">
                     {prefsChanged.size}
                   </span>
                 )}
@@ -444,69 +422,68 @@ export default function SettingsClient({ customer, notificationPreferences: init
                 {/* Personal Information */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                  className="md:col-span-3 rounded-2xl border border-rose-100 shadow-sm shadow-rose-100/50 p-6 relative overflow-hidden"
-                  style={{ background: "linear-gradient(145deg, #fff, #fff9f9)" }}
+                  className="md:col-span-3 bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden"
                 >
-                  <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-30 pointer-events-none blur-3xl"
-                    style={{ background: "radial-gradient(circle, #fecdd3, transparent)" }} />
-                  <h2 className="text-base font-bold mb-1 flex items-center gap-2 text-rose-900">
-                    <User className="h-5 w-5" style={{ color: "#C8102E" }} /> Personal Information
+                  <div className="absolute top-0 right-0 p-2 opacity-[0.03] pointer-events-none">
+                     <span className="font-bebas text-9xl">INFO</span>
+                  </div>
+                  <h2 className="font-bebas text-4xl mb-2 flex items-center gap-3 text-black">
+                    <User className="h-6 w-6 text-[#ED1C24]" /> PERSONAL INTEL
                   </h2>
-                  <p className="text-xs text-rose-400 mb-5">Update your profile details and delivery address</p>
-                  <form onSubmit={handleProfileUpdate} className="space-y-4 relative z-10">
-                    <div className="space-y-1.5">
-                      <Label className="text-rose-800 font-medium">Email Address</Label>
+                  <p className="font-caveat text-xl text-black/50 mb-8 italic italic">Keep your street details updated for faster delivery.</p>
+                  <form onSubmit={handleProfileUpdate} className="space-y-6 relative z-10">
+                    <div className="space-y-2">
+                      <Label className="font-bebas text-lg tracking-widest text-black/60">STREET EMAIL</Label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-rose-300" />
-                        <Input value={customer.email} disabled className="pl-10 bg-rose-50/70 border-rose-100 text-rose-400 cursor-not-allowed" />
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-black/20" />
+                        <Input value={customer.email} disabled className="pl-12 bg-black/5 border-2 border-black/10 text-black/40 cursor-not-allowed font-bebas text-xl rounded-none h-12" />
                       </div>
-                      <p className="text-xs text-rose-300 flex items-center gap-1">
-                        <Info className="h-3 w-3" /> Email cannot be changed
-                      </p>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-rose-800 font-medium">Full Name</Label>
+                    <div className="space-y-2">
+                      <Label className="font-bebas text-lg tracking-widest text-black">FULL SQUAD NAME</Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-rose-300" />
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-black" />
                         <Input
                           value={profileData.name}
                           onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                          className="pl-10 border-rose-200 focus:border-rose-400 focus:ring-rose-300"
-                          placeholder="Your full name"
+                          className="pl-12 border-4 border-black focus-visible:ring-[#FFD200] font-bebas text-xl rounded-none h-14"
+                          placeholder="ENTER NAME..."
                         />
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-rose-800 font-medium">Phone Number</Label>
+                    <div className="space-y-2">
+                      <Label className="font-bebas text-lg tracking-widest text-black">MOBILE CONNECTION</Label>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-rose-300" />
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-black" />
                         <Input
                           value={profileData.phone}
                           onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                          className="pl-10 border-rose-200 focus:border-rose-400 focus:ring-rose-300"
-                          placeholder="+92 300 1234567"
+                          className="pl-12 border-4 border-black focus-visible:ring-[#FFD200] font-bebas text-xl rounded-none h-14"
+                          placeholder="+92 XXX XXXXXXX"
                         />
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-rose-800 font-medium">Delivery Address</Label>
+                    <div className="space-y-2">
+                      <Label className="font-bebas text-lg tracking-widest text-black">STREET ADDRESS (VEHARI)</Label>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-rose-300" />
+                        <MapPin className="absolute left-4 top-4 h-5 w-5 text-black" />
                         <textarea
                           value={profileData.address}
                           onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
-                          className="w-full min-h-[90px] pl-10 pt-2.5 pr-4 pb-2 rounded-lg border border-rose-200 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-400 text-sm"
-                          placeholder="Your default delivery address"
+                          className="w-full min-h-[120px] pl-12 pt-4 pr-4 pb-4 rounded-none border-4 border-black bg-white focus:outline-none focus:ring-4 focus:ring-[#FFD200] font-bebas text-xl"
+                          placeholder="WHERE SHOULD WE DROP THE GOODS?"
                         />
                       </div>
                     </div>
                     <Button type="submit"
-                      className="w-full rounded-xl gap-2 h-11 font-semibold text-white border-0"
-                      style={{ background: profileSaved ? "#16a34a" : "linear-gradient(135deg, #C8102E, #a30d26)" }}
+                      className={cn(
+                        "w-full rounded-none gap-3 h-14 font-bebas text-2xl tracking-widest border-4 border-black transition-all shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]",
+                        profileSaved ? "bg-green-500 text-white" : "bg-[#FFD200] text-black hover:bg-black hover:text-[#FFD200]"
+                      )}
                       disabled={isProfileLoading}>
-                      {isProfileLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> :
-                        profileSaved ? <CheckCircle className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-                      {isProfileLoading ? "Saving…" : profileSaved ? "Saved!" : "Save Changes"}
+                      {isProfileLoading ? <RefreshCw className="h-6 w-6 animate-spin" /> :
+                        profileSaved ? <CheckCircle className="h-6 w-6" /> : <Save className="h-6 w-6" />}
+                      {isProfileLoading ? "SAVING..." : profileSaved ? "SAVED!" : "SAVE STREET PROFILE"}
                     </Button>
                   </form>
                 </motion.div>
@@ -516,33 +493,32 @@ export default function SettingsClient({ customer, notificationPreferences: init
                   {/* Account Status */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-                    className="rounded-2xl border border-rose-100 shadow-sm p-5"
-                    style={{ background: "linear-gradient(145deg, #fff, #fff5f5)" }}
+                    className="bg-[#FFD200] border-4 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
                   >
-                    <h3 className="text-sm font-bold mb-4 text-rose-700 uppercase tracking-wide flex items-center gap-2">
-                      <Star className="h-4 w-4 text-amber-500" /> Account Status
+                    <h3 className="font-bebas text-2xl mb-4 text-black uppercase tracking-widest flex items-center gap-2">
+                      <Star className="h-5 w-5 fill-black" /> SQUAD STATUS
                     </h3>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {[
                         {
-                          label: "Membership",
-                          value: <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold text-white" style={{ background: "linear-gradient(135deg,#C8102E,#a30d26)" }}><Flame className="h-3 w-3 text-yellow-300" /> Premium</span>,
+                          label: "RANK",
+                          value: <span className="bg-black text-[#FFD200] px-3 py-1 font-bebas text-lg tracking-widest border-2 border-black">PREMIUM</span>,
                         },
                         {
-                          label: "2FA Security",
-                          value: <Badge className={"text-xs " + (is2FAEnabled ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-400 border-rose-100")}>{is2FAEnabled ? "✓ Enabled" : "Disabled"}</Badge>,
+                          label: "2FA ARMOR",
+                          value: <Badge className={cn("rounded-none font-bebas text-lg px-3 border-2 border-black", is2FAEnabled ? "bg-green-500 text-white" : "bg-black text-[#FFD200]")}>{is2FAEnabled ? "ENABLED" : "OFFLINE"}</Badge>,
                         },
                         {
-                          label: "Email Verified",
-                          value: <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 gap-1 text-xs"><CheckCircle className="h-3 w-3" /> Verified</Badge>,
+                          label: "VERIFIED",
+                          value: <Badge className="bg-white text-black border-2 border-black rounded-none font-bebas text-lg px-3">YES</Badge>,
                         },
                         {
-                          label: "Member Since",
-                          value: <span className="text-sm font-semibold text-rose-800">{memberSince}</span>,
+                          label: "JOINED",
+                          value: <span className="font-bebas text-xl text-black">{memberSince.toUpperCase()}</span>,
                         },
                       ].map(({ label, value }) => (
-                        <div key={label} className="flex items-center justify-between py-0.5">
-                          <span className="text-sm text-rose-400">{label}</span>
+                        <div key={label} className="flex items-center justify-between border-b-2 border-black/10 pb-2">
+                          <span className="font-bebas text-lg text-black/60 tracking-wider">{label}</span>
                           {value}
                         </div>
                       ))}
@@ -552,26 +528,25 @@ export default function SettingsClient({ customer, notificationPreferences: init
                   {/* Quick Links */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                    className="rounded-2xl border border-rose-100 shadow-sm p-5"
-                    style={{ background: "linear-gradient(145deg, #fff, #fff5f5)" }}
+                    className="bg-black border-4 border-black p-6 shadow-[6px_6px_0px_0px_rgba(255,210,0,1)]"
                   >
-                    <h3 className="text-sm font-bold mb-3 text-rose-700 uppercase tracking-wide">Quick Links</h3>
-                    <div className="space-y-0.5">
+                    <h3 className="font-bebas text-2xl mb-4 text-[#FFD200] uppercase tracking-widest">STREET NAVIGATION</h3>
+                    <div className="space-y-2">
                       {[
-                        { label: "My Orders", href: "/orders", icon: Package, color: "#C8102E" },
-                        { label: "Loyalty & Rewards", href: "/loyalty", icon: Star, color: "#d97706" },
-                        { label: "Leave a Review", href: "/menu", icon: MessageSquare, color: "#7c3aed" },
+                        { label: "MY ORDERS", href: "/orders", icon: Package, color: "#FFD200" },
+                        { label: "STREET REWARDS", href: "/loyalty", icon: Star, color: "#ED1C24" },
+                        { label: "DROP A REVIEW", href: "/menu", icon: MessageSquare, color: "#FFFFFF" },
                       ].map(({ label, href, icon: Icon, color }) => (
                         <button
                           key={label}
                           onClick={() => router.push(href)}
-                          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-rose-50 transition-colors group"
+                          className="w-full flex items-center justify-between px-4 py-3 border-2 border-transparent hover:border-[#FFD200] hover:bg-white/5 transition-all group"
                         >
-                          <span className="flex items-center gap-2.5 text-sm text-rose-400 group-hover:text-rose-700 transition-colors font-medium">
-                            <Icon className="h-4 w-4" style={{ color }} />
+                          <span className="flex items-center gap-3 font-bebas text-xl text-white tracking-widest group-hover:text-[#FFD200]">
+                            <Icon className="h-5 w-5" style={{ color }} />
                             {label}
                           </span>
-                          <ChevronRight className="h-4 w-4 text-rose-200 group-hover:text-rose-400 transition-colors" />
+                          <ChevronRight className="h-5 w-5 text-white/30 group-hover:text-[#FFD200]" />
                         </button>
                       ))}
                     </div>
@@ -608,46 +583,46 @@ export default function SettingsClient({ customer, notificationPreferences: init
                 {/* ── Change Password Card ── */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                  className="md:col-span-3 rounded-2xl border border-rose-100 shadow-sm p-6 relative overflow-hidden"
-                  style={{ background: "linear-gradient(145deg, #fff, #fff9f9)" }}
+                  className="md:col-span-3 bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden"
                 >
-                  <div className="absolute top-0 right-0 w-44 h-44 rounded-full opacity-20 pointer-events-none blur-3xl"
-                    style={{ background: "radial-gradient(circle, #fca5a5, transparent)" }} />
-                  <h2 className="text-base font-bold mb-1 flex items-center gap-2 text-rose-900">
-                    <KeyRound className="h-5 w-5" style={{ color: "#C8102E" }} /> Change Password
+                  <div className="absolute top-0 right-0 p-2 opacity-[0.03] pointer-events-none">
+                     <span className="font-bebas text-9xl">LOCK</span>
+                  </div>
+                  <h2 className="font-bebas text-4xl mb-2 flex items-center gap-3 text-black">
+                    <KeyRound className="h-6 w-6 text-[#ED1C24]" /> ENCRYPTION TUNNEL
                   </h2>
-                  <p className="text-xs text-rose-400 mb-5 flex items-center gap-1.5">
-                    <Mail className="h-3.5 w-3.5" />
-                    A Brevo email OTP is sent to verify your identity before setting a new password
+                  <p className="font-caveat text-xl text-black/50 mb-10 italic">
+                    Secure your street access. We'll send a secret code to your email.
                   </p>
 
                   {/* ── Step Indicator ── */}
-                  <div className="flex items-center mb-7 relative z-10">
+                  <div className="flex items-center mb-10 relative z-10 px-2">
                     {STEP_LABELS.map((label, i) => {
                       const done = currentStepIdx > i;
                       const active = currentStepIdx === i;
                       return (
                         <div key={label} className="flex items-center" style={{ flex: i < STEP_LABELS.length - 1 ? 1 : "none" }}>
-                          <div className="flex flex-col items-center gap-1">
-                            <div className={"w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 " + (
-                              done ? "text-white" : active ? "text-white" : "text-rose-300"
-                            )}
-                              style={{
-                                background: done
-                                  ? "linear-gradient(135deg,#16a34a,#15803d)"
-                                  : active
-                                  ? "linear-gradient(135deg,#C8102E,#a30d26)"
-                                  : "#fef2f2",
-                                border: active || done ? "none" : "2px solid #fecdd3",
-                              }}>
-                              {done ? <CheckCircle className="h-4 w-4" /> : i + 1}
+                          <div className="flex flex-col items-center gap-2">
+                            <div className={cn(
+                              "w-12 h-12 flex items-center justify-center font-bebas text-2xl border-4 transition-all duration-300",
+                              done ? "bg-green-500 border-black text-white" : 
+                              active ? "bg-[#FFD200] border-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : 
+                              "bg-white border-black/10 text-black/20"
+                            )}>
+                              {done ? <CheckCircle className="h-6 w-6" /> : i + 1}
                             </div>
-                            <span className={"text-[10px] font-semibold whitespace-nowrap hidden sm:block " + (active ? "text-rose-700" : done ? "text-emerald-600" : "text-rose-300")}>
-                              {label}
+                            <span className={cn(
+                              "font-bebas text-xs tracking-widest hidden sm:block",
+                              active ? "text-black" : done ? "text-green-600" : "text-black/20"
+                            )}>
+                              {label.toUpperCase()}
                             </span>
                           </div>
                           {i < STEP_LABELS.length - 1 && (
-                            <div className={"flex-1 h-0.5 mx-1 mb-4 rounded-full transition-all duration-300 " + (done ? "bg-emerald-400" : "bg-rose-100")} />
+                            <div className={cn(
+                              "flex-1 h-1 mx-2 mb-6 rounded-none transition-all duration-300",
+                              done ? "bg-green-500" : "bg-black/5"
+                            )} />
                           )}
                         </div>
                       );
@@ -661,42 +636,40 @@ export default function SettingsClient({ customer, notificationPreferences: init
                       <motion.div
                         key="verify"
                         initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 24 }}
-                        className="space-y-5 relative z-10"
+                        className="space-y-6 relative z-10"
                       >
-                        <div className="rounded-xl p-4 border border-rose-200"
-                          style={{ background: "linear-gradient(135deg, #fff1f2, #ffe4e6)" }}>
-                          <p className="text-sm text-rose-700 font-medium flex items-center gap-2">
-                            <Shield className="h-4 w-4" />
-                            Confirm your identity before changing your password
+                        <div className="bg-[#FFD200] border-4 border-black p-5 flex items-center gap-4">
+                          <Shield className="h-8 w-8 text-black animate-pulse" />
+                          <p className="font-bebas text-xl text-black leading-tight">
+                            AUTHENTICATE YOUR SQUAD ACCESS BEFORE PROCEEDING
                           </p>
                         </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-rose-800 font-medium">Current Password</Label>
+                        <div className="space-y-2">
+                          <Label className="font-bebas text-lg tracking-widest text-black">CURRENT SECRET</Label>
                           <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-rose-300" />
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-black" />
                             <Input
                               type={showCurrentPw ? "text" : "password"}
                               value={currentPassword}
                               onChange={(e) => setCurrentPassword(e.target.value)}
-                              className="pl-10 pr-10 border-rose-200 focus:border-rose-400 focus:ring-rose-300"
-                              placeholder="Enter your current password"
+                              className="pl-12 pr-12 border-4 border-black focus-visible:ring-[#FFD200] font-bebas text-xl rounded-none h-14"
+                              placeholder="ENTER CURRENT PASSWORD..."
                               autoFocus
                             />
                             <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-rose-300 hover:text-rose-600">
-                              {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40 hover:text-black">
+                              {showCurrentPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                             </button>
                           </div>
                         </div>
                         <Button
                           type="button"
                           onClick={handleSendOTP}
-                          className="w-full rounded-xl gap-2 h-11 font-semibold text-white border-0"
-                          style={{ background: "linear-gradient(135deg, #C8102E, #a30d26)" }}
+                          className="w-full rounded-none gap-3 h-14 font-bebas text-2xl tracking-widest bg-black text-[#FFD200] border-4 border-black transition-all shadow-[6px_6px_0px_0px_rgba(255,210,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
                           disabled={isPwLoading || !currentPassword}
                         >
-                          {isPwLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-                          {isPwLoading ? "Sending OTP…" : "Send Verification Code to Email"}
+                          {isPwLoading ? <RefreshCw className="h-6 w-6 animate-spin" /> : <Mail className="h-6 w-6" />}
+                          {isPwLoading ? "DISPATCHING OTP..." : "SEND VERIFICATION CODE"}
                         </Button>
                       </motion.div>
                     )}
@@ -707,71 +680,78 @@ export default function SettingsClient({ customer, notificationPreferences: init
                         key="otp"
                         initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }}
                         onSubmit={handleVerifyOTP}
-                        className="space-y-5 relative z-10"
+                        className="space-y-6 relative z-10"
                       >
-                        {/* OTP status banner */}
-                        <div className={"rounded-xl p-4 border flex items-start gap-3 " + (otpExpired ? "border-red-200 bg-red-50" : "border-rose-200 bg-rose-50")}>
+                        {/* Urban OTP Banner */}
+                        <div className={cn(
+                          "border-4 p-5 flex items-start gap-4 transition-colors",
+                          otpExpired ? "border-[#ED1C24] bg-[#ED1C24]/10" : "border-black bg-[#FFD200]"
+                        )}>
                           {otpExpired ? (
                             <>
-                              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                              <AlertCircle className="h-8 w-8 text-[#ED1C24] flex-shrink-0" />
                               <div>
-                                <p className="text-sm font-semibold text-red-700">OTP Expired</p>
-                                <p className="text-xs text-red-500 mt-0.5">The code has expired. Go back and request a new one.</p>
+                                <p className="font-bebas text-2xl text-[#ED1C24] leading-none mb-1 text-[#ED1C24]">SECRET EXPIRED</p>
+                                <p className="font-caveat text-lg text-black/60 italic">The code has vanished. Request a new one.</p>
                               </div>
                             </>
                           ) : (
                             <>
-                              <Timer className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: "#C8102E" }} />
+                              <Timer className="h-8 w-8 text-black flex-shrink-0 animate-pulse" />
                               <div>
-                                <p className="text-sm font-semibold text-rose-800">
-                                  Code sent to <span className="font-bold">{customer.email}</span>
+                                <p className="font-bebas text-2xl text-black leading-none mb-1">
+                                  INCOMING INTEL @ {customer.email.toUpperCase()}
                                 </p>
-                                <p className="text-xs text-rose-500 mt-0.5 flex items-center gap-1.5">
-                                  <span className={"font-mono font-bold text-sm " + (otpCountdown <= 30 ? "text-red-500" : "text-rose-700")}>
+                                <div className="flex items-center gap-2">
+                                  <span className={cn(
+                                    "font-bebas text-2xl px-2 bg-black",
+                                    otpCountdown <= 30 ? "text-[#ED1C24]" : "text-[#FFD200]"
+                                  )}>
                                     {Math.floor(otpCountdown / 60)}:{(otpCountdown % 60).toString().padStart(2, "0")}
                                   </span>
-                                  remaining — check your inbox and spam folder
-                                </p>
+                                  <span className="font-caveat text-xl text-black/60 italic">STAY VIGILANT. CHECK YOUR INBOX.</span>
+                                </div>
                               </div>
                             </>
                           )}
                         </div>
 
-                        {/* OTP input */}
-                        <div className="space-y-2">
-                          <Label className="text-rose-800 font-medium">6-Digit Verification Code</Label>
+                        {/* Urban OTP Input */}
+                        <div className="space-y-3">
+                          <Label className="font-bebas text-xl tracking-widest text-black">6-DIGIT STREET CODE</Label>
                           <Input
                             value={otp}
                             onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                            className="text-center text-4xl tracking-[0.7em] font-mono h-16 border-rose-200 focus:border-rose-500 focus:ring-rose-300 text-rose-800 bg-rose-50/50"
-                            placeholder="──────"
+                            className="text-center text-5xl tracking-[0.5em] font-bebas h-20 border-4 border-black focus-visible:ring-[#FFD200] text-black bg-white rounded-none"
+                            placeholder="000000"
                             maxLength={6}
                             disabled={otpExpired}
                             autoFocus
                           />
-                          <div className="flex justify-between items-center">
-                            <p className="text-xs text-rose-400">{otp.length}/6 digits entered</p>
-                            {/* OTP digit progress dots */}
-                            <div className="flex gap-1">
-                              {[0,1,2,3,4,5].map((i) => (
-                                <div key={i} className={"w-2 h-2 rounded-full transition-all duration-200 " + (i < otp.length ? "bg-rose-500 scale-110" : "bg-rose-200")} />
-                              ))}
-                            </div>
+                          <div className="flex justify-between items-center bg-black p-2">
+                             <p className="font-bebas text-sm text-[#FFD200] tracking-widest uppercase">{otp.length}/6 DIGITS DECODED</p>
+                             <div className="flex gap-2">
+                               {[0,1,2,3,4,5].map((i) => (
+                                 <div key={i} className={cn(
+                                   "w-3 h-3 transition-all duration-200 border-2 border-[#FFD200]",
+                                   i < otp.length ? "bg-[#FFD200] scale-110" : "bg-transparent"
+                                 )} />
+                               ))}
+                             </div>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-4 pt-4">
                           <Button type="button" variant="outline"
                             onClick={() => { setPwStep("verify"); setOtp(""); }}
-                            className="rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50">
-                            <ArrowLeft className="h-4 w-4 mr-2" /> Back
+                            className="rounded-none border-4 border-black font-bebas text-xl h-14 hover:bg-black hover:text-white transition-all">
+                            <ArrowLeft className="h-5 w-5 mr-2" /> GO BACK
                           </Button>
                           <Button type="submit"
-                            className="rounded-xl gap-2 font-semibold text-white border-0"
-                            style={{ background: otpExpired ? "#d1d5db" : "linear-gradient(135deg, #C8102E, #a30d26)" }}
+                            className="rounded-none gap-3 font-bebas text-2xl tracking-widest bg-black text-[#FFD200] border-4 border-black transition-all shadow-[6px_6px_0px_0px_rgba(255,210,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
                             disabled={isPwLoading || otp.length !== 6 || otpExpired}>
-                            {isPwLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                            Verify Code
+                            {isPwLoading ? <RefreshCw className="h-6 w-6 animate-spin" /> : <CheckCircle className="h-6 w-6" />}
+                            DECODE
                           </Button>
                         </div>
                       </motion.form>
@@ -960,66 +940,40 @@ export default function SettingsClient({ customer, notificationPreferences: init
 
             {/* ══════════════ ALERTS TAB ══════════════ */}
             <TabsContent value="alerts">
-              <div className="grid md:grid-cols-5 gap-5">
-
-                <div className="md:col-span-3 space-y-4">
-                  {/* Orders & Account */}
+              <div className="grid md:grid-cols-5 gap-8">
+                {/* Main Alerts Config */}
+                <div className="md:col-span-3 space-y-8">
+                  {/* Event Types */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                    className="rounded-2xl border border-rose-100 shadow-sm p-6"
-                    style={{ background: "linear-gradient(145deg, #fff, #fff9f9)" }}
+                    className="bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden"
                   >
-                    <h2 className="text-base font-bold mb-1 flex items-center gap-2 text-rose-900">
-                      <Package className="h-5 w-5" style={{ color: "#C8102E" }} /> Orders & Account
-                    </h2>
-                    <p className="text-xs text-rose-400 mb-5">Notifications about your orders and loyalty rewards</p>
-                    <div className="divide-y divide-rose-50">
-                      {[
-                        { key: "order_updates" as const, title: "Order Updates", desc: "Real-time tracking: confirmed, preparing, ready, delivered", icon: Package, bg: "bg-rose-50", iconColor: "text-rose-600" },
-                        { key: "loyalty_rewards" as const, title: "Loyalty Rewards", desc: "Points earned, tier upgrades and reward redemptions", icon: Star, bg: "bg-amber-50", iconColor: "text-amber-500" },
-                      ].map(({ key, title, desc, icon: Icon, bg, iconColor }) => (
-                        <div key={key} className="flex items-center justify-between py-4">
-                          <div className="flex items-center gap-3">
-                            <div className={"w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 " + bg}>
-                              <Icon className={"h-4 w-4 " + iconColor} />
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold text-rose-900">{title}</p>
-                              <p className="text-xs text-rose-400 mt-0.5">{desc}</p>
-                            </div>
-                          </div>
-                          <Switch checked={prefs[key]} onCheckedChange={() => handlePrefToggle(key)} />
-                        </div>
-                      ))}
+                    <div className="absolute top-0 right-0 p-2 opacity-[0.03] pointer-events-none">
+                       <span className="font-bebas text-9xl">INTEL</span>
                     </div>
-                  </motion.div>
-
-                  {/* Promotions */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-                    className="rounded-2xl border border-rose-100 shadow-sm p-6"
-                    style={{ background: "linear-gradient(145deg, #fff, #fff9f9)" }}
-                  >
-                    <h2 className="text-base font-bold mb-1 flex items-center gap-2 text-rose-900">
-                      <Flame className="h-5 w-5 text-orange-500" /> Promotions & Offers
+                    <h2 className="font-bebas text-4xl mb-2 flex items-center gap-3 text-black">
+                      <Bell className="h-6 w-6 text-[#ED1C24]" /> ALERT TRIGGERS
                     </h2>
-                    <p className="text-xs text-rose-400 mb-5">Exclusive deals, new items and seasonal promotions</p>
-                    <div className="divide-y divide-rose-50">
+                    <p className="font-caveat text-xl text-black/50 mb-10 italic">
+                      When should we broadcast the hunger alerts?
+                    </p>
+                    <div className="space-y-6">
                       {[
-                        { key: "promotional_offers" as const, title: "Promotional Offers", desc: "Flash sales, discount codes and special deals", icon: Flame, bg: "bg-orange-50", iconColor: "text-orange-500" },
-                        { key: "new_menu_items" as const, title: "New Menu Items", desc: "Be first to know about new dishes and limited editions", icon: Star, bg: "bg-red-50", iconColor: "text-red-500" },
-                      ].map(({ key, title, desc, icon: Icon, bg, iconColor }) => (
-                        <div key={key} className="flex items-center justify-between py-4">
-                          <div className="flex items-center gap-3">
-                            <div className={"w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 " + bg}>
-                              <Icon className={"h-4 w-4 " + iconColor} />
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold text-rose-900">{title}</p>
-                              <p className="text-xs text-rose-400 mt-0.5">{desc}</p>
-                            </div>
+                        { key: "order_updates" as const, title: "ORDER STATUS", desc: "TRACK YOUR HUNGER JOURNEY IN REAL-TIME." },
+                        { key: "promotional_offers" as const, title: "STREET DEALS", desc: "EXCLUSIVE DISCOUNTS AND LIMITED DROPS." },
+                        { key: "loyalty_rewards" as const, title: "SQUAD REWARDS", desc: "POINTS, MILESTONES, AND SECRET REWARDS." },
+                        { key: "new_menu_items" as const, title: "NEW FLAVORS", desc: "BE THE FIRST TO TRY OUR NEW EXPERIMENTS." },
+                      ].map(({ key, title, desc }) => (
+                        <div key={key} className="flex items-center justify-between gap-6 p-4 border-2 border-black/5 hover:border-black transition-all group">
+                          <div>
+                            <p className="font-bebas text-2xl text-black leading-none mb-1 group-hover:text-[#ED1C24] transition-colors">{title}</p>
+                            <p className="font-source-sans text-[10px] font-bold text-black/40 uppercase tracking-tighter">{desc}</p>
                           </div>
-                          <Switch checked={prefs[key]} onCheckedChange={() => handlePrefToggle(key)} />
+                          <Switch
+                            checked={prefs[key]}
+                            onCheckedChange={() => handlePrefToggle(key)}
+                            className="data-[state=checked]:bg-[#FFD200] data-[state=unchecked]:bg-black/10 border-2 border-black"
+                          />
                         </div>
                       ))}
                     </div>
@@ -1028,116 +982,103 @@ export default function SettingsClient({ customer, notificationPreferences: init
                   {/* Channels */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                    className="rounded-2xl border border-rose-100 shadow-sm p-6"
-                    style={{ background: "linear-gradient(145deg, #fff, #fff9f9)" }}
+                    className="bg-black border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(255,210,0,1)] text-white"
                   >
-                    <h2 className="text-base font-bold mb-1 flex items-center gap-2 text-rose-900">
-                      <Smartphone className="h-5 w-5 text-blue-500" /> Notification Channels
+                    <h2 className="font-bebas text-4xl mb-2 flex items-center gap-3 text-[#FFD200]">
+                      <Smartphone className="h-6 w-6" /> DISPATCH CHANNELS
                     </h2>
-                    <p className="text-xs text-rose-400 mb-5">Control how you receive notifications</p>
-                    <div className="divide-y divide-rose-50">
+                    <p className="font-caveat text-xl text-[#FFD200]/50 mb-10 italic">Control how you receive the street intel.</p>
+                    <div className="space-y-6">
                       {[
-                        { key: "email_notifications" as const, title: "Email Notifications", desc: "Sent to " + customer.email, icon: Mail, bg: "bg-blue-50", iconColor: "text-blue-500", disabled: false },
-                        { key: "push_notifications" as const, title: "Push Notifications", desc: "Browser and mobile app push alerts", icon: Bell, bg: "bg-purple-50", iconColor: "text-purple-500", disabled: false },
-                        { key: "sms_notifications" as const, title: "SMS Notifications", desc: customer.phone ? "Sent to " + customer.phone : "Add a phone number in Profile first", icon: Smartphone, bg: "bg-emerald-50", iconColor: "text-emerald-600", disabled: !customer.phone },
-                      ].map(({ key, title, desc, icon: Icon, bg, iconColor, disabled }) => (
-                        <div key={key} className={"flex items-center justify-between py-4 " + (disabled ? "opacity-50" : "")}>
-                          <div className="flex items-center gap-3">
-                            <div className={"w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 " + bg}>
-                              <Icon className={"h-4 w-4 " + iconColor} />
+                        { key: "email_notifications" as const, title: "EMAIL BROADCAST", desc: "SENT TO " + customer.email.toUpperCase(), icon: Mail, disabled: false },
+                        { key: "push_notifications" as const, title: "PUSH ALERTS", desc: "STREET UPDATES ON YOUR DEVICE SCREEN", icon: Bell, disabled: false },
+                        { key: "sms_notifications" as const, title: "MOBILE SMS", desc: customer.phone ? "DIRECT TO " + customer.phone : "ADD PHONE IN PROFILE FIRST", icon: Smartphone, disabled: !customer.phone },
+                      ].map(({ key, title, desc, icon: Icon, disabled }) => (
+                        <div key={key} className={cn("flex items-center justify-between p-4 border-2 border-white/10 hover:border-[#FFD200] transition-all group", disabled && "opacity-30")}>
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-[#FFD200] text-black flex items-center justify-center flex-shrink-0 border-2 border-black group-hover:bg-white transition-colors">
+                              <Icon className="h-6 w-6" />
                             </div>
                             <div>
-                              <p className="text-sm font-semibold text-rose-900">{title}</p>
-                              <p className="text-xs text-rose-400 mt-0.5">{desc}</p>
+                              <p className="font-bebas text-2xl text-white leading-none mb-1 group-hover:text-[#FFD200] transition-colors">{title}</p>
+                              <p className="font-source-sans text-[10px] font-bold text-[#FFD200]/40 uppercase tracking-tighter">{desc}</p>
                             </div>
                           </div>
-                          <Switch checked={prefs[key]} onCheckedChange={() => handlePrefToggle(key)} disabled={disabled} />
+                          <Switch
+                            checked={prefs[key]}
+                            onCheckedChange={() => handlePrefToggle(key)}
+                            disabled={disabled}
+                            className="data-[state=checked]:bg-[#FFD200] data-[state=unchecked]:bg-white/10 border-2 border-black"
+                          />
                         </div>
                       ))}
                     </div>
                   </motion.div>
 
-                  {/* Save */}
+                  {/* Save Action */}
                   <Button
                     onClick={handleSavePrefs}
-                    className="w-full rounded-xl gap-2 h-11 font-semibold text-white border-0"
-                    style={{ background: prefsChanged.size === 0 ? "#d1d5db" : "linear-gradient(135deg, #C8102E, #a30d26)" }}
+                    className={cn(
+                      "w-full rounded-none gap-3 h-16 font-bebas text-3xl tracking-widest border-4 border-black transition-all shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]",
+                      prefsChanged.size === 0 ? "bg-black/10 text-black/20" : "bg-[#FFD200] text-black hover:bg-black hover:text-[#FFD200]"
+                    )}
                     disabled={isPrefsLoading || prefsChanged.size === 0}>
-                    {isPrefsLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    {isPrefsLoading ? "Saving…" : prefsChanged.size > 0 ? "Save Changes (" + prefsChanged.size + " pending)" : "All Preferences Saved"}
+                    {isPrefsLoading ? <RefreshCw className="h-8 w-8 animate-spin" /> : <Save className="h-8 w-8" />}
+                    {isPrefsLoading ? "SYNCING..." : prefsChanged.size > 0 ? `SYNC ${prefsChanged.size} CHANGES` : "BROADCAST SYNCED"}
                   </Button>
                 </div>
 
-                {/* Right Sidebar */}
-                <div className="md:col-span-2 space-y-5">
-                  {/* Summary */}
+                {/* Right Sidebar - Info Blocks */}
+                <div className="md:col-span-2 space-y-8">
+                  {/* Summary Block */}
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-                    className="rounded-2xl border border-rose-100 shadow-sm p-5"
-                    style={{ background: "linear-gradient(145deg, #fff, #fff5f5)" }}
+                    initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}
+                    className="bg-[#ED1C24] border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white"
                   >
-                    <h3 className="text-sm font-bold mb-4 text-rose-700 flex items-center gap-2">
-                      <Bell className="h-4 w-4" style={{ color: "#C8102E" }} /> Notification Summary
+                    <h3 className="font-bebas text-3xl mb-6 text-white flex items-center gap-3">
+                      <Bell className="h-6 w-6" /> BROADCAST STATUS
                     </h3>
-                    <div className="space-y-2.5">
+                    <div className="space-y-4">
                       {[
-                        { label: "Order Updates", key: "order_updates" },
-                        { label: "Loyalty Rewards", key: "loyalty_rewards" },
-                        { label: "Promo Offers", key: "promotional_offers" },
-                        { label: "New Menu Items", key: "new_menu_items" },
-                        { label: "Email Channel", key: "email_notifications" },
-                        { label: "Push Channel", key: "push_notifications" },
-                        { label: "SMS Channel", key: "sms_notifications" },
+                        { label: "ORDER INTEL", key: "order_updates" },
+                        { label: "LOYALTY XP", key: "loyalty_rewards" },
+                        { label: "STREET DROPS", key: "promotional_offers" },
+                        { label: "EMAIL UNIT", key: "email_notifications" },
+                        { label: "PUSH UNIT", key: "push_notifications" },
                       ].map(({ label, key }) => (
-                        <div key={key} className="flex items-center justify-between">
-                          <span className="text-xs text-rose-400 font-medium">{label}</span>
-                          <span className={"text-xs font-bold " + ((prefs as any)[key] ? "text-emerald-600" : "text-rose-300")}>
-                            {(prefs as any)[key] ? "✓ On" : "○ Off"}
+                        <div key={key} className="flex items-center justify-between border-b-2 border-white/10 pb-2">
+                          <span className="font-bebas text-xl tracking-widest text-white/70">{label}</span>
+                          <span className={cn(
+                            "font-bebas text-xl px-2",
+                            (prefs as any)[key] ? "bg-white text-[#ED1C24]" : "bg-black text-white opacity-40"
+                          )}>
+                            {(prefs as any)[key] ? "ACTIVE" : "OFFLINE"}
                           </span>
                         </div>
                       ))}
                     </div>
-                    {prefsChanged.size > 0 && (
-                      <div className="mt-4 pt-3 border-t border-rose-100">
-                        <p className="text-xs text-amber-600 flex items-center gap-1.5 font-medium">
-                          <AlertCircle className="h-3.5 w-3.5" />
-                          {prefsChanged.size} unsaved change{prefsChanged.size > 1 ? "s" : ""}
-                        </p>
-                      </div>
-                    )}
                   </motion.div>
 
-                  {/* Info */}
+                  {/* Mandatory Block */}
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                    className="rounded-2xl border border-rose-200 p-4"
-                    style={{ background: "linear-gradient(135deg, #fff1f2, #ffe4e6)" }}
+                    initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                    className="bg-black border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(255,210,0,1)] text-white"
                   >
-                    <p className="text-xs text-rose-600 leading-relaxed flex items-start gap-2">
-                      <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-rose-500" />
-                      Toggle your preferences and click <strong>Save Changes</strong>. Transactional emails (order confirmations, OTPs, receipts) are always sent regardless.
-                    </p>
-                  </motion.div>
-
-                  {/* Always Sent */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-                    className="rounded-2xl border border-rose-100 shadow-sm p-5"
-                    style={{ background: "linear-gradient(145deg, #fff, #fff5f5)" }}
-                  >
-                    <h3 className="text-sm font-bold mb-3 text-rose-700 flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-500" /> Always Sent
+                    <h3 className="font-bebas text-3xl mb-4 text-[#FFD200] flex items-center gap-3 tracking-widest">
+                      <Shield className="h-6 w-6" /> MANDATORY INTEL
                     </h3>
-                    <ul className="space-y-2">
+                    <p className="font-caveat text-xl text-white/50 mb-6 italic leading-tight">
+                      Certain street communications are non-negotiable for security and logistics.
+                    </p>
+                    <ul className="space-y-3">
                       {[
-                        "Order confirmation emails",
-                        "Payment receipts & invoices",
-                        "Account security alerts",
-                        "Password reset OTPs",
-                        "Login OTPs (if 2FA enabled)",
+                        "ORDER CONFIRMATIONS",
+                        "STREET RECEIPTS",
+                        "SECURITY ALERTS",
+                        "ACCESS OTPs",
                       ].map((item) => (
-                        <li key={item} className="text-xs text-rose-400 flex items-center gap-2">
-                          <CheckCircle className="h-3 w-3 text-emerald-400 flex-shrink-0" /> {item}
+                        <li key={item} className="font-bebas text-lg text-[#FFD200] flex items-center gap-3 tracking-widest">
+                          <div className="w-2 h-2 bg-[#ED1C24]" /> {item}
                         </li>
                       ))}
                     </ul>

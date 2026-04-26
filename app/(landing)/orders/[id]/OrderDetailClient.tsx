@@ -29,15 +29,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect, useCallback } from "react";
 import { generateOrderInvoicePDF } from "@/lib/order-invoice-pdf";
 
-// ─── Animated red gradient text helpers ───────────────────────────────────────
-const GRADIENT_LABEL =
-  "bg-gradient-to-r from-red-600 via-rose-500 to-red-400 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] font-bold tracking-wider";
-
-const CARD_TITLE_CLASS =
-  "bg-gradient-to-r from-red-600 via-orange-500 to-red-500 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] font-extrabold tracking-widest uppercase text-lg";
-
-const FIELD_LABEL_CLASS =
-  "bg-gradient-to-r from-red-500 via-rose-400 to-orange-400 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] font-semibold tracking-widest text-xs uppercase";
+const CARD_TITLE_CLASS = "font-bebas text-3xl tracking-widest uppercase text-black";
+const FIELD_LABEL_CLASS = "font-bebas tracking-[0.2em] text-[10px] uppercase text-black/50";
 
 interface OrderDetail {
   id: string;
@@ -77,54 +70,55 @@ interface OrderDetail {
 const statusConfig: Record<string, { icon: any; color: string; bg: string; label: string }> = {
   pending: {
     icon: Clock,
-    color: "text-yellow-600",
-    bg: "bg-yellow-50 border-yellow-200",
-    label: "Pending",
+    color: "text-black",
+    bg: "bg-[#FFD200]/40 border-black/20",
+    label: "PENDING",
   },
   confirmed: {
     icon: CheckCircle,
-    color: "text-blue-600",
-    bg: "bg-blue-50 border-blue-200",
-    label: "Confirmed",
+    color: "text-[#FFD200]",
+    bg: "bg-black border-black",
+    label: "CONFIRMED",
   },
   preparing: {
     icon: ChefHat,
-    color: "text-orange-600",
-    bg: "bg-orange-50 border-orange-200",
-    label: "Preparing",
+    color: "text-black",
+    bg: "bg-[#F28C00]/35 border-[#F28C00]/40",
+    label: "PREPARING",
   },
   ready: {
     icon: Package,
-    color: "text-purple-600",
-    bg: "bg-purple-50 border-purple-200",
-    label: "Ready",
+    color: "text-black",
+    bg: "bg-[#FFD200]/35 border-black/20",
+    label: "READY",
   },
   delivering: {
     icon: Truck,
-    color: "text-indigo-600",
-    bg: "bg-indigo-50 border-indigo-200",
-    label: "Out for Delivery",
+    color: "text-white",
+    bg: "bg-[#1E1E1E] border-black",
+    label: "OUT FOR DELIVERY",
   },
   delivered: {
     icon: CheckCircle,
-    color: "text-green-600",
-    bg: "bg-green-50 border-green-200",
-    label: "Delivered",
+    color: "text-white",
+    bg: "bg-[#008A45] border-[#006B35]",
+    label: "DELIVERED",
   },
   cancelled: {
     icon: XCircle,
-    color: "text-red-600",
-    bg: "bg-red-50 border-red-200",
-    label: "Cancelled",
+    color: "text-white",
+    bg: "bg-[#ED1C24] border-[#B2151A]",
+    label: "CANCELLED",
   },
 };
 
 const paymentStatusConfig: Record<string, { color: string; bg: string; label: string }> = {
-  pending: { color: "text-yellow-700", bg: "bg-yellow-100", label: "Pending" },
-  pending_verification: { color: "text-orange-700", bg: "bg-orange-100", label: "Pending Verification" },
-  paid: { color: "text-green-700", bg: "bg-green-100", label: "Paid" },
-  failed: { color: "text-red-700", bg: "bg-red-100", label: "Failed" },
-  refunded: { color: "text-gray-700", bg: "bg-gray-100", label: "Refunded" },
+  pending: { color: "text-black", bg: "bg-[#FFD200]/40 border-black/20", label: "PENDING" },
+  pending_verification: { color: "text-black", bg: "bg-[#F28C00]/20 border-[#F28C00]/30", label: "VERIFYING" },
+  paid: { color: "text-white", bg: "bg-[#008A45] border-[#006B35]", label: "PAID" },
+  completed: { color: "text-white", bg: "bg-[#008A45] border-[#006B35]", label: "PAID" },
+  failed: { color: "text-white", bg: "bg-[#ED1C24] border-[#B2151A]", label: "FAILED" },
+  refunded: { color: "text-black", bg: "bg-black/10 border-black/20", label: "REFUNDED" },
 };
 
 interface OrderDetailClientProps {
@@ -140,7 +134,6 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  // Ensure client-side only rendering to prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -158,6 +151,7 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
 
   const downloadInvoice = async () => {
     if (!order) return;
+
     await generateOrderInvoicePDF({
       order_number: order.order_number,
       order_type: order.order_type,
@@ -170,7 +164,7 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
       customer_address: order.customer_address ?? null,
       items: Array.isArray(order.items)
         ? order.items.map((i: any) => ({
-            name: i.name || 'Item',
+            name: i.name || "Item",
             quantity: i.quantity || 1,
             price: i.price ?? i.unit_price ?? 0,
             variant: i.variant,
@@ -191,10 +185,11 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
     });
   };
 
-  // Live polling — refresh order data every 30 s
   const refreshOrder = useCallback(async (silent = true) => {
     if (!initialOrder?.id) return;
+
     if (!silent) setIsRefreshing(true);
+
     try {
       const res = await fetch(`/api/customer/orders/${initialOrder.id}`, { cache: "no-store" });
       const json = await res.json();
@@ -203,7 +198,7 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
         setLastUpdated(new Date());
       }
     } catch {
-      // silently fail — show stale data
+      // Keep current order data if refresh fails.
     } finally {
       if (!silent) setIsRefreshing(false);
     }
@@ -228,7 +223,6 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
     });
   };
 
-  // Resolve item image from multiple possible field names
   const getItemImage = (item: any): string => {
     return (
       item.image_url ||
@@ -241,10 +235,10 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
 
   if (!mounted || authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-red-500 mx-auto mb-4" />
-          <p className={FIELD_LABEL_CLASS}>Loading order details…</p>
+          <Loader2 className="w-12 h-12 animate-spin text-[#FFD200] mx-auto mb-4" />
+          <p className={FIELD_LABEL_CLASS}>Loading order details...</p>
         </div>
       </div>
     );
@@ -252,16 +246,20 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center px-4">
         <div className="text-center">
-          <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className={`text-2xl mb-2 ${GRADIENT_LABEL}`}>Order Not Found</h2>
-          <p className="text-gray-600 mb-6">
-            The order you&apos;re looking for doesn&apos;t exist or you don&apos;t have permission to view it.
+          <Package className="w-16 h-16 text-black/20 mx-auto mb-4" />
+          <h2 className="font-bebas text-5xl tracking-tighter text-black mb-2">ORDER NOT FOUND</h2>
+          <p className="font-caveat text-2xl text-black/50 italic mb-6">
+            The order you're looking for doesn't exist or you don't have permission to view it.
           </p>
-          <Button onClick={() => router.push("/orders")}>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/orders")}
+            className="border-4 border-black rounded-none bg-black text-[#FFD200] font-bebas text-2xl h-14 px-8 shadow-[6px_6px_0px_0px_rgba(255,210,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Orders
+            BACK TO ORDERS
           </Button>
         </div>
       </div>
@@ -272,44 +270,42 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
   const StatusIcon = statusInfo.icon;
   const paymentInfo = paymentStatusConfig[order.payment_status] || paymentStatusConfig.pending;
 
-  // Build timeline — use status_history if available, otherwise synthesise from current status
   const timeline: { status: string; notes?: string; created_at: string }[] =
     order.status_history && order.status_history.length > 0
       ? order.status_history
       : [{ status: order.status, notes: "Order placed", created_at: order.created_at }];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F8F8F8] pt-32 pb-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => router.push("/orders")}
-            className="mb-4 hover:bg-orange-100"
+            className="mb-6 border-2 border-black rounded-none font-bebas text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Orders
+            BACK TO ORDERS
           </Button>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-extrabold bg-gradient-to-r from-red-600 via-rose-500 to-orange-500 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] tracking-tight uppercase">
-                Order Details
+              <h1 className="font-bebas text-6xl md:text-7xl tracking-[0.12em] sm:tracking-tighter leading-[0.85] uppercase text-black">
+                ORDER DETAILS
               </h1>
-              <p className={`mt-2 text-base ${FIELD_LABEL_CLASS}`}>
-                Order&nbsp;#{order.order_number}
+              <p className="font-caveat text-2xl text-black/50 italic mt-1">
+                Street ticket #{order.order_number}
               </p>
             </div>
             <div className="flex flex-wrap gap-3 items-center">
-              <Badge className={`${statusInfo.bg} ${statusInfo.color} border px-4 py-2`}>
+              <Badge className={`${statusInfo.bg} ${statusInfo.color} border-2 px-4 py-2 rounded-none font-bebas tracking-wider`}>
                 <StatusIcon className="w-4 h-4 mr-2" />
                 {statusInfo.label}
               </Badge>
-              <Badge className={`${paymentInfo.bg} ${paymentInfo.color} px-4 py-2`}>
+              <Badge className={`${paymentInfo.bg} ${paymentInfo.color} border-2 px-4 py-2 rounded-none font-bebas tracking-wider`}>
                 <CreditCard className="w-4 h-4 mr-2" />
                 {paymentInfo.label}
               </Badge>
@@ -317,30 +313,28 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
                 onClick={() => refreshOrder(false)}
                 disabled={isRefreshing}
                 title="Refresh order"
-                className="ml-1 p-2 rounded-full hover:bg-red-50 text-red-500 transition-colors"
+                className="ml-1 p-2 border-2 border-black bg-white text-black hover:bg-black hover:text-[#FFD200] transition-colors"
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
               </button>
             </div>
           </div>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-black/40 mt-2 font-source-sans font-semibold uppercase tracking-wider">
             Last updated: {lastUpdated.toLocaleTimeString()} · auto-refreshes every 30 s
           </p>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Order Items */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <Card className="border-2 shadow-lg">
-                <CardHeader className="pb-4 border-b">
+              <Card className="border-4 border-black rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
+                <CardHeader className="pb-4 border-b-2 border-black/10">
                   <CardTitle className="flex items-center gap-3">
-                    <Package className="w-6 h-6 text-red-500 flex-shrink-0" />
+                    <Package className="w-6 h-6 text-[#ED1C24] flex-shrink-0" />
                     <span className={CARD_TITLE_CLASS}>Order Items</span>
                   </CardTitle>
                 </CardHeader>
@@ -348,8 +342,8 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
                   {order.items?.map((item: any, index: number) => {
                     const imgSrc = getItemImage(item);
                     return (
-                      <div key={index} className="flex gap-4 p-4 bg-gray-50 rounded-lg">
-                        <div className="w-20 h-20 bg-white rounded-lg overflow-hidden shadow-sm flex-shrink-0 border border-gray-100">
+                      <div key={index} className="flex gap-4 p-4 bg-[#F8F8F8] border-2 border-black/10">
+                        <div className="w-20 h-20 bg-white overflow-hidden shadow-sm flex-shrink-0 border-2 border-black/20">
                           {imgSrc ? (
                             <img
                               src={imgSrc}
@@ -361,35 +355,35 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
                                 const parent = target.parentElement;
                                 if (parent) {
                                   parent.innerHTML =
-                                    '<div class="w-full h-full flex items-center justify-center bg-orange-50"><span class="text-2xl">🍗</span></div>';
+                                    '<div class="w-full h-full flex items-center justify-center bg-[#FFD200]/20"><span class="text-2xl">🍗</span></div>';
                                 }
                               }}
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-orange-50">
+                            <div className="w-full h-full flex items-center justify-center bg-[#FFD200]/20">
                               <span className="text-2xl">🍗</span>
                             </div>
                           )}
                         </div>
                         <div className="flex-grow">
-                          <h4 className={`text-base mb-1 ${GRADIENT_LABEL}`}>{item.name}</h4>
-                          <p className="text-sm text-gray-500 mt-1">
+                          <h4 className="font-bebas text-2xl text-black leading-none mb-1">{item.name}</h4>
+                          <p className="text-sm text-black/60 mt-1">
                             <span className={FIELD_LABEL_CLASS}>Qty:</span>{" "}
-                            <span className="font-semibold text-gray-700">{item.quantity}</span>
+                            <span className="font-semibold text-black">{item.quantity}</span>
                           </p>
-                          <p className="text-sm text-gray-500">
-                            <span className={FIELD_LABEL_CLASS}>Unit&nbsp;Price:</span>{" "}
-                            <span className="font-semibold text-gray-700">{formatCurrency(item.price)}</span>
+                          <p className="text-sm text-black/60">
+                            <span className={FIELD_LABEL_CLASS}>Unit Price:</span>{" "}
+                            <span className="font-semibold text-black">{formatCurrency(item.price)}</span>
                           </p>
                           {item.size && (
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-black/60">
                               <span className={FIELD_LABEL_CLASS}>Size:</span>{" "}
-                              <span className="font-semibold text-gray-700 capitalize">{item.size}</span>
+                              <span className="font-semibold text-black capitalize">{item.size}</span>
                             </p>
                           )}
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="font-bold text-red-600 text-lg">
+                          <p className="font-bebas text-3xl text-black leading-none">
                             {formatCurrency(item.price * item.quantity)}
                           </p>
                         </div>
@@ -400,16 +394,15 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
               </Card>
             </motion.div>
 
-            {/* Order Timeline */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <Card className="border-2 shadow-lg">
-                <CardHeader className="pb-4 border-b">
+              <Card className="border-4 border-black rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
+                <CardHeader className="pb-4 border-b-2 border-black/10">
                   <CardTitle className="flex items-center gap-3">
-                    <Clock className="w-6 h-6 text-red-500 flex-shrink-0" />
+                    <Clock className="w-6 h-6 text-[#ED1C24] flex-shrink-0" />
                     <span className={CARD_TITLE_CLASS}>Order Timeline</span>
                   </CardTitle>
                 </CardHeader>
@@ -419,38 +412,35 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
                       const entryStatus = statusConfig[entry.status] || statusConfig.pending;
                       const EntryIcon = entryStatus.icon;
                       const isLatest = index === timeline.length - 1;
+
                       return (
                         <div key={index} className="flex gap-4">
                           <div className="flex flex-col items-center">
                             <div
-                              className={`w-10 h-10 rounded-full border-2 flex items-center justify-center ${
+                              className={`w-10 h-10 border-2 flex items-center justify-center ${
                                 isLatest
-                                  ? "bg-gradient-to-br from-red-100 to-orange-100 border-red-400 shadow-md"
+                                  ? "bg-[#FFD200] border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                                   : entryStatus.bg
                               }`}
                             >
-                              <EntryIcon
-                                className={`w-5 h-5 ${isLatest ? "text-red-500" : entryStatus.color}`}
-                              />
+                              <EntryIcon className={`w-5 h-5 ${isLatest ? "text-black" : entryStatus.color}`} />
                             </div>
                             {index < timeline.length - 1 && (
-                              <div className="w-0.5 h-12 bg-gradient-to-b from-red-200 to-gray-200 my-1" />
+                              <div className="w-1 h-12 bg-black/20 my-1" />
                             )}
                           </div>
                           <div className="flex-grow pb-8">
-                            <p className={`text-base ${
-                              isLatest ? GRADIENT_LABEL : "font-medium text-gray-700"
-                            }`}>
+                            <p className={`${isLatest ? "font-bebas text-2xl" : "font-bebas text-xl"} tracking-wide text-black`}>
                               {entryStatus.label}
                               {isLatest && (
-                                <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-semibold tracking-wide">
+                                <span className="ml-2 text-xs bg-black text-[#FFD200] px-2 py-0.5 font-bebas tracking-wider">
                                   CURRENT
                                 </span>
                               )}
                             </p>
                             <p className={`text-sm mt-0.5 ${FIELD_LABEL_CLASS}`}>{formatDate(entry.created_at)}</p>
                             {entry.notes && (
-                              <p className="text-sm text-gray-500 mt-1">{entry.notes}</p>
+                              <p className="text-sm text-black/60 mt-1">{entry.notes}</p>
                             )}
                           </div>
                         </div>
@@ -462,158 +452,153 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
             </motion.div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Order Summary */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <Card className="border-2 shadow-lg">
-                <CardHeader className="pb-4 border-b">
+              <Card className="border-4 border-black rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
+                <CardHeader className="pb-4 border-b-2 border-black/10">
                   <CardTitle className="flex items-center gap-3">
-                    <Receipt className="w-6 h-6 text-red-500 flex-shrink-0" />
+                    <Receipt className="w-6 h-6 text-[#ED1C24] flex-shrink-0" />
                     <span className={CARD_TITLE_CLASS}>Order Summary</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 pt-4">
                   <div className="flex justify-between text-sm">
                     <span className={FIELD_LABEL_CLASS}>Subtotal</span>
-                    <span className="font-semibold text-gray-800">{formatCurrency(order.subtotal)}</span>
+                    <span className="font-semibold text-black">{formatCurrency(order.subtotal)}</span>
                   </div>
                   {order.discount > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-xs font-semibold text-green-600 uppercase tracking-widest">Discount</span>
-                      <span className="font-semibold text-green-600">-{formatCurrency(order.discount)}</span>
+                      <span className="font-bebas tracking-widest text-[10px] uppercase text-[#008A45]">Discount</span>
+                      <span className="font-semibold text-[#008A45]">-{formatCurrency(order.discount)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
                     <span className={FIELD_LABEL_CLASS}>Delivery Fee</span>
-                    <span className="font-semibold text-gray-800">{formatCurrency(order.delivery_fee)}</span>
+                    <span className="font-semibold text-black">{formatCurrency(order.delivery_fee)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className={FIELD_LABEL_CLASS}>Tax</span>
-                    <span className="font-semibold text-gray-800">{formatCurrency(order.tax)}</span>
+                    <span className="font-semibold text-black">{formatCurrency(order.tax)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between text-base pt-1">
-                    <span className={`text-base ${GRADIENT_LABEL}`}>Total</span>
-                    <span className="font-bold text-red-600 text-lg">{formatCurrency(order.total)}</span>
+                    <span className="font-bebas text-2xl tracking-wider uppercase text-black">Total</span>
+                    <span className="font-bebas text-3xl text-black leading-none">{formatCurrency(order.total)}</span>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
 
-            {/* Customer Info */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <Card className="border-2 shadow-lg">
-                <CardHeader className="pb-4 border-b">
+              <Card className="border-4 border-black rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
+                <CardHeader className="pb-4 border-b-2 border-black/10">
                   <CardTitle className="flex items-center gap-3">
-                    <User className="w-6 h-6 text-red-500 flex-shrink-0" />
+                    <User className="w-6 h-6 text-[#ED1C24] flex-shrink-0" />
                     <span className={CARD_TITLE_CLASS}>Customer Info</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 pt-4">
                   <div className="flex items-start gap-3">
-                    <User className="w-5 h-5 text-gray-400 mt-0.5" />
+                    <User className="w-5 h-5 text-black/30 mt-0.5" />
                     <div>
                       <p className={`mb-0.5 ${FIELD_LABEL_CLASS}`}>Name</p>
-                      <p className="font-semibold text-gray-800">{order.customer_name}</p>
+                      <p className="font-semibold text-black">{order.customer_name}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Phone className="w-5 h-5 text-gray-400 mt-0.5" />
+                    <Phone className="w-5 h-5 text-black/30 mt-0.5" />
                     <div>
                       <p className={`mb-0.5 ${FIELD_LABEL_CLASS}`}>Phone</p>
-                      <p className="font-semibold text-gray-800">{order.customer_phone}</p>
+                      <p className="font-semibold text-black">{order.customer_phone}</p>
                     </div>
                   </div>
                   {order.customer_email && (
                     <div className="flex items-start gap-3">
-                      <Mail className="w-5 h-5 text-gray-400 mt-0.5" />
+                      <Mail className="w-5 h-5 text-black/30 mt-0.5" />
                       <div>
                         <p className={`mb-0.5 ${FIELD_LABEL_CLASS}`}>Email</p>
-                        <p className="font-semibold text-gray-800">{order.customer_email}</p>
+                        <p className="font-semibold text-black">{order.customer_email}</p>
                       </div>
                     </div>
                   )}
                   <div className="flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
+                    <MapPin className="w-5 h-5 text-black/30 mt-0.5" />
                     <div>
                       <p className={`mb-0.5 ${FIELD_LABEL_CLASS}`}>Delivery Address</p>
-                      <p className="font-semibold text-gray-800">{order.customer_address}</p>
+                      <p className="font-semibold text-black">{order.customer_address}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
 
-            {/* Payment Info */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <Card className="border-2 shadow-lg">
-                <CardHeader className="pb-4 border-b">
+              <Card className="border-4 border-black rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
+                <CardHeader className="pb-4 border-b-2 border-black/10">
                   <CardTitle className="flex items-center gap-3">
-                    <CreditCard className="w-6 h-6 text-red-500 flex-shrink-0" />
+                    <CreditCard className="w-6 h-6 text-[#ED1C24] flex-shrink-0" />
                     <span className={CARD_TITLE_CLASS}>Payment Details</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 pt-4">
                   <div className="flex items-center justify-between">
                     <span className={FIELD_LABEL_CLASS}>Method</span>
-                    <Badge variant="outline" className="capitalize font-semibold">
+                    <Badge variant="outline" className="capitalize font-semibold rounded-none border-2 border-black">
                       {order.payment_method?.replace(/_/g, " ")}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className={FIELD_LABEL_CLASS}>Status</span>
-                    <Badge className={`${paymentInfo.bg} ${paymentInfo.color} font-semibold`}>
+                    <Badge className={`${paymentInfo.bg} ${paymentInfo.color} border-2 rounded-none font-bebas tracking-wider`}>
                       {paymentInfo.label}
                     </Badge>
                   </div>
                   {order.payment_method === "cash" && order.payment_status === "pending" && (
-                    <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md px-3 py-2">
-                      💵 Cash payment will be collected upon delivery / pickup.
+                    <p className="text-xs text-black bg-[#FFD200]/25 border-2 border-black/20 px-3 py-2 font-source-sans font-semibold">
+                      Cash payment will be collected upon delivery or pickup.
                     </p>
                   )}
                   <div className="flex items-center justify-between">
                     <span className={FIELD_LABEL_CLASS}>Order Date</span>
-                    <span className="text-sm font-semibold text-gray-800">
+                    <span className="text-sm font-semibold text-black">
                       {new Date(order.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  
-                  {/* Online Payment Transaction Details */}
+
                   {(order.payment_method === "online" || order.transaction_id || order.online_payment_details) && (
                     <>
                       <Separator />
-                      <div className="p-3 rounded-lg bg-purple-50 border border-purple-200 space-y-2">
-                        <div className="flex items-center gap-2 text-purple-700 mb-2">
+                      <div className="p-3 bg-[#FFF4CC] border-2 border-black/20 space-y-2">
+                        <div className="flex items-center gap-2 text-black mb-2">
                           <Receipt className="w-4 h-4" />
-                          <span className="font-semibold text-sm">Online Payment Details</span>
+                          <span className="font-bebas text-xl tracking-wider">ONLINE PAYMENT DETAILS</span>
                         </div>
                         {order.transaction_id ? (
                           <div className="flex items-center justify-between">
-                            <span className={`${FIELD_LABEL_CLASS} !text-purple-500`}>Transaction ID</span>
-                            <span className="text-xs font-mono font-medium text-purple-800 bg-purple-100 px-2 py-0.5 rounded">
+                            <span className={FIELD_LABEL_CLASS}>Transaction ID</span>
+                            <span className="text-xs font-mono font-medium text-black bg-white border border-black/20 px-2 py-0.5">
                               {order.transaction_id}
                             </span>
                           </div>
                         ) : (
-                          <p className="text-xs text-purple-600 italic">No transaction ID recorded</p>
+                          <p className="text-xs text-black/50 italic">No transaction ID recorded</p>
                         )}
                         {order.online_payment_details?.method_name && (
                           <div className="flex items-center justify-between">
-                            <span className={`${FIELD_LABEL_CLASS} !text-purple-500`}>Payment Via</span>
-                            <span className="text-xs font-semibold text-purple-800">
+                            <span className={FIELD_LABEL_CLASS}>Payment Via</span>
+                            <span className="text-xs font-semibold text-black">
                               {order.online_payment_details.method_name}
                             </span>
                           </div>
@@ -625,34 +610,33 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
               </Card>
             </motion.div>
 
-            {/* Delivery Person (if assigned) */}
             {order.assigned_to_name && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <Card className="border-2 shadow-lg bg-gradient-to-br from-orange-50 to-yellow-50">
-                  <CardHeader className="pb-4 border-b">
+                <Card className="border-4 border-black rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#FFF4CC]">
+                  <CardHeader className="pb-4 border-b-2 border-black/10">
                     <CardTitle className="flex items-center gap-3">
-                      <Truck className="w-6 h-6 text-red-500 flex-shrink-0" />
+                      <Truck className="w-6 h-6 text-[#ED1C24] flex-shrink-0" />
                       <span className={CARD_TITLE_CLASS}>Delivery Person</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3 pt-4">
                     <div className="flex items-center gap-3">
-                      <User className="w-5 h-5 text-gray-400" />
+                      <User className="w-5 h-5 text-black/30" />
                       <div>
                         <p className={`mb-0.5 ${FIELD_LABEL_CLASS}`}>Name</p>
-                        <p className="font-semibold text-gray-800">{order.assigned_to_name}</p>
+                        <p className="font-semibold text-black">{order.assigned_to_name}</p>
                       </div>
                     </div>
                     {order.assigned_to_phone && (
                       <div className="flex items-center gap-3">
-                        <Phone className="w-5 h-5 text-gray-400" />
+                        <Phone className="w-5 h-5 text-black/30" />
                         <div>
                           <p className={`mb-0.5 ${FIELD_LABEL_CLASS}`}>Contact</p>
-                          <p className="font-semibold text-gray-800">{order.assigned_to_phone}</p>
+                          <p className="font-semibold text-black">{order.assigned_to_phone}</p>
                         </div>
                       </div>
                     )}
@@ -661,59 +645,57 @@ export default function OrderDetailClient({ initialOrder }: OrderDetailClientPro
               </motion.div>
             )}
 
-            {/* Notes */}
             {order.notes && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                <Card className="border-2 shadow-lg">
-                  <CardHeader className="pb-4 border-b">
+                <Card className="border-4 border-black rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
+                  <CardHeader className="pb-4 border-b-2 border-black/10">
                     <CardTitle className="flex items-center gap-3">
-                      <FileText className="w-6 h-6 text-red-500 flex-shrink-0" />
+                      <FileText className="w-6 h-6 text-[#ED1C24] flex-shrink-0" />
                       <span className={CARD_TITLE_CLASS}>Order Notes</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4">
-                    <p className="text-gray-700 leading-relaxed">{order.notes}</p>
+                    <p className="text-black leading-relaxed font-source-sans">{order.notes}</p>
                   </CardContent>
                 </Card>
               </motion.div>
             )}
 
-            {/* Actions */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.6 }}
               className="flex flex-col gap-3"
             >
-              {order.order_type === 'online' && (
+              {order.order_type === "online" && (
                 <Button
-                  className="w-full bg-gradient-to-r from-red-600 via-rose-500 to-orange-500 hover:from-red-700 hover:to-orange-600 font-bold tracking-wider uppercase text-white shadow-lg"
+                  className="w-full rounded-none border-4 border-black bg-black text-[#FFD200] font-bebas text-2xl tracking-widest h-14 shadow-[6px_6px_0px_0px_rgba(255,210,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
                   onClick={() => router.push(`/orders/track?id=${order.id}`)}
                 >
                   <Truck className="w-4 h-4 mr-2" />
-                  Track Order
+                  TRACK ORDER
                 </Button>
               )}
               <Button
                 variant="outline"
-                className="w-full border-red-200 text-red-600 hover:bg-red-50 font-semibold tracking-wide"
+                className="w-full rounded-none border-4 border-black bg-white text-black font-bebas text-xl tracking-widest h-14 hover:bg-[#FFD200]"
                 onClick={downloadInvoice}
               >
                 <Download className="w-4 h-4 mr-2" />
-                Download Invoice (PDF)
+                DOWNLOAD INVOICE (PDF)
               </Button>
               <Button
                 variant="outline"
-                className="w-full border-red-200 text-red-600 hover:bg-red-50 font-semibold tracking-wide"
+                className="w-full rounded-none border-4 border-black bg-white text-black font-bebas text-xl tracking-widest h-14 hover:bg-[#FFD200]"
                 onClick={() => refreshOrder(false)}
                 disabled={isRefreshing}
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-                Refresh Status
+                REFRESH STATUS
               </Button>
             </motion.div>
           </div>

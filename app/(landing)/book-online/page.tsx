@@ -9,9 +9,9 @@ import { getTablesForBookingServer } from "@/lib/server-queries";
 import BookOnlineClient from "./BookOnlineClient";
 
 export const metadata: Metadata = {
-  title: "Book a Table | Zoiro Broast Vehari",
+  title: "Book a Table | Fifth Avenue",
   description:
-    "Reserve your table at Zoiro Broast Vehari. View real-time table availability, choose your preferred table, pick a date and time, and even pre-order your meal.",
+    "Reserve your table at Fifth Avenue. View real-time table availability, pick a date and time, and even pre-order your meal.",
   keywords: [
     "zoiro broast table booking",
     "book a table vehari",
@@ -20,9 +20,9 @@ export const metadata: Metadata = {
     "online table booking",
   ],
   openGraph: {
-    title: "Book a Table | Zoiro Broast Vehari",
+    title: "Book a Table | Fifth Avenue",
     description:
-      "Reserve your table at Zoiro Broast. Real-time availability, instant confirmation.",
+      "Reserve your table at Fifth Avenue. Real-time availability and instant confirmation.",
     type: "website",
   },
 };

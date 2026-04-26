@@ -261,10 +261,10 @@ export default function TrackOrderClient({
   
   if (showLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-secondary/20">
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F8F8]">
         <div className="flex flex-col items-center gap-4">
-          <RefreshCw className="w-8 h-8 text-primary animate-spin" />
-          <p className="text-muted-foreground">Loading order details...</p>
+          <RefreshCw className="w-8 h-8 text-[#FFD200] animate-spin" />
+          <p className="font-bebas text-lg tracking-widest text-black/60">LOADING ORDER DETAILS...</p>
         </div>
       </div>
     );
@@ -273,7 +273,7 @@ export default function TrackOrderClient({
   // Show recent orders list when no order ID is provided
   if (!orderId) {
     return (
-      <div className="min-h-screen pt-32 pb-16 bg-gradient-to-b from-background to-secondary/20">
+      <div className="min-h-screen pt-32 pb-16 bg-[#F8F8F8]">
         <div className="container-custom max-w-2xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -281,16 +281,16 @@ export default function TrackOrderClient({
             className="mb-8"
           >
             <Button
-              variant="ghost"
+              variant="outline"
               onClick={() => router.push("/orders")}
-              className="mb-4"
+              className="mb-4 border-2 border-black rounded-none font-bebas text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Orders
+              BACK TO ORDERS
             </Button>
-            <h1 className="text-3xl font-bold">Track Your Order</h1>
-            <p className="text-muted-foreground mt-2">
-              Select an active order to track its progress
+            <h1 className="font-bebas text-5xl tracking-tighter uppercase text-black">TRACK YOUR ORDER</h1>
+            <p className="font-caveat text-2xl text-black/50 italic mt-2">
+              Select a live run to follow every step.
             </p>
           </motion.div>
 
@@ -317,7 +317,7 @@ export default function TrackOrderClient({
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="bg-card rounded-2xl border p-6 cursor-pointer hover:shadow-md transition-shadow"
+                  className="bg-white border-4 border-black p-6 cursor-pointer shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
                   onClick={() => router.push(`/orders/track?id=${o.id}`)}
                 >
                   <div className="flex items-center justify-between">
@@ -342,16 +342,16 @@ export default function TrackOrderClient({
 
   if (error || !order) {
     return (
-      <div className="min-h-screen pt-32 pb-16 bg-gradient-to-b from-background to-secondary/20">
+      <div className="min-h-screen pt-32 pb-16 bg-[#F8F8F8]">
         <div className="container-custom max-w-2xl text-center">
           <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Order Not Found</h2>
-          <p className="text-muted-foreground mb-6">
+          <h2 className="font-bebas text-5xl tracking-tighter uppercase text-black mb-2">ORDER NOT FOUND</h2>
+          <p className="font-caveat text-2xl text-black/50 italic mb-6">
             {error || "We couldn't find this order"}
           </p>
-          <Button onClick={() => router.push("/orders")} className="rounded-full">
+          <Button onClick={() => router.push("/orders")} className="rounded-none border-4 border-black bg-black text-[#FFD200] font-bebas text-2xl h-14 px-8 shadow-[6px_6px_0px_0px_rgba(255,210,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Orders
+            BACK TO ORDERS
           </Button>
         </div>
       </div>
@@ -362,7 +362,7 @@ export default function TrackOrderClient({
   const estimatedTime = getEstimatedTime();
 
   return (
-    <div className="min-h-screen pt-32 pb-16 bg-gradient-to-b from-background to-secondary/20">
+    <div className="min-h-screen pt-32 pb-16 bg-[#F8F8F8]">
       <div className="container-custom max-w-2xl">
         {/* Header */}
         <motion.div
@@ -371,12 +371,12 @@ export default function TrackOrderClient({
           className="mb-8"
         >
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => router.push("/orders")}
-            className="mb-4"
+            className="mb-4 border-2 border-black rounded-none font-bebas text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Orders
+            BACK TO ORDERS
           </Button>
         </motion.div>
 
@@ -385,7 +385,7 @@ export default function TrackOrderClient({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-card rounded-2xl border shadow-sm overflow-hidden mb-6"
+          className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden mb-6"
         >
           {/* Order Header */}
           <div className="bg-primary/5 p-6 border-b">
@@ -397,7 +397,7 @@ export default function TrackOrderClient({
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-primary">Rs. {order.total}</p>
+                <p className="text-2xl font-bebas text-black">RS. {order.total}</p>
                 <p className="text-sm text-muted-foreground capitalize">
                   {order.payment_status?.replace("_", " ")}
                 </p>
@@ -405,7 +405,7 @@ export default function TrackOrderClient({
             </div>
             <div className="flex items-center gap-2">
               {isLive && (
-                <Badge variant="default" className="bg-green-500 animate-pulse">
+                <Badge variant="default" className="bg-[#008A45] text-white animate-pulse border-2 border-black rounded-none font-bebas tracking-wider">
                   <Radio className="w-3 h-3 mr-1" />
                   LIVE
                 </Badge>
@@ -415,14 +415,14 @@ export default function TrackOrderClient({
 
           {/* Estimated Time */}
           {estimatedTime && order.status !== "delivered" && order.status !== "cancelled" && (
-            <div className="p-4 bg-green-50 dark:bg-green-900/20 border-b">
+            <div className="p-4 bg-[#FFD200]/20 border-b-2 border-black/10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
-                  <Timer className="w-5 h-5 text-green-600" />
+                <div className="w-10 h-10 rounded-none bg-black text-[#FFD200] border-2 border-black flex items-center justify-center">
+                  <Timer className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Estimated Delivery</p>
-                  <p className="font-bold text-green-600">{estimatedTime}</p>
+                  <p className="font-bebas text-2xl text-black leading-none">{estimatedTime}</p>
                 </div>
               </div>
             </div>
@@ -454,10 +454,10 @@ export default function TrackOrderClient({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-card rounded-2xl border shadow-sm p-6"
+          className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6"
         >
           <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-            <Package className="w-5 h-5 text-primary" />
+            <Package className="w-5 h-5 text-[#ED1C24]" />
             ORDER STATUS
           </h3>
 

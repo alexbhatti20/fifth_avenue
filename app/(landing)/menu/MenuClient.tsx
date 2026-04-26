@@ -4,6 +4,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Plus, Minus, Star, Search, X, Sparkles, Flame, Gift, Tag, Clock, Package, Percent, LogIn, UserPlus, MessageSquare, Send, Loader2, Heart, ChevronLeft, ChevronRight, Utensils, BadgeCheck, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -212,6 +213,8 @@ export default function MenuClient({
   initialDeals,
   initialOffers = [],
 }: MenuClientProps) {
+  const router = useRouter();
+
   // Use initial data from server - no loading state needed!
   const [categories] = useState<Category[]>(initialCategories);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(initialMenuItems);
@@ -324,6 +327,16 @@ export default function MenuClient({
 
   const handleToggleFavorite = async (e: React.MouseEvent, itemId: string, itemType: 'menu_item' | 'deal' = 'menu_item', itemName: string) => {
     e.stopPropagation();
+
+    if (!user && !authLoading) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    if (authLoading) {
+      return;
+    }
+
     if (togglingFavorites.has(itemId)) return;
     
     setTogglingFavorites(prev => new Set(prev).add(itemId));
@@ -620,6 +633,8 @@ export default function MenuClient({
                     {filteredDeals.map((deal) => {
                       const dealCartId = `deal-${deal.id}`;
                       const quantity = getCartQuantity(dealCartId);
+                      const onIncrement = () => updateQuantity(dealCartId, quantity + 1);
+                      const onDecrement = () => updateQuantity(dealCartId, quantity - 1);
                       const discountPercent = deal.original_price > 0 
                         ? Math.round((1 - deal.discounted_price / deal.original_price) * 100) 
                         : 0;
@@ -631,106 +646,96 @@ export default function MenuClient({
                           key={deal.id}
                           variants={cardVariants}
                           layout
-                          className="group bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+                          className="group bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative flex flex-col hover:-translate-y-1 transition-all duration-300 cursor-pointer"
                           onClick={() => openDealDetail(deal)}
                         >
-                          <div className="relative h-48 bg-gradient-to-br from-orange-500 to-red-500 overflow-hidden">
+                          <div className="relative h-56 bg-black overflow-hidden border-b-4 border-black">
                             {deal.image_url ? (
                               <Image
                                 src={deal.image_url}
                                 alt={deal.name}
                                 fill
                                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                className="object-cover transition-transform duration-500 group-hover:scale-110"
-                              />
-                            ) : deal.items?.[0]?.image ? (
-                              <Image
-                                src={deal.items[0].image}
-                                alt={deal.name}
-                                fill
-                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                className="object-cover transition-transform duration-500 group-hover:scale-110 opacity-80"
+                                className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-90 group-hover:opacity-100"
                               />
                             ) : (
-                              <div className="flex items-center justify-center h-full">
-                                <Gift className="w-16 h-16 text-white/50" />
+                              <div className="w-full h-full bg-[#ED1C24] flex items-center justify-center">
+                                <Gift className="w-20 h-20 text-white/30" />
                               </div>
                             )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                             
-                            {discountPercent > 0 && (
-                              <span className="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 z-10">
-                                <Percent className="w-3 h-3" />
-                                {discountPercent}% OFF
-                              </span>
-                            )}
-                            
+                            {/* Tags */}
+                            <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                              <div className="bg-[#FFD200] border-2 border-black px-3 py-1 font-bebas text-xl text-black flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                 <Tag className="h-4 w-4" /> STREET DEAL
+                              </div>
+                              {discountPercent > 0 && (
+                                <div className="bg-white border-2 border-black px-3 py-1 font-bebas text-xl text-[#ED1C24] flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                                   <Percent className="h-4 w-4" /> {discountPercent}% OFF
+                                </div>
+                              )}
+                            </div>
+
                             <motion.button
                               onClick={(e) => handleToggleFavorite(e, deal.id, 'deal', deal.name)}
                               disabled={isToggling}
-                              className={`absolute top-3 right-3 w-9 h-9 rounded-full backdrop-blur-sm flex items-center justify-center shadow-lg transition-all z-10 ${
-                                isDealFavorite 
-                                  ? 'bg-red-500 text-white' 
-                                  : 'bg-white/90 text-gray-600 hover:bg-red-50 hover:text-red-500'
-                              }`}
+                              className={cn(
+                                "absolute top-4 right-4 w-12 h-12 border-4 border-black flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all z-20",
+                                isDealFavorite ? "bg-[#ED1C24] text-white" : "bg-white text-black"
+                              )}
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                             >
-                              <Heart 
-                                className={`h-5 w-5 transition-all ${
-                                  isDealFavorite ? 'fill-current' : ''
-                                } ${isToggling ? 'animate-pulse' : ''}`} 
-                              />
+                              <Heart className={cn("h-6 w-6", isDealFavorite && "fill-current")} />
                             </motion.button>
-                            
-                            {deal.items && deal.items.length > 0 && (
-                              <span className="absolute bottom-3 left-3 text-white text-xs font-medium flex items-center gap-1 z-10">
-                                <Package className="w-3 h-3" />
-                                {deal.items.length} items included
-                              </span>
-                            )}
-                            
-                            <span className="absolute bottom-3 right-3 bg-background/90 text-foreground text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1 z-10">
-                              <Tag className="w-3 h-3 text-primary" />
-                              {deal.deal_type === 'combo' ? 'Combo' : deal.deal_type === 'bogo' ? 'BOGO' : 'Discount'}
-                            </span>
+
+                            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between z-10">
+                               <div className="bg-black/80 backdrop-blur-sm text-white font-bebas text-lg px-3 border border-white/20 flex items-center gap-2">
+                                  <Package className="h-4 w-4" /> {deal.items?.length || 0} ITEMS
+                               </div>
+                               <div className="bg-[#FFD200] border-2 border-black px-2 py-0.5 flex items-center gap-1">
+                                  <Star className="h-4 w-4 fill-black" />
+                                  <span className="font-bebas text-xl text-black">{deal.rating ? deal.rating.toFixed(1) : 'NEW'}</span>
+                               </div>
+                            </div>
                           </div>
-                          <div className="p-5">
-                            <h3 className="text-lg font-bebas group-hover:text-primary transition-colors line-clamp-1">
+
+                          <div className="p-6 flex-1 flex flex-col">
+                            <h3 className="font-bebas text-3xl text-black leading-none mb-2 group-hover:text-[#ED1C24] transition-colors uppercase">
                               {deal.name}
                             </h3>
-                            <p className="text-muted-foreground text-sm mb-2 line-clamp-2">{deal.description}</p>
-                            <div className="flex items-center gap-1 mb-3">
-                              <Star className="w-4 h-4 text-accent fill-accent" />
-                              <span className="text-sm font-medium">{deal.rating ? deal.rating.toFixed(1) : 'New'}</span>
-                              {(deal.total_reviews ?? 0) > 0 && <span className="text-xs text-muted-foreground">({deal.total_reviews})</span>}
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <span className="text-xl font-bold text-primary">Rs. {deal.discounted_price}</span>
+                            <p className="font-source-sans text-sm text-black/60 line-clamp-2 leading-tight mb-6">
+                              {deal.description}
+                            </p>
+                            
+                            <div className="mt-auto pt-6 border-t-2 border-black/5 flex items-center justify-between">
+                              <div className="flex flex-col">
                                 {deal.original_price > deal.discounted_price && (
-                                  <span className="text-sm text-muted-foreground line-through ml-2">
-                                    Rs. {deal.original_price}
-                                  </span>
+                                  <span className="font-bebas text-lg text-black/30 line-through">Rs. {deal.original_price}</span>
+                                )}
+                                <span className="font-bebas text-4xl text-[#008A45] leading-none">Rs. {deal.discounted_price}</span>
+                              </div>
+                              
+                              <div className="flex items-center gap-3">
+                                {quantity > 0 ? (
+                                  <div className="flex items-center bg-black border-2 border-black overflow-hidden shadow-[4px_4px_0px_0px_rgba(255,210,0,1)]" onClick={(e) => e.stopPropagation()}>
+                                    <button onClick={onDecrement} className="h-10 w-10 flex items-center justify-center text-[#FFD200] hover:bg-white/10">
+                                      <Minus className="h-5 w-5" />
+                                    </button>
+                                    <span className="font-bebas text-2xl text-white px-3 min-w-[2rem] text-center">{quantity}</span>
+                                    <button onClick={onIncrement} className="h-10 w-10 flex items-center justify-center text-[#FFD200] hover:bg-white/10 border-l border-white/20">
+                                      <Plus className="h-5 w-5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <Button 
+                                    onClick={(e) => { e.stopPropagation(); handleAddDealToCart(deal); }}
+                                    className="bg-black text-[#FFD200] border-4 border-black rounded-none h-14 w-14 p-0 shadow-[4px_4px_0px_0px_rgba(255,210,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                                  >
+                                    <Plus className="h-8 w-8" />
+                                  </Button>
                                 )}
                               </div>
-                              {quantity > 0 ? (
-                                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                  <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(dealCartId, quantity - 1)}>
-                                    <Minus className="h-4 w-4" />
-                                  </Button>
-                                  <span className="font-semibold w-6 text-center">{quantity}</span>
-                                  <Button size="icon" className="h-8 w-8 rounded-full bg-primary hover:bg-primary/90" onClick={() => updateQuantity(dealCartId, quantity + 1)}>
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={(e) => e.stopPropagation()}>
-                                  <Button size="icon" className="rounded-full bg-primary hover:bg-primary/90" onClick={() => handleAddDealToCart(deal)}>
-                                    <Plus className="h-5 w-5" />
-                                  </Button>
-                                </motion.div>
-                              )}
                             </div>
                           </div>
                         </motion.div>
@@ -742,112 +747,71 @@ export default function MenuClient({
             ) : selectedCategory === "offers" ? (
               /* ===== OFFERS GRID ===== */
               filteredOffers.length === 0 ? (
-                <div className="text-center py-16">
-                  <Flame className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-                  <p className="text-muted-foreground text-lg">No offers match your search.</p>
-                  <Button onClick={() => setSearchQuery("")} variant="outline" className="mt-4">Clear Search</Button>
+                <div className="text-center py-24 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                  <Flame className="w-16 h-16 mx-auto text-black/20 mb-4 animate-pulse" />
+                  <p className="font-bebas text-3xl text-black">NO ACTIVE DROPS MATCH YOUR SEARCH</p>
+                  <Button onClick={() => setSearchQuery("")} className="mt-6 bg-black text-[#FFD200] rounded-none font-bebas text-xl h-14 px-8">CLEAR INTEL</Button>
                 </div>
               ) : (
                 <motion.div
                   key="offers-grid"
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
                 >
                   {filteredOffers.map((offer, idx) => {
-                    const isLava = !offer.pakistani_flags;
                     return (
                       <motion.div
                         key={offer.id}
                         variants={cardVariants}
-                        className="relative overflow-hidden rounded-3xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.25)]"
+                        className="group bg-black border-4 border-black shadow-[10px_10px_0px_0px_rgba(255,210,0,1)] relative flex flex-col hover:-translate-y-1 transition-all duration-300"
                       >
-                        {/* lava bg */}
-                        <div
-                          className="absolute inset-0"
-                          style={{
-                            background: offer.theme_colors?.primary
-                              ? `linear-gradient(145deg, ${offer.theme_colors.primary} 0%, #7f1d1d 70%, #1a0a00 100%)`
-                              : isLava
-                              ? "linear-gradient(145deg, #dc2626 0%, #991b1b 45%, #1a0a00 100%)"
-                              : "linear-gradient(145deg, #16a34a 0%, #052e16 100%)",
-                          }}
-                        />
-                        {isLava && (
-                          <>
-                            <motion.div
-                              className="absolute -top-16 -right-16 w-48 h-48 rounded-full blur-3xl opacity-50 pointer-events-none"
-                              style={{ background: "radial-gradient(circle, #f97316 0%, #dc2626 60%, transparent 80%)" }}
-                              animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
-                              transition={{ duration: 6 + idx, repeat: Infinity }}
-                            />
-                          </>
-                        )}
-                        {offer.pakistani_flags && (
-                          <div className="absolute top-0 inset-x-0 flex justify-evenly px-4 pt-3 text-xl z-10">
-                            <span>🇵🇰</span><span>🇵🇰</span><span>🇵🇰</span>
+                        <div className="p-8 relative overflow-hidden">
+                          <div className="absolute -bottom-4 -right-4 opacity-10 pointer-events-none select-none">
+                             <span className="font-bebas text-9xl text-white">HOT</span>
                           </div>
-                        )}
-                        <div className={`relative z-10 p-5 text-white ${offer.pakistani_flags ? "pt-11" : ""}`}>
-                          {/* Badges */}
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            <span className="inline-flex items-center gap-1 bg-white/15 border border-white/20 text-white text-[10px] rounded-full px-2 py-0.5">
-                              <Sparkles className="h-2.5 w-2.5 text-yellow-300" />
-                              {offer.event_type?.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) || "Special"}
-                            </span>
-                            <span className="inline-flex items-center gap-1 bg-amber-400/20 border border-amber-400/30 text-amber-300 text-[10px] rounded-full px-2 py-0.5">
-                              <Clock className="h-2.5 w-2.5" />
-                              {(() => {
-                                const end = new Date(offer.end_date).getTime();
-                                const diff = end - Date.now();
-                                if (diff <= 0) return "Ending soon!";
-                                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                                if (days > 0) return `${days}d ${hours}h left`;
-                                return `${hours}h left`;
-                              })()}
-                            </span>
-                          </div>
-                          <h3 className="text-lg font-bold mb-1 flex items-center gap-1.5">
-                            {isLava ? <Flame className="h-4 w-4 text-orange-400" /> : <Gift className="h-4 w-4 text-yellow-300" />}
-                            {offer.name}
-                          </h3>
-                          {offer.description && (
-                            <p className="text-white/65 text-xs mb-3 line-clamp-2">{offer.description}</p>
-                          )}
-                          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl mb-4 border text-sm ${
-                            isLava ? "bg-orange-500/25 border-orange-400/30" : "bg-white/15 border-white/25"
-                          }`}>
-                            <Percent className="h-3.5 w-3.5 text-yellow-300" />
-                            <span className="font-extrabold">
-                              {offer.discount_type === "percentage"
-                                ? `${offer.discount_value}% OFF`
-                                : `Rs ${offer.discount_value} OFF`}
-                            </span>
-                            {offer.min_order_amount && (
-                              <span className="text-white/50 text-xs">min Rs {offer.min_order_amount}</span>
-                            )}
-                          </div>
-                          {/* Items count */}
-                          {offer.items && offer.items.length > 0 && (
-                            <p className="text-white/50 text-xs mb-3 flex items-center gap-1">
-                              <Tag className="h-3 w-3" /> {offer.items.length} item{offer.items.length > 1 ? "s" : ""} included
+
+                          <div className="flex flex-col gap-4 relative z-10">
+                            <div className="flex items-center gap-2">
+                               <span className="bg-[#ED1C24] text-white font-bebas text-lg px-3 border border-white/20">STREET DROP</span>
+                               {offer.pakistani_flags && <span className="text-2xl">🇵🇰</span>}
+                            </div>
+                            
+                            <h3 className="font-bebas text-4xl md:text-5xl text-[#FFD200] leading-none uppercase tracking-tighter">
+                              {offer.name}
+                            </h3>
+                            
+                            <p className="font-caveat text-2xl text-white/70 italic leading-tight mb-4 line-clamp-2">
+                               "{offer.description}"
                             </p>
-                          )}
-                          <Link href="/menu" onClick={() => setSelectedCategory("all")}>
-                            <motion.div
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              className={`w-full py-2.5 px-4 rounded-xl font-bold text-center flex items-center justify-center gap-2 text-sm ${
-                                isLava
-                                  ? "bg-gradient-to-r from-orange-400 via-red-500 to-red-600 text-white shadow-[0_3px_12px_rgba(220,38,38,0.5)]"
-                                  : "bg-white/90 text-green-800"
-                              }`}
-                            >
-                              <Flame className="h-4 w-4" /> Order Now
-                            </motion.div>
-                          </Link>
+
+                            <div className="flex flex-wrap gap-3">
+                               <div className="flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1">
+                                  <Clock className="h-4 w-4 text-[#FFD200]" />
+                                  <span className="font-bebas text-lg text-white">LIMITED TIME</span>
+                               </div>
+                               <div className="flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1">
+                                  <Percent className="h-4 w-4 text-[#FFD200]" />
+                                  <span className="font-bebas text-lg text-white">
+                                    {offer.discount_type === "percentage" ? `${offer.discount_value}% OFF` : `RS ${offer.discount_value} OFF`}
+                                  </span>
+                               </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-auto p-6 bg-white/5 border-t-4 border-black flex items-center justify-between">
+                           <div className="flex items-center gap-2">
+                              <Sparkles className="h-6 w-6 text-[#FFD200]" />
+                              <span className="font-bebas text-2xl text-white uppercase tracking-widest">ACTIVATE DEAL</span>
+                           </div>
+                           <Button
+                              onClick={() => { setSelectedCategory("all"); router.push("/menu"); }}
+                              className="bg-[#FFD200] text-black border-4 border-black rounded-none h-14 w-14 p-0 shadow-[4px_4px_0px_0px_rgba(237,28,36,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                           >
+                              <ChevronRight className="h-8 w-8" />
+                           </Button>
                         </div>
                       </motion.div>
                     );

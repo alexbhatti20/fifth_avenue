@@ -598,17 +598,120 @@ export const getActiveOffers = unstable_cache(
     if (!isSupabaseConfigured) return [];
 
     try {
+      const extractOffers = (payload: any): any[] => {
+        if (Array.isArray(payload)) return payload;
+        if (Array.isArray(payload?.offers)) return payload.offers;
+        return [];
+      };
+
       const { data, error } = await supabase.rpc('get_active_offers', {
         p_include_items: true,
         p_for_popup: false,
       });
-      
-      if (error) {
-        console.error('Error fetching active offers:', error);
-        return [];
+
+      const directOffers = extractOffers(data);
+      if (!error && directOffers.length > 0) {
+        return directOffers;
       }
-      
-      return data || [];
+
+      // Production fallback path: some deployments can miss/deny get_active_offers
+      // while get_all_special_offers remains available.
+      const fallbackRpcCalls = [
+        {
+          name: 'get_all_special_offers(active)',
+          run: () => supabase.rpc('get_all_special_offers', { p_status: 'active', p_include_items: true }),
+        },
+        {
+          name: 'get_all_special_offers(default)',
+          run: () => supabase.rpc('get_all_special_offers'),
+        },
+      ];
+
+      const rpcErrors: Array<{ source: string; error: unknown }> = [];
+
+      for (const call of fallbackRpcCalls) {
+        const { data: fallbackData, error: fallbackError } = await call.run();
+        const fallbackOffers = extractOffers(fallbackData);
+
+        if (!fallbackError && fallbackOffers.length > 0) {
+          return fallbackOffers;
+        }
+
+        if (fallbackError) {
+          rpcErrors.push({ source: call.name, error: fallbackError });
+        }
+      }
+
+      // Final fallback: direct table query returns base offers if RPCs are unavailable.
+      // Try the current schema first (status/is_visible), then legacy schema (is_active).
+      const now = new Date().toISOString();
+      const tableFallbackQueries = [
+        {
+          name: 'special_offers(status)',
+          run: () =>
+            supabase
+              .from('special_offers')
+              .select('*')
+              .eq('status', 'active')
+              .eq('is_visible', true)
+              .lte('start_date', now)
+              .gte('end_date', now)
+              .order('priority', { ascending: false })
+              .order('created_at', { ascending: false }),
+        },
+        {
+          name: 'special_offers(is_active)',
+          run: () =>
+            supabase
+              .from('special_offers')
+              .select('*')
+              .eq('is_active', true)
+              .lte('start_date', now)
+              .gte('end_date', now)
+              .order('created_at', { ascending: false }),
+        },
+      ];
+
+      const tableErrors: Array<{ source: string; error: unknown }> = [];
+
+      for (const query of tableFallbackQueries) {
+        const { data: tableOffers, error: tableError } = await query.run();
+
+        if (tableError) {
+          tableErrors.push({ source: query.name, error: tableError });
+          continue;
+        }
+
+        if (Array.isArray(tableOffers)) {
+          return tableOffers;
+        }
+      }
+
+      const summarizeError = (err: any) =>
+        err
+          ? {
+              message: err.message ?? String(err),
+              code: err.code,
+              details: err.details,
+              hint: err.hint,
+            }
+          : null;
+
+      if (error || rpcErrors.length > 0 || tableErrors.length > 0) {
+        console.warn('Active offers unavailable; returning empty array.', {
+          primaryError: summarizeError(error),
+          rpcErrors: rpcErrors.map((entry) => ({
+            source: entry.source,
+            error: summarizeError(entry.error),
+          })),
+          tableErrors: tableErrors.map((entry) => ({
+            source: entry.source,
+            error: summarizeError(entry.error),
+          })),
+        });
+      }
+
+      return [];
     } catch (err) {
       console.error('Error in getActiveOffers:', err);
       return [];

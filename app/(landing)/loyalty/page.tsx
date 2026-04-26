@@ -6,8 +6,8 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata = {
-  title: "Loyalty Program | ZOIRO Injected Broast",
-  description: "Earn points, unlock rewards, and enjoy exclusive deals with ZOIRO Injected Broast loyalty program",
+  title: "Loyalty Program | Fifth Avenue",
+  description: "Earn points, unlock rewards, and enjoy exclusive deals with the Fifth Avenue loyalty program",
 };
 
 export default async function LoyaltyPage() {

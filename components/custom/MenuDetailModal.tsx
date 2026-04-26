@@ -64,6 +64,16 @@ export default function MenuDetailModal({
     return cartItems.find((item) => (item.cartItemId || item.id) === cartItemId)?.quantity || 0;
   }, [cartItems, cartItemId]);
 
+  const dealCartItemId = useMemo(() => {
+    if (!selectedDeal) return "";
+    return `deal-${selectedDeal.id}`;
+  }, [selectedDeal]);
+
+  const dealQty = useMemo(() => {
+    if (!dealCartItemId) return 0;
+    return cartItems.find((item) => (item.cartItemId || item.id) === dealCartItemId)?.quantity || 0;
+  }, [cartItems, dealCartItemId]);
+
   const requiresSizeSelection = Boolean(selectedItem?.has_variants && !selectedSize);
 
   // Reset state when modal closes or item changes
@@ -121,6 +131,22 @@ export default function MenuDetailModal({
   const handleDecreaseQty = () => {
     if (!cartItemId || qty === 0) return;
     updateQuantity(cartItemId, Math.max(0, qty - 1));
+  };
+
+  const handleIncreaseDealQty = () => {
+    if (!selectedDeal || !dealCartItemId) return;
+
+    if (dealQty === 0) {
+      handleAddDealToCart(selectedDeal);
+      return;
+    }
+
+    updateQuantity(dealCartItemId, dealQty + 1);
+  };
+
+  const handleDecreaseDealQty = () => {
+    if (!dealCartItemId || dealQty === 0) return;
+    updateQuantity(dealCartItemId, Math.max(0, dealQty - 1));
   };
 
   const goToPreviousImage = () => {
@@ -321,6 +347,7 @@ export default function MenuDetailModal({
                       {selectedItem.size_variants.map((variant: any) => (
                         <button
                           key={variant.size}
+                          type="button"
                           onClick={() => {
                             if (variant.is_available) {
                               setSelectedSize(variant.size);
@@ -445,15 +472,35 @@ export default function MenuDetailModal({
                 </div>
               )}
 
-              <Button
-                onClick={() => {
-                  handleAddDealToCart(selectedDeal);
-                  onOpenChange(false);
-                }}
-                className="w-full h-16 rounded-none bg-[#ED1C24] text-white font-bebas text-3xl tracking-widest hover:bg-black border-4 border-black shadow-[8px_8px_0px_0px_rgba(255,210,0,1)] hover:shadow-none transition-all"
-              >
-                GRAB DEAL
-              </Button>
+              <div className="bg-white border-4 border-black p-4 md:p-5 space-y-4">
+                <div className="flex items-center border-4 border-black bg-white h-16">
+                  <button
+                    type="button"
+                    onClick={handleDecreaseDealQty}
+                    disabled={dealQty === 0}
+                    className="flex-1 h-full flex items-center justify-center hover:bg-black/5 border-r-4 border-black disabled:opacity-40"
+                    aria-label="Decrease deal quantity"
+                  >
+                    <Minus className="w-5 h-5" />
+                  </button>
+                  <span className="w-16 text-center font-bebas text-3xl">{dealQty}</span>
+                  <button
+                    type="button"
+                    onClick={handleIncreaseDealQty}
+                    className="flex-1 h-full flex items-center justify-center hover:bg-black/5 border-l-4 border-black"
+                    aria-label="Increase deal quantity"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <Button
+                  onClick={handleIncreaseDealQty}
+                  className="w-full h-16 rounded-none bg-[#ED1C24] text-white font-bebas text-3xl tracking-widest hover:bg-black border-4 border-black shadow-[8px_8px_0px_0px_rgba(255,210,0,1)] hover:shadow-none transition-all"
+                >
+                  {dealQty > 0 ? "ADD MORE DEAL" : "GRAB DEAL"}
+                </Button>
+              </div>
             </div>
           </div>
         )}

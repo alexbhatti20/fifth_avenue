@@ -11,8 +11,8 @@ import HeroOffersIndicator from "@/components/landing/HeroOffersIndicator";
 
 // SEO Metadata - Optimized for top search queries
 export const metadata: Metadata = {
-  title: "Zoiro Broast Menu - Full Menu with Prices | Broast, Burgers, Wings & Deals Vehari",
-  description: "Zoiro Broast Vehari Menu - View our complete menu with prices. Crispy broast chicken, zinger burgers, spicy wings, family buckets & deals. Order online for fast delivery in Vehari. ZOIRO Injected Broast menu.",
+  title: "Fifth Avenue Menu - Full Menu with Prices",
+  description: "Explore the full Fifth Avenue menu with prices, signature mains, sides, and deals. Order online for fast delivery.",
   keywords: [
     "zoiro menu", "zoiro broast menu", "zoiro vehari menu", "zoiro broast vehari menu",
     "zoro broast menu", "zoiro broast price", "zoiro broast menu with prices",
@@ -21,8 +21,8 @@ export const metadata: Metadata = {
     "zoiro broast vehari", "zoiro broast", "zoiro food menu",
   ],
   openGraph: {
-    title: "Zoiro Broast Menu - Full Menu with Prices | Vehari",
-    description: "Zoiro Broast Vehari - View our complete broast menu with prices. Crispy chicken, burgers, wings, deals & more!",
+    title: "Fifth Avenue Menu - Full Menu with Prices",
+    description: "View the complete Fifth Avenue menu with prices, featured dishes, and active deals.",
     type: "website",
   },
 };

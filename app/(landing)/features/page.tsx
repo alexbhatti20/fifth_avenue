@@ -517,7 +517,7 @@ export default function FeaturesPage() {
                 ) : (
                   <Crown className="w-5 h-5 text-amber-400" />
                 )}
-                <span className="text-amber-300 font-semibold">Become a ZOIRO Member</span>
+                <span className="text-amber-300 font-semibold">Become a Fifth Avenue Member</span>
                 {!shouldReduce ? (
                   <motion.div
                     animate={{ scale: [1, 1.2, 1] }}
@@ -530,7 +530,7 @@ export default function FeaturesPage() {
                 )}
               </motion.div>
 
-              {/* ZOIRO Brand Logo */}
+              {/* Fifth Avenue Brand Logo */}
               <motion.div
                 initial={{ opacity: 0, scale: shouldReduce ? 0.9 : 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -555,8 +555,8 @@ export default function FeaturesPage() {
                       className="absolute inset-0 rounded-full border-2 border-dashed border-red-500/30"
                     />
                     <Image
-                      src="/assets/zoiro-logo.png"
-                      alt="ZOIRO Injected Broast"
+                      src="/assets/logo.png"
+                      alt="Fifth Avenue Pizza"
                       width={120}
                       height={120}
                       className="relative z-10 drop-shadow-2xl"
@@ -565,8 +565,8 @@ export default function FeaturesPage() {
                 ) : (
                   <div className="relative inline-block rounded-full p-2" style={{ boxShadow: "0 0 40px rgba(239,68,68,0.3)" }}>
                     <Image
-                      src="/assets/zoiro-logo.png"
-                      alt="ZOIRO Injected Broast"
+                      src="/assets/logo.png"
+                      alt="Fifth Avenue Pizza"
                       width={100}
                       height={100}
                       className="relative z-10 drop-shadow-xl"
@@ -596,7 +596,7 @@ export default function FeaturesPage() {
                         }}
                         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                       >
-                        ZOIRO
+                        FIFTH
                       </motion.span>
                       {" "}
                       <motion.span
@@ -610,17 +610,17 @@ export default function FeaturesPage() {
                         }}
                         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
                       >
-                        BROAST
+                        AVENUE
                       </motion.span>
                     </>
                   ) : (
                     <>
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">
-                        ZOIRO
+                        FIFTH
                       </span>
                       {" "}
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-red-500">
-                        BROAST
+                        AVENUE
                       </span>
                     </>
                   )}
@@ -663,7 +663,7 @@ export default function FeaturesPage() {
                 className="text-xl md:text-2xl text-zinc-400 max-w-2xl mx-auto mb-12"
               >
                 Join thousands of food lovers who save more, eat better, 
-                and enjoy exclusive perks as ZOIRO members.
+                and enjoy exclusive perks as Fifth Avenue members.
               </motion.p>
 
               {/* CTA Buttons */}
@@ -897,7 +897,7 @@ export default function FeaturesPage() {
                 </div>
                 
                 <blockquote className="text-2xl md:text-3xl font-medium text-white mb-8 leading-relaxed">
-                  "Since becoming a ZOIRO member, I've saved over{" "}
+                  "Since becoming a Fifth Avenue member, I've saved over{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-amber-400">
                     Rs. 5,000
                   </span>{" "}
@@ -945,7 +945,7 @@ export default function FeaturesPage() {
               <h2 className="text-4xl md:text-6xl font-bebas mb-6">
                 Ready to Join the{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-amber-400">
-                  ZOIRO Family?
+                  FIFTH AVENUE FAMILY?
                 </span>
               </h2>
               

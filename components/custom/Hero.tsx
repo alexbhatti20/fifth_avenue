@@ -142,11 +142,6 @@ export default function Hero() {
                 Chasing Flavours
               </motion.span>
             </div>
-
-            <p className="font-source-sans text-lg lg:text-2xl font-bold text-black/60 mb-8 lg:mb-12 uppercase tracking-tighter">
-              Vehari's Original <span className="text-black">Pizza Watch</span> Engine.
-            </p>
-
             <div className="flex flex-col sm:flex-row items-center gap-6 lg:gap-10 w-full sm:w-auto">
               <Link href="/menu" className="w-full sm:w-auto">
                 <Button className="w-full sm:w-auto h-16 lg:h-24 px-10 lg:px-16 bg-black text-white rounded-none font-bebas text-2xl lg:text-4xl tracking-widest hover:bg-white hover:text-black transition-all border-4 border-black shadow-[10px_10px_0px_0px_rgba(255,210,0,1)] group">
@@ -171,7 +166,7 @@ export default function Hero() {
       {/* Decorative Branding Line - DESKTOP ONLY */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 opacity-10 hidden md:flex">
         <div className="h-px w-20 bg-black" />
-        <p className="font-bebas text-xl tracking-[0.5em] text-black">FIFTH AVENUE PIZZA — CHASING FLAVOURS</p>
+        <p className="font-bebas text-xl tracking-[0.5em] text-black">FIFTH AVENUE — CHASING FLAVOURS</p>
         <div className="h-px w-20 bg-black" />
       </div>
     </section>

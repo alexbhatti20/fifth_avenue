@@ -1,12 +1,12 @@
 {
-  "name": "Zoiro Broast Vehari - Best Broast Chicken & Menu",
-  "short_name": "Zoiro Broast",
-  "description": "Zoiro Broast Vehari - Order crispy broast chicken, spicy wings, burgers & meals. View menu with prices, fast delivery in Vehari. ZOIRO Injected Broast.",
+  "name": "Fifth Avenue - Chasing Flavours",
+  "short_name": "Fifth Avenue",
+  "description": "Fifth Avenue serves bold street food with signature flavour, premium quality ingredients, and fast delivery.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#dc2626",
+  "background_color": "#111111",
+  "theme_color": "#f4c400",
   "orientation": "portrait-primary",
   "icons": [
     {

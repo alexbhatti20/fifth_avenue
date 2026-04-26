@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { Plus, Minus, Star, MessageSquare, ShoppingBag, Eye, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MenuItem, useCart } from "@/context/CartContext";
 import { useFavorites } from "@/context/FavoritesContext";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import ReviewModal from "./ReviewModal";
 
 interface MenuCardProps {
@@ -27,9 +29,11 @@ const cardVariants = {
 };
 
 export default function MenuCard({ item, index }: MenuCardProps) {
+  const router = useRouter();
   const { items, addToCart, updateQuantity } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { toast } = useToast();
+  const { user, isLoading: authLoading } = useAuth();
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewCount, setReviewCount] = useState(0);
   const [avgRating, setAvgRating] = useState(0);
@@ -75,6 +79,18 @@ export default function MenuCard({ item, index }: MenuCardProps) {
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    if (!user && !authLoading) {
+      toast({
+        title: "Login required",
+        description: "Please sign in to add items to favorites.",
+      });
+      router.push("/auth?tab=login");
+      return;
+    }
+
+    if (authLoading) return;
+
     if (isTogglingFavorite) return;
     
     setIsTogglingFavorite(true);
