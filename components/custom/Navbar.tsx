@@ -270,5 +270,6 @@ const Navbar: React.FC<NavbarProps> = ({ bookingEnabled = true }) => {
       </nav>
     </header>
   );
-}
+};
+
 export default Navbar;
