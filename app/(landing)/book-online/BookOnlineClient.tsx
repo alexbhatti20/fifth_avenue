@@ -36,8 +36,8 @@ interface BookingTable {
   id: string;
   table_number: number;
   capacity: number;
-  section: string;
-  status: 'available' | 'occupied' | 'reserved' | 'cleaning' | 'out_of_service';
+  section?: string | null;
+  status: string;
   arrival_time?: string;
 }
 
