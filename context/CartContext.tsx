@@ -39,6 +39,40 @@ export interface MenuItem {
   includes?: string | null;
 }
 
+export interface DealItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+}
+
+export interface Deal {
+  id: string;
+  name: string;
+  description?: string;
+  code: string;
+  deal_type: 'combo' | 'discount' | 'bogo';
+  original_price: number;
+  discounted_price: number;
+  discount_percentage: number;
+  image_url?: string;
+  valid_from: string;
+  valid_until: string;
+  usage_limit?: number;
+  usage_count: number;
+  is_active: boolean;
+  is_featured: boolean;
+  created_at: string;
+  items: DealItem[];
+  // Legacy fields for compatibility
+  discount_type?: 'percentage' | 'fixed' | 'bogo';
+  discount_value?: number;
+  start_date?: string;
+  end_date?: string;
+  used_count?: number;
+}
+
 export interface CartItem extends MenuItem {
   quantity: number;
   selectedSize?: string;

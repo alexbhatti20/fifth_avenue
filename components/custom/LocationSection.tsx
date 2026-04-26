@@ -1,223 +1,103 @@
 "use client";
 
-import { motion, useInView, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
-import { MapPin, Phone, Clock, Mail } from "lucide-react";
+import { motion } from "framer-motion";
+import { MapPin, Phone, Clock, Send, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.2,
-    },
-  },
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, x: -30 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      type: "spring" as const,
-      stiffness: 100,
-      damping: 15,
-    },
-  },
-};
 
 export default function LocationSection() {
-  const ref = useRef(null);
-  const containerRef = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-  const shouldReduceMotion = useReducedMotion();
-
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start end", "end start"],
-  });
-
-  // Parallax transforms - disabled on mobile
-  const mapY = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [0, 0] : [80, -80]);
-  const contentY = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [0, 0] : [60, -60]);
-  const bgY = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [0, 0] : [50, -150]);
-
-  // Simplified animation config for mobile
-  const animationDuration = shouldReduceMotion ? 0.15 : 0.8;
-
   return (
-    <section className="section-padding overflow-hidden relative" style={{ position: 'relative' }} ref={containerRef}>
-      {/* Parallax Background Elements - Hidden on mobile */}
-      {!shouldReduceMotion && (
-        <motion.div 
-          className="absolute inset-0 pointer-events-none overflow-hidden"
-          style={{ y: bgY }}
-        >
-          <div className="absolute top-0 left-1/4 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
-        </motion.div>
-      )}
+    <section className="py-32 bg-[#FFD200] border-y-8 border-black overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="grid lg:grid-cols-2 gap-20 items-center">
+          
+          {/* Content Side */}
+          <div className="order-2 lg:order-1">
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <div className="bg-black text-white px-6 py-2 inline-block mb-6 shadow-[6px_6px_0px_0px_rgba(0,138,69,1)]">
+                <span className="font-bebas text-2xl tracking-widest uppercase">THE URBAN HUB</span>
+              </div>
+              
+              <h2 className="font-bebas text-6xl md:text-8xl text-black leading-[0.85] mb-8">
+                FIND US ON <br />
+                <span className="text-white drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">FIFTH AVENUE</span>
+              </h2>
+              
+              <p className="font-source-sans text-xl font-bold text-black/80 leading-tight mb-12 border-l-4 border-black pl-6">
+                The chase for flavour starts here. Visit our flagship hub in the heart of Vehari and join the urban squad.
+              </p>
+            </motion.div>
 
-      <div className="container-custom relative z-10" ref={ref}>
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Map / Image Side with Parallax */}
+            {/* Contact Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {[
+                { icon: MapPin, title: "STREET ADDRESS", detail: "Main Bazaar, Vehari City" },
+                { icon: Phone, title: "HOTLINE", detail: "+92 300 1234567" },
+                { icon: Clock, title: "OPENING TIMES", detail: "DAILY 11AM - 11PM" },
+                { icon: Zap, title: "FAST DELIVERY", detail: "WITHIN 30 MINS" }
+              ].map((item, index) => (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-white border-4 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                >
+                  <div className="w-12 h-12 bg-[#008A45] border-2 border-black flex items-center justify-center text-white mb-4">
+                    <item.icon className="w-6 h-6" strokeWidth={2.5} />
+                  </div>
+                  <h4 className="font-bebas text-2xl text-black leading-none mb-1">{item.title}</h4>
+                  <p className="font-source-sans text-sm font-bold text-black/60">{item.detail}</p>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mt-12"
+            >
+              <Button className="rounded-none bg-black text-white px-10 py-8 text-2xl font-bebas tracking-widest hover:bg-[#ED1C24] transition-all shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]">
+                GET DIRECTIONS
+                <Send className="ml-3 w-6 h-6" strokeWidth={2.5} />
+              </Button>
+            </motion.div>
+          </div>
+
+          {/* Map Side */}
           <motion.div
-            initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -80, scale: shouldReduceMotion ? 1 : 0.9 }}
-            animate={isInView ? { opacity: 1, x: 0, scale: 1 } : {}}
-            transition={{ duration: animationDuration, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="relative rounded-xl sm:rounded-2xl overflow-hidden h-64 sm:h-80 lg:h-96 bg-muted"
-            style={shouldReduceMotion ? {} : { y: mapY }}
-            whileHover={shouldReduceMotion ? undefined : { scale: 1.02 }}
+            initial={{ opacity: 0, x: 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="order-1 lg:order-2"
           >
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d110094.32834645576!2d72.27752705!3d30.02969975!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3922f5e4e4e4e4e5%3A0x1a1a1a1a1a1a1a1a!2sVehari%2C%20Punjab%2C%20Pakistan!5e0!3m2!1sen!2s!4v1700000000000!5m2!1sen!2s"
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              title="ZOIRO Location"
-            />
-            {/* Overlay glow effect - only on desktop */}
-            {!shouldReduceMotion && (
-              <motion.div
-                className="absolute inset-0 pointer-events-none border-4 border-primary/0 rounded-xl sm:rounded-2xl"
-                initial={{ borderColor: "rgba(var(--primary), 0)" }}
-                whileHover={{ borderColor: "rgba(var(--primary), 0.3)" }}
-                transition={{ duration: 0.3 }}
+            <div className="relative mx-auto w-full aspect-square border-[12px] border-black shadow-[20px_20px_0px_0px_rgba(0,138,69,1)] bg-white">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d110094.32834645576!2d72.27752705!3d30.02969975!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3922f5e4e4e4e4e5%3A0x1a1a1a1a1a1a1a1a!2sVehari%2C%20Punjab%2C%20Pakistan!5e0!3m2!1sen!2s!4v1700000000000!5m2!1sen!2s"
+                width="100%"
+                height="100%"
+                style={{ border: 0, filter: 'grayscale(1) invert(0.1)' }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Fifth Avenue Location"
               />
-            )}
+              {/* Spinning Overlay Badge */}
+              <motion.div
+                animate={{ rotate: -360 }}
+                transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                className="absolute -top-12 -right-12 w-32 h-32 bg-[#ED1C24] border-4 border-black rounded-full flex items-center justify-center p-4"
+              >
+                <span className="font-bebas text-lg text-white text-center leading-tight">WE ARE <br /> HERE!</span>
+              </motion.div>
+            </div>
           </motion.div>
 
-          {/* Content Side with Parallax */}
-          <motion.div
-            initial={{ opacity: 0, x: shouldReduceMotion ? 0 : 80 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: animationDuration, ease: [0.25, 0.46, 0.45, 0.94] }}
-            style={shouldReduceMotion ? {} : { y: contentY }}
-            className="px-2 sm:px-0"
-          >
-            <motion.span
-              className="text-primary font-semibold uppercase tracking-wider text-xs sm:text-sm inline-block"
-              initial={{ opacity: 0, y: shouldReduceMotion ? 5 : 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: shouldReduceMotion ? 0.05 : 0.2, duration: animationDuration }}
-            >
-              Visit Us
-            </motion.span>
-            <motion.h2
-              className="text-3xl sm:text-4xl md:text-5xl font-bebas mt-2 mb-4 sm:mb-6"
-              initial={{ opacity: 0, y: shouldReduceMotion ? 5 : 30, filter: shouldReduceMotion ? "blur(0px)" : "blur(10px)" }}
-              animate={isInView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-              transition={{ delay: shouldReduceMotion ? 0.08 : 0.3, duration: animationDuration }}
-            >
-              Find Us in <span className="text-primary">Vehari City</span>
-            </motion.h2>
-            <motion.p
-              className="text-muted-foreground text-sm sm:text-base mb-6 sm:mb-8 leading-relaxed"
-              initial={{ opacity: 0, y: shouldReduceMotion ? 5 : 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: shouldReduceMotion ? 0.1 : 0.4, duration: animationDuration }}
-            >
-              Located in the heart of Vehari, we're easily accessible and ready
-              to serve you the best broast experience in town.
-            </motion.p>
-
-            {/* Contact Info Cards */}
-            <motion.div
-              className="space-y-3 sm:space-y-4 mb-6 sm:mb-8"
-              variants={shouldReduceMotion ? {
-                hidden: { opacity: 0 },
-                visible: { opacity: 1, transition: { staggerChildren: 0.02 } }
-              } : containerVariants}
-              initial="hidden"
-              animate={isInView ? "visible" : "hidden"}
-            >
-              <motion.div
-                variants={shouldReduceMotion ? {
-                  hidden: { opacity: 0, x: 0 },
-                  visible: { opacity: 1, x: 0, transition: { duration: 0.15 } }
-                } : cardVariants}
-                className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-secondary rounded-lg sm:rounded-xl"
-                whileHover={shouldReduceMotion ? undefined : { x: 10, backgroundColor: "hsl(var(--secondary) / 0.8)" }}
-              >
-                <motion.div
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0"
-                  whileHover={shouldReduceMotion ? undefined : { rotate: 10, scale: 1.1 }}
-                >
-                  <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                </motion.div>
-                <div>
-                  <p className="font-semibold text-sm sm:text-base">Address</p>
-                  <p className="text-muted-foreground text-xs sm:text-sm">
-                    Main Bazaar, Vehari City, Punjab, Pakistan
-                  </p>
-                </div>
-              </motion.div>
-
-              <motion.div
-                variants={shouldReduceMotion ? {
-                  hidden: { opacity: 0, x: 0 },
-                  visible: { opacity: 1, x: 0, transition: { duration: 0.15 } }
-                } : cardVariants}
-                className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-secondary rounded-lg sm:rounded-xl"
-                whileHover={shouldReduceMotion ? undefined : { x: 10, backgroundColor: "hsl(var(--secondary) / 0.8)" }}
-              >
-                <motion.div
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0"
-                  whileHover={shouldReduceMotion ? undefined : { rotate: 10, scale: 1.1 }}
-                >
-                  <Phone className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                </motion.div>
-                <div>
-                  <p className="font-semibold text-sm sm:text-base">Phone</p>
-                  <p className="text-muted-foreground text-xs sm:text-sm">
-                    +92 300 1234567
-                  </p>
-                </div>
-              </motion.div>
-
-              <motion.div
-                variants={shouldReduceMotion ? {
-                  hidden: { opacity: 0, x: 0 },
-                  visible: { opacity: 1, x: 0, transition: { duration: 0.15 } }
-                } : cardVariants}
-                className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-secondary rounded-lg sm:rounded-xl"
-                whileHover={shouldReduceMotion ? undefined : { x: 10, backgroundColor: "hsl(var(--secondary) / 0.8)" }}
-              >
-                <motion.div
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0"
-                  whileHover={shouldReduceMotion ? undefined : { rotate: 10, scale: 1.1 }}
-                >
-                  <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                </motion.div>
-                <div>
-                  <p className="font-semibold text-sm sm:text-base">Opening Hours</p>
-                  <p className="text-muted-foreground text-xs sm:text-sm">
-                    Mon - Sun: 11:00 AM - 11:00 PM
-                  </p>
-                </div>
-              </motion.div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: shouldReduceMotion ? 5 : 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: shouldReduceMotion ? 0.15 : 0.8, duration: animationDuration }}
-            >
-              <Link href="/contact">
-                <motion.div whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }} whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}>
-                  <Button className="btn-zoiro w-full sm:w-auto">Get Directions</Button>
-                </motion.div>
-              </Link>
-            </motion.div>
-          </motion.div>
         </div>
       </div>
     </section>

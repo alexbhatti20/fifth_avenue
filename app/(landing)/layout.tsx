@@ -21,13 +21,13 @@ export default async function LandingLayout({ children }: LandingLayoutProps) {
   const bookingSetting = await getOnlineBookingSettingServer();
 
   return (
-    <>
+    <div className="fa-landing-theme">
       <Navbar bookingEnabled={bookingSetting.enabled} />
       {children}
       <Footer />
       <Suspense fallback={null}>
         <OfferPopupServer />
       </Suspense>
-    </>
+    </div>
   );
 }

@@ -22,8 +22,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        bebas: ["Bebas Neue", "sans-serif"],
-        inter: ["Inter", "sans-serif"],
+        playfair: ["var(--font-playfair)", "serif"],
+        "source-sans": ["var(--font-source-sans)", "sans-serif"],
+        bebas: ["var(--font-bebas)", "sans-serif"],
+        caveat: ["var(--font-caveat)", "cursive"],
       },
       colors: {
         border: "hsl(var(--border))",

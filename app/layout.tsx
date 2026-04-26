@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Bebas_Neue, Inter } from 'next/font/google'
+import { Playfair_Display, Source_Sans_3, Bebas_Neue, Caveat } from 'next/font/google'
 import './globals.css'
 import { CartProvider } from '@/context/CartContext'
 import { FavoritesProvider } from '@/context/FavoritesContext'
@@ -11,12 +11,10 @@ import { ALL_KEYWORDS, SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/lib/seo'
 import PageLoader from '@/components/custom/PageLoader'
 import { getOnlineOrderingSettingsServer } from '@/lib/server-queries'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
-const bebasNeue = Bebas_Neue({ 
-  weight: '400',
-  subsets: ['latin'],
-  variable: '--font-bebas'
-})
+const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' })
+const sourceSans = Source_Sans_3({ subsets: ['latin'], variable: '--font-source-sans' })
+const bebas = Bebas_Neue({ weight: '400', subsets: ['latin'], variable: '--font-bebas' })
+const caveat = Caveat({ subsets: ['latin'], variable: '--font-caveat' })
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -31,10 +29,10 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `Zoiro Broast Vehari - Best Broast Chicken, Menu & Delivery | ${SITE_NAME}`,
-    template: `%s | Zoiro Broast Vehari`,
+    default: `${SITE_NAME} - Chasing Flavours | Best Injected Broast in Vehari`,
+    template: `%s | ${SITE_NAME}`,
   },
-  description: SITE_DESCRIPTION,
+  description: `${SITE_NAME} - Chasing Flavours. Experience the best injected broast and fast food in Vehari with our signature urban flavors and fast delivery.`,
   keywords: ALL_KEYWORDS,
   authors: [{ name: SITE_NAME, url: SITE_URL }],
   creator: SITE_NAME,
@@ -65,32 +63,25 @@ export const metadata: Metadata = {
     locale: 'en_US',
     alternateLocale: ['ur_PK'],
     url: SITE_URL,
-    siteName: 'Zoiro Broast Vehari',
-    title: `Zoiro Broast Vehari - Best Broast Chicken, Menu & Fast Delivery`,
-    description: SITE_DESCRIPTION,
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} - Chasing Flavours | Best Injected Broast`,
+    description: `Experience the best injected broast and fast food in Vehari with our signature urban flavors at ${SITE_NAME}.`,
     images: [
       {
         url: '/assets/zoiro-og-image.jpg',
         width: 1200,
         height: 630,
-        alt: `${SITE_NAME} - Delicious Broast Chicken`,
+        alt: `${SITE_NAME} - Chasing Flavours`,
         type: 'image/jpeg',
-      },
-      {
-        url: '/assets/zoiro-logo.png',
-        width: 512,
-        height: 512,
-        alt: `${SITE_NAME} Logo`,
-        type: 'image/png',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@zoirobroast',
-    creator: '@zoirobroast',
-    title: `Zoiro Broast Vehari - Best Broast Chicken & Menu with Prices`,
-    description: 'Zoiro Broast - Order crispy broast chicken, burgers, wings & more. View menu, deals & prices. Fast delivery in Vehari!',
+    site: '@fifthavenue',
+    creator: '@fifthavenue',
+    title: `${SITE_NAME} - Chasing Flavours`,
+    description: `${SITE_NAME} - Order crispy injected broast chicken, burgers, pizza & more. Fast delivery in Vehari!`,
     images: ['/assets/zoiro-og-image.jpg'],
   },
   robots: {
@@ -148,16 +139,23 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://eqfeeiryzslccyivkphf.supabase.co" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
-        
+
         {/* Additional SEO meta tags */}
         <meta name="theme-color" content="#dc2626" />
         <meta name="msapplication-TileColor" content="#dc2626" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
-      <body className={`${inter.variable} ${bebasNeue.variable}`}>
+      <body className={`${playfair.variable} ${sourceSans.variable} ${bebas.variable} ${caveat.variable}`}>
+        <div
+          className="pointer-events-none fixed inset-0 z-[9999] opacity-[0.012]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+            backgroundRepeat: "repeat",
+          }}
+        />
         <PageLoader />
         <GlobalGoogleAuthHandler />
-        
+
         <CartProvider
           initialOnlineOrderingEnabled={onlineOrderingSettings.enabled}
           initialOnlineOrderingMessage={onlineOrderingSettings.disabled_message}

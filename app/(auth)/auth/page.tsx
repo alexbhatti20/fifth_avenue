@@ -16,16 +16,12 @@ import {
   ArrowRight,
   ArrowLeft,
   ShieldCheck,
-  Sparkles,
   KeyRound,
-  BadgeCheck,
   MapPin,
-  ChefHat,
-  Utensils,
-  Clock,
-  Star,
   Home,
   Flame,
+  CheckCircle2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +32,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { TwoFactorDialog } from "@/components/portal/TwoFactorDialog";
 import { GoogleSignInButton } from "@/components/ui/google-sign-in-button";
+import { cn } from "@/lib/utils";
 
 type AuthFlow = 
   | 'initial'           // Enter email to check user type
@@ -110,13 +107,13 @@ export default function UnifiedAuth() {
         ...defaults,
         particleCount,
         origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-        colors: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'],
+        colors: ['#FFD200', '#008A45', '#ED1C24', '#000000'],
       });
       confetti({
         ...defaults,
         particleCount,
         origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-        colors: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'],
+        colors: ['#FFD200', '#008A45', '#ED1C24', '#000000'],
       });
     }, 250);
   }, []);
@@ -128,6 +125,13 @@ export default function UnifiedAuth() {
     const googleLogin = searchParams.get('google_login');
     const googleRegister = searchParams.get('google_register');
     const reason = searchParams.get('reason');
+
+    const tab = searchParams.get('tab');
+    if (tab === 'register') {
+      setFlow('customer-register');
+    } else if (tab === 'login') {
+      setFlow('initial');
+    }
 
     // Session expired redirect from middleware
     if (reason === 'expired') {
@@ -638,536 +642,150 @@ export default function UnifiedAuth() {
 
   const getTitle = () => {
     switch (flow) {
-      case 'initial': return 'Welcome';
-      case 'customer-login': return 'Welcome Back';
-      case 'customer-register': return 'Create Account';
-      case 'employee-login': return 'Staff Login';
-      case 'employee-activate': return 'Activate Account';
-      case 'otp-verify': return 'Verify Email';
-      case 'success': return 'Success!';
-      default: return 'Welcome';
+      case 'initial': return 'JOIN THE SQUAD';
+      case 'customer-login': return 'WELCOME BACK';
+      case 'customer-register': return 'JOIN THE CREW';
+      case 'employee-login': return 'STAFF ACCESS';
+      case 'employee-activate': return 'ACTIVATE';
+      case 'otp-verify': return 'VERIFY';
+      case 'success': return 'DONE!';
+      default: return 'WELCOME';
     }
   };
 
   const getSubtitle = () => {
     switch (flow) {
-      case 'initial': return 'Enter your email to continue';
-      case 'customer-login': return 'Sign in to your account';
-      case 'customer-register': return 'Join ZOIRO Broast';
-      case 'employee-login': return `Welcome back${userCheck?.name ? `, ${userCheck.name}` : ''}!`;
-      case 'employee-activate': return 'Enter your employee license ID';
-      case 'otp-verify': return 'Enter the code sent to your email';
-      case 'success': return userCheck?.isEmployee ? 'Welcome to the team!' : 'Welcome to ZOIRO Broast!';
+      case 'initial': return 'THE CHASE STARTS WITH AN EMAIL';
+      case 'customer-login': return 'GET BACK TO THE FLAVOUR';
+      case 'customer-register': return 'BECOME PART OF THE LEGEND';
+      case 'employee-login': return `VIBE CHECK${userCheck?.name ? `, ${userCheck.name}` : ''}`;
+      case 'employee-activate': return 'STAFF ONLY AREA';
+      case 'otp-verify': return 'SECURITY CHECK';
+      case 'success': return 'YOU ARE IN';
       default: return '';
     }
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-zinc-950">
-      {/* Advanced Animated Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black">
-        {/* Grid Pattern Overlay */}
+    <div className="min-h-screen relative overflow-hidden bg-[#FFD200]">
+      {/* Fifth Avenue Urban Background */}
+      <div className="fixed inset-0 z-0">
         <div 
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(239,68,68,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(239,68,68,0.3) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
-          }}
+          className="absolute inset-0 bg-[#008A45]"
+          style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 70% 100%)" }}
         />
-        
-        {/* Animated gradient orbs - Red/Black theme - Only on desktop */}
-        {!shouldReduceMotion && (
-          <>
-            <motion.div
-              className="absolute top-0 left-0 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-red-900/30 to-red-600/20 blur-3xl"
-              animate={{
-                x: [0, 100, 0],
-                y: [0, 50, 0],
-                scale: [1, 1.1, 1],
-              }}
-              transition={{
-                duration: 20,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-            <motion.div
-              className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-red-800/25 to-orange-900/20 blur-3xl"
-              animate={{
-                x: [0, -80, 0],
-                y: [0, -60, 0],
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: 25,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-            <motion.div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-gradient-to-r from-red-950/20 to-black/30 blur-3xl"
-              animate={{
-                scale: [1, 1.3, 1],
-                rotate: [0, 180, 360],
-              }}
-              transition={{
-                duration: 30,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-            />
-            
-            {/* Additional Pulsing Orbs */}
-            <motion.div
-              className="absolute top-[20%] right-[20%] w-[300px] h-[300px] rounded-full bg-gradient-to-br from-yellow-600/10 to-orange-600/10 blur-3xl"
-              animate={{
-                scale: [1, 1.5, 1],
-                opacity: [0.3, 0.6, 0.3],
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          </>
-        )}
-        
-        {/* Static background orbs for mobile */}
-        {shouldReduceMotion && (
-          <>
-            <div className="absolute top-0 left-0 w-[400px] h-[400px] rounded-full bg-gradient-to-br from-red-900/20 to-red-600/10 blur-3xl" />
-            <div className="absolute bottom-0 right-0 w-[300px] h-[300px] rounded-full bg-gradient-to-tl from-red-800/15 to-orange-900/10 blur-3xl" />
-          </>
-        )}
-        
-        {/* Floating Particles - Only on desktop */}
-        {!shouldReduceMotion && [
-          { left: 10, top: 15, duration: 6, delay: 0.5 },
-          { left: 25, top: 35, duration: 7, delay: 1.2 },
-          { left: 45, top: 20, duration: 5.5, delay: 0.8 },
-          { left: 60, top: 45, duration: 8, delay: 2.1 },
-          { left: 75, top: 25, duration: 6.5, delay: 1.5 },
-          { left: 85, top: 55, duration: 7.5, delay: 0.3 },
-          { left: 15, top: 65, duration: 5, delay: 2.5 },
-          { left: 35, top: 75, duration: 6.2, delay: 1.8 },
-          { left: 55, top: 85, duration: 7.8, delay: 0.6 },
-          { left: 70, top: 70, duration: 5.8, delay: 2.8 },
-          { left: 90, top: 30, duration: 6.8, delay: 1.1 },
-          { left: 5, top: 50, duration: 7.2, delay: 0.2 },
-          { left: 30, top: 10, duration: 5.2, delay: 2.3 },
-          { left: 50, top: 60, duration: 8.5, delay: 1.6 },
-          { left: 80, top: 80, duration: 6.3, delay: 0.9 },
-          { left: 20, top: 90, duration: 7.1, delay: 2.0 },
-          { left: 40, top: 40, duration: 5.7, delay: 1.3 },
-          { left: 65, top: 5, duration: 6.9, delay: 0.4 },
-          { left: 95, top: 65, duration: 8.2, delay: 2.6 },
-          { left: 12, top: 28, duration: 5.4, delay: 1.9 },
-        ].map((particle, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-red-500/40 rounded-full"
-            style={{
-              left: `${particle.left}%`,
-              top: `${particle.top}%`,
-            }}
-            animate={{
-              y: [-20, 20, -20],
-              x: [-10, 10, -10],
-              opacity: [0.2, 0.8, 0.2],
-              scale: [1, 1.5, 1],
-            }}
-            transition={{
-              duration: particle.duration,
-              repeat: Infinity,
-              delay: particle.delay,
-              ease: "easeInOut",
-            }}
-          />
-        ))}
+        <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
       </div>
 
-      {/* Floating Broasted Chicken Images - Only on desktop */}
-      {!shouldReduceMotion && (
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-10">
-          {/* Chicken Wings - Top Left */}
-          <motion.div
-            className="absolute top-[10%] left-[5%]"
-            animate={{ 
-              y: [0, -20, 0], 
-              rotate: [0, 10, 0],
-              scale: [1, 1.05, 1]
-            }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <Image 
-              src="/assets/wings.png" 
-              alt="Wings" 
-              width={120} 
-              height={120}
-              className="opacity-80 drop-shadow-2xl"
-            />
-          </motion.div>
-
-          {/* Chicken Piece - Top Right */}
-          <motion.div
-            className="absolute top-[15%] right-[8%]"
-            animate={{ 
-              y: [0, 15, 0], 
-              rotate: [0, -15, 0],
-              scale: [1, 1.1, 1]
-            }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          >
-            <Image 
-              src="/assets/chicken-piece.png" 
-              alt="Chicken" 
-              width={100} 
-              height={100}
-              className="opacity-70 drop-shadow-2xl"
-            />
-          </motion.div>
-
-          {/* Chicken Burger - Bottom Left */}
-          <motion.div
-            className="absolute bottom-[25%] left-[8%]"
-            animate={{ 
-              y: [0, -15, 0], 
-              rotate: [0, 8, 0],
-              scale: [1, 1.08, 1]
-            }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          >
-            <Image 
-              src="/assets/chicken-burger.png" 
-              alt="Burger" 
-              width={90} 
-              height={90}
-              className="opacity-70 drop-shadow-2xl"
-            />
-          </motion.div>
-
-          {/* Fries - Bottom Right */}
-          <motion.div
-            className="absolute bottom-[15%] right-[10%]"
-            animate={{ 
-              y: [0, 20, 0], 
-              rotate: [0, -10, 0],
-              scale: [1, 1.05, 1]
-            }}
-            transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-          >
-            <Image 
-              src="/assets/fries.png" 
-              alt="Fries" 
-              width={80} 
-              height={80}
-              className="opacity-70 drop-shadow-2xl"
-            />
-          </motion.div>
-
-          {/* Drink - Middle Left */}
-          <motion.div
-            className="absolute top-[55%] left-[3%]"
-            animate={{ 
-              y: [0, -25, 0], 
-              scale: [1, 1.1, 1]
-            }}
-            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-          >
-            <Image 
-              src="/assets/drink.png" 
-              alt="Drink" 
-              width={70} 
-              height={70}
-              className="opacity-60 drop-shadow-2xl"
-            />
-          </motion.div>
-
-          {/* Floating Icons */}
-          <motion.div
-            className="absolute top-[40%] right-[5%] text-red-500/30"
-            animate={{ y: [0, 15, 0], rotate: [0, -15, 0] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          >
-            <Flame className="w-10 h-10" />
-          </motion.div>
-          <motion.div
-            className="absolute bottom-[40%] left-[12%] text-red-600/25"
-            animate={{ y: [0, -15, 0], rotate: [0, 15, 0] }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          >
-            <Star className="w-8 h-8" />
-          </motion.div>
-        </div>
-      )}
-
       {/* Main Content */}
-      <div className="relative z-10 min-h-screen flex">
+      <div className="relative z-10 min-h-screen flex flex-col lg:flex-row">
         {/* Left Side - Branding (Desktop) */}
         <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center p-12">
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-lg"
+            className="max-w-xl text-center lg:text-left"
           >
-            {/* Animated Mascot Logo */}
-            <Link href="/" className="block mb-10">
-              <motion.div 
-                className="relative w-48 h-48 mx-auto"
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
-              >
-                {/* Glow Effect */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-br from-red-500/40 to-red-700/40 rounded-full blur-3xl"
-                  animate={{
-                    scale: [1, 1.2, 1],
-                    opacity: [0.5, 0.8, 0.5],
-                  }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                />
-                {/* Rotating Ring */}
-                <motion.div
-                  className="absolute inset-[-10px] border-4 border-dashed border-red-500/30 rounded-full"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                />
-                {/* Main Logo */}
-                <motion.div
-                  className="relative w-full h-full"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  animate={{
-                    y: [0, -10, 0],
-                  }}
-                  transition={{
-                    y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-                    scale: { type: "spring", stiffness: 400 },
-                  }}
-                >
-                  <Image
-                    src="/assets/zoiro-logo.png"
-                    alt="Zoiro Broast"
-                    fill
-                    sizes="120px"
-                    className="object-contain drop-shadow-2xl"
-                    priority
-                  />
-                </motion.div>
-                {/* Sparkle Effects */}
-                {[...Array(5)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute w-2 h-2 bg-yellow-400 rounded-full"
-                    style={{
-                      top: `${20 + i * 15}%`,
-                      left: `${10 + i * 20}%`,
-                    }}
-                    animate={{
-                      scale: [0, 1, 0],
-                      opacity: [0, 1, 0],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      delay: i * 0.4,
-                      ease: "easeInOut",
-                    }}
-                  />
-                ))}
-              </motion.div>
+            <Link href="/" className="inline-block mb-12">
+               <div className="flex items-center gap-3">
+                  <div className="bg-black p-4 border-4 border-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                    <span className="font-bebas text-5xl text-white tracking-tighter">FIFTH AVENUE</span>
+                  </div>
+                  <div className="flex flex-col">
+
+                    <span className="font-caveat text-2xl text-[#ED1C24] -mt-1">Chasing Flavours</span>
+                  </div>
+               </div>
             </Link>
 
-            {/* Hero Text */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
+              transition={{ delay: 0.2 }}
             >
-              <h2 className="text-5xl lg:text-6xl font-bebas text-white mb-4 leading-tight text-center">
+              <h2 className="font-bebas text-7xl lg:text-8xl text-black leading-[0.85] mb-8">
                 {flow === 'employee-activate' || flow === 'employee-login' 
-                  ? <>Staff<br/><span className="bg-gradient-to-r from-red-500 to-red-400 bg-clip-text text-transparent">Portal</span></>
-                  : <>Delicious<br/><span className="bg-gradient-to-r from-red-500 to-red-400 bg-clip-text text-transparent">Broast Awaits</span></>}
+                  ? <>STAFF<br/><span className="text-white drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">SQUAD</span></>
+                  : <>THE<br/><span className="text-white drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">LEGEND</span><br/>CONTINUES</>}
               </h2>
-              <p className="text-zinc-400 text-lg max-w-md leading-relaxed text-center">
+              <p className="font-source-sans text-xl font-bold text-black/80 max-w-md border-l-8 border-black pl-6">
                 {flow === 'employee-activate' 
-                  ? 'Activate your employee account to access the staff portal and start managing operations.'
+                  ? 'Ready to run the streets? Activate your squad ID and join the Fifth Avenue operation.'
                   : flow === 'employee-login'
-                  ? 'Access your staff dashboard and manage restaurant operations efficiently.'
-                  : 'Order crispy, juicy broasted chicken, track your orders in real-time, and earn loyalty points with every purchase.'}
+                  ? 'Back on the block. Access your dashboard and keep the flavours moving.'
+                  : 'Every signature broast has a story. Sign in to track your street cred and grab exclusive deals.'}
               </p>
             </motion.div>
 
-            {/* Features */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-              className="mt-12 grid grid-cols-2 gap-4"
-            >
-              {[
-                { icon: Sparkles, label: "Crispy & Juicy", color: "from-red-600 to-red-500" },
-                { icon: ShieldCheck, label: "Secure Login", color: "from-emerald-600 to-emerald-500" },
-                { icon: BadgeCheck, label: "Loyalty Points", color: "from-amber-600 to-amber-500" },
-                { icon: MapPin, label: "Fast Delivery", color: "from-blue-600 to-blue-500" },
-              ].map((feature, index) => (
-                <motion.div
-                  key={feature.label}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.5 + index * 0.1 }}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800/50 backdrop-blur-sm border border-zinc-700/50"
-                >
-                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${feature.color} flex items-center justify-center shadow-lg`}>
-                    <feature.icon className="h-5 w-5 text-white" />
-                  </div>
-                  <span className="text-zinc-300 text-sm font-medium">{feature.label}</span>
-                </motion.div>
-              ))}
-            </motion.div>
-
-            {/* Food Quality Card */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6, duration: 0.5 }}
-              className="mt-12 relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 to-red-500/20 rounded-3xl blur-2xl" />
-              <div className="relative bg-zinc-800/60 backdrop-blur-sm rounded-3xl p-6 border border-zinc-700/50">
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-600/20 to-red-500/20 flex items-center justify-center overflow-hidden">
-                    <ChefHat className="w-10 h-10 text-red-500" />
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold">Premium Quality</p>
-                    <p className="text-zinc-400 text-sm">Freshly prepared with love</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      {[1,2,3,4,5].map((star) => (
-                        <Star key={star} className="w-4 h-4 fill-red-500 text-red-500" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+            {/* Features - Blocky Style */}
+            <div className="mt-12 grid grid-cols-2 gap-4">
+               {[
+                 { icon: Flame, label: "FIRE FLAVOURS" },
+                 { icon: ShieldCheck, label: "SAFE & SECURE" },
+               ].map((f, i) => (
+                 <div key={i} className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3">
+                    <f.icon className="w-6 h-6 text-[#ED1C24]" />
+                    <span className="font-bebas text-lg tracking-widest">{f.label}</span>
+                 </div>
+               ))}
+            </div>
           </motion.div>
         </div>
 
-        {/* Right Side - Form */}
-        <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
+        <div className="flex-[1.5] flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="w-full max-w-md"
+            className="w-full max-w-4xl"
           >
-            {/* Mobile Logo - Simplified for performance */}
-            <div className="lg:hidden flex flex-col items-center justify-center mb-8">
-              <Link href="/" className="block">
-                <div className="relative w-32 h-32 mx-auto mb-2">
-                  {/* Static Glow Effect for Mobile */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-red-500/30 to-red-700/30 rounded-full blur-2xl opacity-50" />
-                  {/* Mobile Logo - Static */}
-                  <div className="relative w-full h-full">
-                    <Image
-                      src="/assets/zoiro-logo.png"
-                      alt="Zoiro Broast"
-                      fill
-                      sizes="80px"
-                      className="object-contain drop-shadow-xl"
-                      priority
-                    />
-                  </div>
-                </div>
-              </Link>
-            </div>
+             {/* Mobile Logo */}
+             <div className="lg:hidden flex flex-col items-center mb-8">
+                <Link href="/" className="flex items-center gap-2">
+                    <div className="bg-black p-2 border-2 border-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                      <span className="font-bebas text-2xl text-white">FIFTH AVENUE</span>
+                    </div>
 
-            {/* Form Card */}
-            <motion.div 
-              className="bg-zinc-900/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl shadow-red-900/10 border border-zinc-800"
-              layout
-            >
-              {/* Back to Home Button */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-4"
-              >
-                <Link 
-                  href="/"
-                  className="inline-flex items-center gap-2 text-zinc-500 hover:text-red-400 transition-colors group text-sm font-medium"
-                >
-                  <Home className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                  <span>Back to Home</span>
                 </Link>
-              </motion.div>
+             </div>
 
-              {/* Back Button */}
-              {flow !== 'initial' && flow !== 'success' && (
-                <motion.button
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
+            {/* Form Card - Fifth Avenue Style */}
+            <div className="bg-white border-[8px] border-black p-6 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] relative">
+               {/* Back Button */}
+               {flow !== 'initial' && flow !== 'success' && (
+                <button
                   onClick={handleBack}
-                  className="flex items-center gap-2 text-zinc-500 hover:text-white mb-6 transition-colors group"
+                  className="absolute -top-6 -left-6 bg-[#FFD200] border-4 border-black p-2 hover:bg-black hover:text-white transition-colors"
                 >
-                  <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                  <span className="text-sm font-medium">Back</span>
-                </motion.button>
+                  <ArrowLeft className="h-6 w-6" />
+                </button>
               )}
+              
+               <Link 
+                 href="/" 
+                 className="absolute -top-6 -right-6 bg-black text-white border-4 border-[#FFD200] px-6 py-2 font-bebas text-2xl hover:bg-[#ED1C24] transition-colors shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+               >
+                 HOME
+               </Link>
+
+              {/* Header */}
+              <div className="text-center mb-6 border-b-8 border-black pb-4">
+                <h2 className="font-bebas text-6xl text-black leading-none mb-1">
+                  {getTitle()}
+                </h2>
+                <p className="font-caveat text-3xl text-[#ED1C24]">
+                  {getSubtitle()}
+                </p>
+              </div>
 
               {/* Auth Error Banner */}
               {authError && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 backdrop-blur-sm"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="shrink-0 mt-0.5">
-                      <ShieldCheck className="h-5 w-5 text-red-400" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-red-300 text-sm font-medium leading-relaxed">{authError}</p>
-                    </div>
-                    <button
-                      onClick={() => setAuthError(null)}
-                      className="shrink-0 text-red-400/60 hover:text-red-300 transition-colors"
-                    >
-                      <span className="sr-only">Dismiss</span>
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                </motion.div>
+                <div className="mb-6 p-4 bg-[#ED1C24] border-4 border-black text-white font-bebas text-lg tracking-widest relative">
+                  {authError}
+                  <button onClick={() => setAuthError(null)} className="absolute top-1 right-1"><X className="w-4 h-4" /></button>
+                </div>
               )}
 
-              {/* Header */}
-              <div className="text-center mb-8">
-                <motion.h2 
-                  key={flow}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-3xl font-bebas bg-gradient-to-r from-red-500 to-red-400 bg-clip-text text-transparent"
-                >
-                  {getTitle()}
-                </motion.h2>
-                <motion.p 
-                  key={`${flow}-sub`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className="text-zinc-500 text-sm mt-2"
-                >
-                  {getSubtitle()}
-                </motion.p>
-              </div>
-
               <AnimatePresence mode="wait">
-                {/* Initial - Email Check */}
                 {flow === 'initial' && (
                   <motion.form
                     key="initial"
@@ -1177,67 +795,46 @@ export default function UnifiedAuth() {
                     onSubmit={handleCheckEmail}
                     className="space-y-6"
                   >
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-zinc-300 font-medium">Email Address</Label>
-                      <div className="relative group">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500 group-focus-within:text-red-500 transition-colors" />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                      <div className="md:col-span-2 space-y-2">
+                        <Label htmlFor="email" className="font-bebas text-3xl text-black tracking-widest">EMAIL ADDRESS</Label>
                         <Input
                           id="email"
                           type="email"
-                          placeholder="you@example.com"
+                          placeholder="WHO ARE YOU?"
                           value={formData.email}
                           onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                          className="pl-12 h-12 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-red-500 focus:ring-red-500/20 transition-all placeholder:text-zinc-600"
+                          className="h-16 border-8 border-black rounded-none font-bebas text-3xl focus-visible:ring-0 focus-visible:bg-[#FFD200]/20 placeholder:text-black/20"
                           required
                         />
                       </div>
+                      <Button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full h-16 bg-black text-white rounded-none font-bebas text-4xl tracking-widest hover:bg-[#ED1C24] border-4 border-black shadow-[8px_8px_0px_0px_rgba(255,210,0,1)] hover:shadow-none transition-all"
+                      >
+                        {isLoading ? "..." : "GO"}
+                      </Button>
                     </div>
 
-                    <Button
-                      type="submit"
-                      className="w-full h-12 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white rounded-xl font-semibold shadow-lg shadow-red-600/30 transition-all hover:shadow-xl hover:shadow-red-600/40"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                        />
-                      ) : (
-                        <>
-                          Continue
-                          <ArrowRight className="h-5 w-5 ml-2" />
-                        </>
-                      )}
-                    </Button>
-
-                    {/* Divider */}
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-zinc-700" />
-                      </div>
-                      <div className="relative flex justify-center text-sm">
-                        <span className="px-4 bg-zinc-900/80 text-zinc-500">or continue with</span>
-                      </div>
+                    <div className="relative py-2">
+                      <div className="absolute inset-0 flex items-center"><div className="w-full border-t-4 border-black" /></div>
+                      <div className="relative flex justify-center"><span className="px-4 bg-white font-bebas text-lg text-black/40 uppercase">Social Login</span></div>
                     </div>
 
-                    {/* Google Sign In */}
-                    <GoogleSignInButton 
-                      type="login"
-                      disabled={isLoading}
-                    />
+                    <GoogleSignInButton type="login" disabled={isLoading} />
 
-                    <div className="text-center">
-                      <Link href="/" className="text-sm text-zinc-500 hover:text-red-500 transition-colors inline-flex items-center gap-1">
-                        <Home className="w-4 h-4" />
-                        Back to Home
-                      </Link>
+                    <div className="mt-4 p-3 bg-black/5 border-2 border-dashed border-black/20 text-center">
+                      <p className="font-bebas text-sm text-black/60 tracking-widest leading-none">
+                        BY CONTINUING, YOU AGREE TO OUR{" "}
+                        <Link href="/terms" className="text-[#ED1C24] hover:underline font-bold">TERMS</Link>
+                        {" "} & {" "}
+                        <Link href="/privacy" className="text-[#ED1C24] hover:underline font-bold">PRIVACY POLICY</Link>
+                      </p>
                     </div>
                   </motion.form>
                 )}
 
-                {/* Customer/Employee Login */}
                 {(flow === 'customer-login' || flow === 'employee-login') && (
                   <motion.form
                     key="login"
@@ -1245,93 +842,45 @@ export default function UnifiedAuth() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     onSubmit={handleLogin}
-                    className="space-y-5"
+                    className="space-y-6"
                   >
-                    <div className="space-y-2">
-                      <Label className="text-zinc-300 font-medium">Email</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500" />
-                        <Input
-                          type="email"
-                          value={formData.email}
-                          disabled
-                          className="pl-12 h-12 bg-zinc-800/30 border-zinc-700 text-zinc-500 rounded-xl"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-zinc-300 font-medium">Password</Label>
-                      <div className="relative group">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500 group-focus-within:text-red-500 transition-colors" />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                      <div className="md:col-span-2 space-y-2">
+                        <Label className="font-bebas text-3xl text-black tracking-widest">PASSWORD</Label>
                         <Input
                           id="password"
                           type={showPassword ? "text" : "password"}
-                          placeholder="Enter your password"
+                          placeholder="SECRET CODE"
                           value={formData.password}
                           onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                          className="pl-12 pr-12 h-12 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-red-500 focus:ring-red-500/20 placeholder:text-zinc-600"
+                          className="h-16 border-8 border-black rounded-none font-bebas text-3xl focus-visible:ring-0 focus-visible:bg-[#FFD200]/20"
                           required
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </button>
                       </div>
-                      {/* Forgot Password Link */}
-                      <div className="text-right">
-                        <Link 
-                          href="/forgot-password" 
-                          className="text-sm text-red-500 hover:text-red-400 transition-colors hover:underline"
-                        >
-                          Forgot Password?
-                        </Link>
-                      </div>
+                      <Button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full h-16 bg-black text-white rounded-none font-bebas text-4xl tracking-widest hover:bg-[#ED1C24] border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,138,69,1)] hover:shadow-none transition-all"
+                      >
+                        {isLoading ? "..." : "ENTER"}
+                      </Button>
+                    </div>
+                    
+                    <div className="text-center">
+                       <Link href="/forgot-password" className="font-bebas text-lg text-[#ED1C24] hover:underline">FORGOT PASSWORD?</Link>
                     </div>
 
-                    <Button
-                      type="submit"
-                      className="w-full h-12 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white rounded-xl font-semibold shadow-lg shadow-red-600/30 transition-all hover:shadow-xl hover:shadow-red-600/40"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                        />
-                      ) : (
-                        <>
-                          Sign In
-                          <ArrowRight className="h-5 w-5 ml-2" />
-                        </>
-                      )}
-                    </Button>
-
-                    {/* Google Sign In for Login - only for customers */}
-                    {flow === 'customer-login' && (
-                      <>
-                        <div className="relative">
-                          <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-zinc-700" />
-                          </div>
-                          <div className="relative flex justify-center text-sm">
-                            <span className="px-4 bg-zinc-900/80 text-zinc-500">or</span>
-                          </div>
-                        </div>
-                        <GoogleSignInButton 
-                          type="login"
-                          disabled={isLoading}
-                        />
-                      </>
-                    )}
+                    <div className="mt-4 p-3 bg-black/5 border-2 border-dashed border-black/20 text-center">
+                      <p className="font-bebas text-sm text-black/60 tracking-widest leading-none">
+                        BY CONTINUING, YOU AGREE TO OUR{" "}
+                        <Link href="/terms" className="text-[#ED1C24] hover:underline font-bold">TERMS</Link>
+                        {" "} & {" "}
+                        <Link href="/privacy" className="text-[#ED1C24] hover:underline font-bold">PRIVACY POLICY</Link>
+                      </p>
+                    </div>
                   </motion.form>
                 )}
 
-                {/* Customer Registration */}
                 {flow === 'customer-register' && (
                   <motion.form
                     key="register"
@@ -1339,232 +888,99 @@ export default function UnifiedAuth() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     onSubmit={handleRegister}
-                    className="space-y-4"
+                    className="space-y-6"
                   >
-                    {/* Full Name */}
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-zinc-300 font-medium">Full Name <span className="text-red-500">*</span></Label>
-                      <div className="relative group">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500 group-focus-within:text-red-500 transition-colors" />
-                        <Input
-                          id="name"
-                          placeholder="John Doe"
-                          value={formData.name}
-                          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                          className="pl-12 h-12 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-red-500 focus:ring-red-500/20 placeholder:text-zinc-600"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Email (disabled) */}
-                    <div className="space-y-2">
-                      <Label className="text-zinc-300 font-medium">Email</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500" />
-                        <Input
-                          type="email"
-                          value={formData.email}
-                          disabled
-                          className="pl-12 h-12 bg-zinc-800/30 border-zinc-700 text-zinc-500 rounded-xl"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Phone */}
-                    <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-zinc-300 font-medium">Phone Number <span className="text-red-500">*</span></Label>
-                      <div className="relative group">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500 group-focus-within:text-red-500 transition-colors" />
-                        <Input
-                          id="phone"
-                          type="tel"
-                          inputMode="numeric"
-                          placeholder="03001234567"
-                          value={formData.phone}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/[^0-9]/g, '');
-                            if (value.length <= 13) {
-                              setFormData(prev => ({ ...prev, phone: value }));
-                            }
-                          }}
-                          maxLength={13}
-                          className="pl-12 h-12 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-red-500 focus:ring-red-500/20 placeholder:text-zinc-600"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Address */}
-                    <div className="space-y-2">
-                      <Label htmlFor="address" className="text-zinc-300 font-medium">
-                        Delivery Address
-                        <span className="text-zinc-500 text-xs ml-2">(Optional)</span>
-                      </Label>
-                      <div className="relative group">
-                        <MapPin className="absolute left-4 top-3 h-5 w-5 text-zinc-500 group-focus-within:text-red-500 transition-colors" />
-                        <Textarea
-                          id="address"
-                          placeholder="Enter your delivery address..."
-                          value={formData.address}
-                          onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                          className="pl-12 min-h-[80px] bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-red-500 focus:ring-red-500/20 resize-none placeholder:text-zinc-600"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Passwords */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="password" className="text-zinc-300 font-medium text-sm">Password <span className="text-red-500">*</span></Label>
-                        <div className="relative group">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-red-500 transition-colors" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <Label className="font-bebas text-2xl text-black">EMAIL</Label>
                           <Input
-                            id="password"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Enter password"
-                            value={formData.password}
-                            onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                            className="pl-10 pr-10 h-12 sm:h-11 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-red-500 focus:ring-red-500/20 text-base sm:text-sm placeholder:text-zinc-600"
+                            value={formData.email}
+                            disabled
+                            className="h-14 border-4 border-black rounded-none font-bebas text-2xl bg-gray-100 opacity-70"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="font-bebas text-2xl text-black">NAME</Label>
+                          <Input
+                            placeholder="NAME"
+                            value={formData.name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                            className="h-14 border-4 border-black rounded-none font-bebas text-3xl focus-visible:ring-0"
                             required
                           />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-red-500 transition-colors p-1"
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="font-bebas text-2xl text-black">PHONE</Label>
+                          <Input
+                            placeholder="PHONE"
+                            value={formData.phone}
+                            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                            className="h-14 border-4 border-black rounded-none font-bebas text-3xl focus-visible:ring-0"
+                            required
+                          />
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmPassword" className="text-zinc-300 font-medium text-sm">Confirm Password <span className="text-red-500">*</span></Label>
-                        <div className="relative group">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 group-focus-within:text-red-500 transition-colors" />
-                          <Input
-                            id="confirmPassword"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Confirm password"
-                            value={formData.confirmPassword}
-                            onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                            className="pl-10 pr-10 h-12 sm:h-11 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-red-500 focus:ring-red-500/20 text-base sm:text-sm placeholder:text-zinc-600"
+
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <Label className="font-bebas text-2xl text-black">ADDRESS</Label>
+                          <Textarea
+                            placeholder="ADDRESS"
+                            value={formData.address}
+                            onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                            className="min-h-[105px] border-4 border-black rounded-none font-bebas text-3xl focus-visible:ring-0 resize-none"
                             required
                           />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-red-500 transition-colors p-1"
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="font-bebas text-2xl text-black">PASS</Label>
+                            <Input
+                              type="password"
+                              placeholder="PASS"
+                              value={formData.password}
+                              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                              className="h-14 border-4 border-black rounded-none font-bebas text-3xl focus-visible:ring-0"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="font-bebas text-2xl text-black">CONFIRM</Label>
+                            <Input
+                              type="password"
+                              placeholder="CONFIRM"
+                              value={formData.confirmPassword}
+                              onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                              className="h-14 border-4 border-black rounded-none font-bebas text-3xl focus-visible:ring-0"
+                              required
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <Button
-                      type="submit"
-                      className="w-full h-12 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white rounded-xl font-semibold shadow-lg shadow-red-600/30 transition-all hover:shadow-xl hover:shadow-red-600/40"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                        />
-                      ) : (
-                        <>
-                          Create Account
-                          <ArrowRight className="h-5 w-5 ml-2" />
-                        </>
-                      )}
-                    </Button>
-
-                    {/* Divider */}
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-zinc-700" />
-                      </div>
-                      <div className="relative flex justify-center text-sm">
-                        <span className="px-4 bg-zinc-900/80 text-zinc-500">or sign up with</span>
+                    <div className="pt-2">
+                      <Button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full h-16 bg-[#008A45] text-white rounded-none font-bebas text-5xl tracking-widest hover:bg-black border-4 border-black shadow-[8px_8px_0px_0px_rgba(255,210,0,1)] hover:shadow-none transition-all"
+                      >
+                        {isLoading ? "..." : "JOIN THE CREW"}
+                      </Button>
+                      
+                      <div className="mt-4 p-3 bg-black/5 border-2 border-dashed border-black/20 text-center">
+                        <p className="font-bebas text-sm text-black/60 tracking-widest leading-none">
+                          BY JOINING, YOU AGREE TO OUR{" "}
+                          <Link href="/terms" className="text-[#ED1C24] hover:underline font-bold">TERMS</Link>
+                          {" "} & {" "}
+                          <Link href="/privacy" className="text-[#ED1C24] hover:underline font-bold">PRIVACY POLICY</Link>
+                        </p>
                       </div>
                     </div>
-
-                    {/* Google Sign Up */}
-                    <GoogleSignInButton 
-                      type="register"
-                      disabled={isLoading}
-                    />
                   </motion.form>
                 )}
 
-                {/* Employee Activation */}
-                {flow === 'employee-activate' && (
-                  <motion.form
-                    key="activate"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    onSubmit={handleValidateLicense}
-                    className="space-y-5"
-                  >
-                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                      <p className="text-emerald-400 text-sm">
-                        <strong>Hi {userCheck?.name || 'there'}!</strong> You need to activate your employee account. 
-                        Enter the license ID sent to your email.
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-zinc-300 font-medium">Email</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500" />
-                        <Input
-                          type="email"
-                          value={formData.email}
-                          disabled
-                          className="pl-12 h-12 bg-zinc-800/30 border-zinc-700 text-zinc-500 rounded-xl"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="licenseId" className="text-zinc-300 font-medium">Employee License ID</Label>
-                      <div className="relative group">
-                        <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500 group-focus-within:text-emerald-500 transition-colors" />
-                        <Input
-                          id="licenseId"
-                          placeholder="LIC-XXXX-XXXX-XXXX"
-                          value={formData.licenseId}
-                          onChange={(e) => setFormData(prev => ({ ...prev, licenseId: e.target.value.toUpperCase() }))}
-                          className="pl-12 h-12 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20 uppercase font-mono placeholder:text-zinc-600"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full h-12 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white rounded-xl font-semibold shadow-lg shadow-emerald-600/30 transition-all hover:shadow-xl"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                        />
-                      ) : (
-                        <>
-                          Validate License
-                          <ArrowRight className="h-5 w-5 ml-2" />
-                        </>
-                      )}
-                    </Button>
-                  </motion.form>
-                )}
-
-                {/* OTP Verification */}
                 {flow === 'otp-verify' && (
                   <motion.form
                     key="otp"
@@ -1572,186 +988,48 @@ export default function UnifiedAuth() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     onSubmit={handleVerifyOTP}
-                    className="space-y-5"
+                    className="space-y-6"
                   >
-                    <div className="space-y-2">
-                      <Label htmlFor="otp" className="text-zinc-300 font-medium">Verification Code</Label>
-                      <div className="relative group">
-                        <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500 group-focus-within:text-red-500 transition-colors" />
-                        <Input
-                          id="otp"
-                          placeholder="Enter 6-digit code"
-                          value={otp}
-                          onChange={(e) => setOtp(e.target.value)}
-                          className="pl-12 h-14 bg-zinc-800/50 border-zinc-700 text-white rounded-xl text-center text-2xl tracking-[0.5em] font-mono focus:border-red-500 focus:ring-red-500/20 placeholder:text-zinc-600 placeholder:text-base placeholder:tracking-normal"
-                          maxLength={6}
-                          required
-                        />
-                      </div>
-                      <p className="text-xs text-zinc-500 text-center">
-                        Code sent to {formData.email}
-                      </p>
+                    <div className="space-y-2 text-center">
+                      <Label className="font-bebas text-2xl text-black">THE MAGIC CODE</Label>
+                      <Input
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        className="h-20 border-8 border-black rounded-none font-bebas text-5xl text-center tracking-[0.3em] focus-visible:ring-0"
+                        maxLength={6}
+                        required
+                      />
+                      <p className="font-source-sans text-sm font-bold text-black/40 uppercase mt-2">SENT TO {formData.email}</p>
                     </div>
-
-                    {/* Password fields for employee activation */}
-                    {userCheck?.isEmployee && userCheck?.needsActivation && (
-                      <>
-                        <div className="space-y-2">
-                          <Label htmlFor="newPassword" className="text-zinc-300 font-medium">Create Password</Label>
-                          <div className="relative group">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500 group-focus-within:text-emerald-500 transition-colors" />
-                            <Input
-                              id="newPassword"
-                              type={showPassword ? "text" : "password"}
-                              placeholder="Create a strong password"
-                              value={formData.password}
-                              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                              className="pl-12 pr-12 h-14 sm:h-12 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20 placeholder:text-zinc-600 text-base"
-                              required
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-emerald-500 transition-colors p-1"
-                            >
-                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="confirmNewPassword" className="text-zinc-300 font-medium">Confirm Password</Label>
-                          <div className="relative group">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500 group-focus-within:text-emerald-500 transition-colors" />
-                            <Input
-                              id="confirmNewPassword"
-                              type={showPassword ? "text" : "password"}
-                              placeholder="Confirm your password"
-                              value={formData.confirmPassword}
-                              onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                              className="pl-12 pr-12 h-14 sm:h-12 bg-zinc-800/50 border-zinc-700 text-white rounded-xl focus:border-emerald-500 focus:ring-emerald-500/20 placeholder:text-zinc-600 text-base"
-                              required
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-emerald-500 transition-colors p-1"
-                            >
-                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                          </div>
-                        </div>
-                      </>
-                    )}
 
                     <Button
                       type="submit"
-                      className={`w-full h-12 ${
-                        userCheck?.isEmployee 
-                          ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-emerald-600/30' 
-                          : 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-red-600/30'
-                      } text-white rounded-xl font-semibold shadow-lg transition-all hover:shadow-xl`}
                       disabled={isLoading}
+                      className="w-full h-16 bg-[#ED1C24] text-white rounded-none font-bebas text-3xl tracking-widest hover:bg-black border-2 border-black shadow-[6px_6px_0px_0px_rgba(255,210,0,1)]"
                     >
-                      {isLoading ? (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                        />
-                      ) : (
-                        <>
-                          {userCheck?.isEmployee && userCheck?.needsActivation ? "Activate Account" : "Verify & Continue"}
-                          <ArrowRight className="h-5 w-5 ml-2" />
-                        </>
-                      )}
+                      {isLoading ? "CHECKING..." : "CONFIRM"}
                     </Button>
                   </motion.form>
                 )}
 
-                {/* Success */}
                 {flow === 'success' && (
-                  <motion.div
+                   <motion.div
                     key="success"
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="text-center py-8"
                   >
-                    <motion.div 
-                      className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl ${
-                        userCheck?.isEmployee && userCheck?.needsActivation 
-                          ? 'bg-gradient-to-br from-red-500 to-orange-500 shadow-red-500/30' 
-                          : 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/30'
-                      }`}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                    >
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.2 }}
-                      >
-                        {userCheck?.isEmployee && userCheck?.needsActivation ? (
-                          <BadgeCheck className="h-12 w-12 text-white" />
-                        ) : (
-                          <Sparkles className="h-12 w-12 text-white" />
-                        )}
-                      </motion.div>
-                    </motion.div>
-                    <motion.h2 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className={`text-3xl font-bebas bg-clip-text text-transparent mb-3 ${
-                        userCheck?.isEmployee && userCheck?.needsActivation
-                          ? 'bg-gradient-to-r from-red-400 to-orange-400'
-                          : 'bg-gradient-to-r from-emerald-400 to-emerald-500'
-                      }`}
-                    >
-                      {userCheck?.isEmployee && userCheck?.needsActivation 
-                        ? "🎉 Account Activated!" 
-                        : userCheck?.isEmployee 
-                          ? "Welcome Back!" 
-                          : "Welcome to ZOIRO Broast!"}
-                    </motion.h2>
-                    <motion.p 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.4 }}
-                      className="text-zinc-500"
-                    >
-                      {userCheck?.isEmployee && userCheck?.needsActivation 
-                        ? "Your portal is ready. Redirecting to dashboard..."
-                        : "Redirecting you now..."}
-                    </motion.p>
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: "100%" }}
-                      transition={{ delay: 0.5, duration: userCheck?.isEmployee && userCheck?.needsActivation ? 2.5 : 1 }}
-                      className={`h-1 rounded-full mt-6 mx-auto max-w-[200px] ${
-                        userCheck?.isEmployee && userCheck?.needsActivation
-                          ? 'bg-gradient-to-r from-red-500 to-orange-400'
-                          : 'bg-gradient-to-r from-emerald-500 to-emerald-400'
-                      }`}
-                    />
+                    <div className="w-24 h-24 bg-[#008A45] border-4 border-black shadow-[8px_8px_0px_0px_rgba(255,210,0,1)] flex items-center justify-center mx-auto mb-6 transform -rotate-3">
+                      <CheckCircle2 className="w-16 h-16 text-white" />
+                    </div>
+                    <h3 className="font-bebas text-5xl text-black leading-none mb-2">YOU'RE IN!</h3>
+                    <p className="font-caveat text-3xl text-[#ED1C24]">Welcome to the Fifth Avenue squad.</p>
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.div>
-
-            {/* Footer */}
-            <motion.p 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="text-center text-zinc-600 text-sm mt-6"
-            >
-              By continuing, you agree to our{" "}
-              <Link href="/terms" className="text-red-500 hover:text-red-400 hover:underline transition-colors">Terms</Link>
-              {" "}and{" "}
-              <Link href="/privacy" className="text-red-500 hover:text-red-400 hover:underline transition-colors">Privacy Policy</Link>
-            </motion.p>
+            </div>
           </motion.div>
+
         </div>
       </div>
 

@@ -1,931 +1,179 @@
 "use client";
 
-import { motion, useScroll, useTransform, useMotionValue, useSpring, AnimatePresence } from "framer-motion";
-import Link from "next/link";
+import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
-import { ArrowRight, Star, Sparkles, ChefHat, Timer, Flame, Utensils, Award } from "lucide-react";
+import Link from "next/link";
+import { Phone, ArrowRight, Sparkles, Zap, Utensils } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRef, useState, useEffect } from "react";
-import { isMobile, prefersReducedMotion } from "@/lib/utils";
 
-// 4K Unsplash images - fried chicken and fast food theme
-const heroBroast = "https://images.unsplash.com/photo-1562967914-608f82629710?w=1920&h=1080&fit=crop&q=80";
-const chickenPiece = "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=600&h=600&fit=crop&q=80";
-const chickenBurger = "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=600&fit=crop&q=80";
-const fries = "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&h=600&fit=crop&q=80";
-const wings = "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=600&h=600&fit=crop&q=80";
-const drink = "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=600&h=600&fit=crop&q=80";
-
-// Pre-computed sparkle positions to avoid hydration mismatch
-const SPARKLE_RIGHT_POSITIONS = [
-  { top: 25, right: 18, duration: 2.3 },
-  { top: 42, right: 8, duration: 2.7 },
-  { top: 58, right: 22, duration: 2.1 },
-  { top: 35, right: 12, duration: 2.9 },
-  { top: 70, right: 25, duration: 2.4 },
-  { top: 48, right: 5, duration: 2.6 },
-  { top: 62, right: 28, duration: 2.2 },
-  { top: 30, right: 15, duration: 2.8 },
-];
-
-const SPARKLE_LEFT_POSITIONS = [
-  { top: 28, left: 5 },
-  { top: 45, left: 12 },
-  { top: 65, left: 8 },
-  { top: 38, left: 3 },
-  { top: 55, left: 14 },
-];
-
-// Text animation variants
-const letterVariants = {
-  hidden: { opacity: 0, y: 50, rotateX: -90 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    rotateX: 0,
-    transition: {
-      delay: i * 0.05,
-      duration: 0.5,
-      ease: [0.6, -0.05, 0.01, 0.99],
-    },
-  }),
-};
-
-const floatingBadgeVariants = {
-  initial: { scale: 0, rotate: -180 },
-  animate: { 
-    scale: 1, 
-    rotate: 0,
-    transition: { type: "spring" as const, stiffness: 200, damping: 15 }
-  },
-  hover: { scale: 1.1, rotate: 5 }
-};
+const HERO_PIZZA = "/assets/premium-hero-pizza.png";
 
 export default function Hero() {
-  const containerRef = useRef<HTMLElement>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [currentWord, setCurrentWord] = useState(0);
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
-  const [reduceMotion, setReduceMotion] = useState(false);
-  const [isLowEndDevice, setIsLowEndDevice] = useState(false);
-  const words = ["SAUCY", "JUICY", "CRISPY"];
-  const punchline = "Saucy. Juicy. Crispy.";
+  const containerRef = useRef(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-  // Mouse tracking for 3D effect
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const smoothMouseX = useSpring(mouseX, { stiffness: 50, damping: 20 });
-  const smoothMouseY = useSpring(mouseY, { stiffness: 50, damping: 20 });
-
-  // Detect low-end devices using performance API and memory info
-  const detectLowEndDevice = () => {
-    if (typeof window === 'undefined') return false;
-    
-    // Check device memory if available (Chrome/Edge)
-    const deviceMemory = (navigator as any).deviceMemory;
-    if (deviceMemory && deviceMemory <= 2) return true;
-    
-    // Check if device is slow using performance observer
-    if ('PerformanceObserver' in window) {
-      try {
-        const observer = new PerformanceObserver((list) => {
-          const entries = list.getEntries();
-          // If paint timing is high, device is likely slow
-          if (entries.some((e) => e.duration > 100)) {
-            setIsLowEndDevice(true);
-          }
-        });
-        observer.observe({ entryTypes: ['paint', 'navigation'] });
-      } catch (e) {
-        // Silently fail if not supported
-      }
-    }
-    
-    return isMobile();
-  };
-
-  useEffect(() => {
-    setIsLoaded(true);
-    setIsMobileDevice(isMobile());
-    setReduceMotion(prefersReducedMotion());
-    setIsLowEndDevice(detectLowEndDevice());
-    
-    const interval = setInterval(() => {
-      setCurrentWord((prev) => (prev + 1) % words.length);
-    }, 2500);
-    
-    const handleResize = () => {
-      setIsMobileDevice(isMobile());
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isMobileDevice) return; // Skip mouse tracking on mobile
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      const { clientX, clientY } = e;
-      const { innerWidth, innerHeight } = window;
-      mouseX.set((clientX - innerWidth / 2) / 50);
-      mouseY.set((clientY - innerHeight / 2) / 50);
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [isMobileDevice]);
-  
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
   });
 
-  // Parallax transforms - only for background, not floating items
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
-  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.1]);
-  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
-  const contentOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const springConfig = { stiffness: 100, damping: 30, restDelta: 0.001 };
+  const y = useSpring(useTransform(scrollYProgress, [0, 1], [0, 300]), springConfig);
+  const rotate = useSpring(useTransform(scrollYProgress, [0, 1], [0, 90]), springConfig);
+  const scale = useSpring(useTransform(scrollYProgress, [0, 1], [1, 1.2]), springConfig);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({
+        x: (e.clientX / window.innerWidth - 0.5) * 20,
+        y: (e.clientY / window.innerHeight - 0.5) * 20,
+      });
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
 
   return (
-    <section ref={containerRef} className="relative min-h-screen flex items-center overflow-hidden pt-20" style={{ position: 'relative' }}>
-      {/* Background Image with Parallax */}
-      <motion.div 
-        className="absolute inset-0 z-0 bg-zinc-900"
-        style={{ y: bgY, scale: bgScale }}
-      >
-        <img
-          src={heroBroast}
-          alt="Zoiro Broast Vehari - Best Crispy Broast Chicken"
-          className="w-full h-full object-cover object-center opacity-70"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
-        />
-        {/* Darker gradient on left for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-foreground/95 via-foreground/85 to-foreground/70" />
-        {/* Bottom gradient for smooth transition */}
-        <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-transparent" />
-      </motion.div>
+    <section ref={containerRef} className="relative min-h-[100vh] lg:min-h-[120vh] flex flex-col items-center justify-center overflow-hidden bg-[#111111]">
 
-      {/* Parallax Decorative Layers - Disabled on low-end devices */}
-      {!isLowEndDevice && !reduceMotion && (
-        <div className="absolute inset-0 z-[1] pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
-        </div>
-      )}
-
-      {/* Floating Food Elements with Parallax - Simplified on mobile */}
-      <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden">
-        
-        {/* ===== LEFT SIDE FLOATING ITEMS ===== */}
-        
-        {/* Burger - Top Left Corner */}
-        <motion.div
-          className="absolute top-24 left-[3%] hidden lg:block"
-          initial={{ opacity: 0, x: -100, scale: 0.5 }}
-          animate={{ opacity: 1, x: 0, scale: 1 }}
-          transition={{ duration: isMobileDevice ? 0.3 : 1, delay: 0.6, type: "spring" }}
-          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
-        >
-          <motion.img
-            src={chickenBurger}
-            alt=""
-            className="w-28 xl:w-36 drop-shadow-2xl"
-            animate={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
-              y: [0, -15, 0],
-              rotate: [-5, 5, -5]
-            } : {}}
-            transition={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
-              y: { duration: 6, repeat: Infinity, ease: "easeInOut" },
-              rotate: { duration: 8, repeat: Infinity, ease: "easeInOut" }
-            } : {}}
-          />
-          {/* Glow Effect - Disabled on low-end devices */}
-          {!isLowEndDevice && !reduceMotion && (
-            <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl -z-10 scale-150" />
-          )}
-        </motion.div>
-
-        {/* Fries - Left Middle */}
-        <motion.div
-          className="absolute top-1/2 left-[2%] -translate-y-1/2 hidden md:block"
-          initial={{ opacity: 0, x: -80, rotate: -20 }}
-          animate={{ opacity: 1, x: 0, rotate: 0 }}
-          transition={{ duration: isMobileDevice ? 0.3 : 0.8, delay: 0.8 }}
-          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
-        >
-          <motion.img
-            src={fries}
-            alt=""
-            className="w-20 lg:w-28 xl:w-32 drop-shadow-2xl"
-            animate={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
-              rotate: [-10, 10, -10],
-              scale: [1, 1.05, 1]
-            } : {}}
-            transition={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
-              rotate: { duration: 6, repeat: Infinity, ease: "easeInOut" },
-              scale: { duration: 5, repeat: Infinity, ease: "easeInOut" }
-            } : {}}
-          />
-        </motion.div>
-
-        {/* Drink - Bottom Left Corner */}
-        <motion.div
-          className="absolute bottom-24 left-[5%] hidden lg:block"
-          initial={{ opacity: 0, y: 50, scale: 0.5 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.8, delay: 1 }}
-          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
-        >
-          <motion.img
-            src={drink}
-            alt=""
-            className="w-20 xl:w-28 drop-shadow-2xl"
-            animate={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
-              y: [0, -10, 0],
-              rotate: [0, 5, 0]
-            } : {}}
-            transition={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
-              duration: 6,
-              repeat: Infinity,
-              ease: "easeInOut"
-            } : {}}
-          />
-        </motion.div>
-
-        {/* ===== RIGHT SIDE FLOATING ITEMS ===== */}
-        
-        {/* Main Chicken Piece - Top Right */}
-        <motion.div
-          className="absolute top-16 sm:top-20 right-[8%] sm:right-[10%]"
-          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
-        >
-          <motion.img
-            src={chickenPiece}
-            alt=""
-            className="w-28 sm:w-40 lg:w-52 xl:w-64 drop-shadow-2xl"
-            initial={{ opacity: 0, y: -50, rotate: -15, scale: 0.8 }}
-            animate={{ 
-              opacity: 1, 
-              y: !isMobileDevice && !reduceMotion && !isLowEndDevice ? [0, -20, 0] : 0, 
-              rotate: !isMobileDevice && !reduceMotion && !isLowEndDevice ? [-15, -5, -15] : -15,
-              scale: 1
-            }}
-            transition={{ 
-              opacity: { duration: 0.8, delay: 0.5 },
-              y: !isMobileDevice && !reduceMotion && !isLowEndDevice ? { duration: 6, repeat: Infinity, ease: "easeInOut" } : undefined,
-              rotate: !isMobileDevice && !reduceMotion && !isLowEndDevice ? { duration: 7, repeat: Infinity, ease: "easeInOut" } : undefined,
-              scale: { duration: 0.8, delay: 0.5 }
-            }}
-          />
-          {/* Animated ring around main chicken */}
-          {!isMobileDevice && !reduceMotion && !isLowEndDevice && (
-            <motion.div
-              className="absolute inset-0 border-2 border-dashed border-primary/30 rounded-full scale-150"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            />
-          )}
-        </motion.div>
-
-        {/* Wings - Right Middle */}
-        <motion.img
-          src={wings}
-          alt=""
-          className="absolute top-[35%] right-[3%] sm:right-[5%] w-24 sm:w-32 lg:w-44 xl:w-52 drop-shadow-2xl"
-          initial={{ opacity: 0, x: 50, rotate: 10 }}
-          animate={{ 
-            opacity: 1, 
-            x: !isMobileDevice && !reduceMotion && !isLowEndDevice ? [0, -15, 0] : 0,
-            rotate: !isMobileDevice && !reduceMotion && !isLowEndDevice ? [10, -5, 10] : 10
-          }}
-          transition={{ 
-            opacity: { duration: 0.8, delay: 0.7 },
-            x: !isMobileDevice && !reduceMotion && !isLowEndDevice ? { duration: 6, repeat: Infinity, ease: "easeInOut" } : undefined,
-            rotate: !isMobileDevice && !reduceMotion && !isLowEndDevice ? { duration: 7, repeat: Infinity, ease: "easeInOut" } : undefined
-          }}
-          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
-        />
-
-        {/* Fries - Bottom Right */}
-        <motion.img
-          src={fries}
-          alt=""
-          className="absolute bottom-28 sm:bottom-32 right-[12%] sm:right-[15%] w-20 sm:w-28 lg:w-36 drop-shadow-2xl"
-          initial={{ opacity: 0, y: 50, rotate: 5 }}
-          animate={{ 
-            opacity: 1, 
-            rotate: !isMobileDevice && !reduceMotion && !isLowEndDevice ? [5, -5, 5] : 5,
-            y: !isMobileDevice && !reduceMotion && !isLowEndDevice ? [0, -10, 0] : 0
-          }}
-          transition={{ 
-            opacity: { duration: 0.8, delay: 0.9 },
-            rotate: !isMobileDevice && !reduceMotion && !isLowEndDevice ? { duration: 6, repeat: Infinity, ease: "easeInOut" } : undefined,
-            y: !isMobileDevice && !reduceMotion && !isLowEndDevice ? { duration: 5, repeat: Infinity, ease: "easeInOut" } : undefined
-          }}
-          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
-        />
-
-        {/* Drink - Far Right */}
-        <motion.img
-          src={drink}
-          alt=""
-          className="absolute bottom-[20%] right-[1%] sm:right-[2%] w-16 sm:w-24 lg:w-32 drop-shadow-2xl hidden sm:block"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
-            opacity: 1, 
-            scale: [1, 1.08, 1],
-            y: [0, -8, 0]
-          } : { opacity: 1 }}
-          transition={!isMobileDevice && !reduceMotion && !isLowEndDevice ? { 
-            opacity: { duration: 0.8, delay: 1.1 },
-            scale: { duration: 7, repeat: Infinity, ease: "easeInOut" },
-            y: { duration: 6, repeat: Infinity, ease: "easeInOut" }
-          } : { duration: 0.3, delay: 0.3 }}
-          style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
-        />
-
-        {/* Extra Burger - Bottom Right - Hidden on mobile */}
-        {!isMobileDevice && !reduceMotion && !isLowEndDevice && (
-          <motion.div
-            className="absolute bottom-16 right-[25%] hidden xl:block"
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 0.8, scale: 1 }}
-            transition={{ duration: 0.8, delay: 1.3 }}
-            style={{ willChange: 'transform' }}
-          >
-            <motion.img
-              src={chickenBurger}
-              alt=""
-              className="w-24 drop-shadow-xl opacity-80"
-              animate={{ 
-                rotate: [0, -10, 0],
-                y: [0, 10, 0]
-              }}
-              transition={{ 
-                duration: 7,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-          </motion.div>
-        )}
-
-        {/* ===== SPARKLE & PARTICLE EFFECTS - Only on desktop, disabled on low-end ===== */}
-        
-        {/* Primary Sparkles - Right Side */}
-        {!isMobileDevice && !reduceMotion && !isLowEndDevice && SPARKLE_RIGHT_POSITIONS.map((pos, i) => (
-          <motion.div
-            key={`sparkle-right-${i}`}
-            className="absolute w-1.5 sm:w-2 h-1.5 sm:h-2 bg-primary rounded-full"
-            style={{
-              top: `${pos.top}%`,
-              right: `${pos.right}%`,
-              willChange: 'opacity, transform'
-            }}
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ 
-              opacity: [0, 1, 0], 
-              scale: [0, 1.5, 0] 
-            }}
-            transition={{ 
-              duration: pos.duration,
-              repeat: Infinity,
-              delay: i * 0.3,
-              ease: "easeInOut"
-            }}
-          />
-        ))}
-
-        {/* Secondary Sparkles - Left Side */}
-        {!isMobileDevice && !reduceMotion && !isLowEndDevice && SPARKLE_LEFT_POSITIONS.map((pos, i) => (
-          <motion.div
-            key={`sparkle-left-${i}`}
-            className="absolute w-1 sm:w-1.5 h-1 sm:h-1.5 bg-accent rounded-full hidden lg:block"
-            style={{
-              top: `${pos.top}%`,
-              left: `${pos.left}%`,
-              willChange: 'opacity, transform'
-            }}
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ 
-              opacity: [0, 0.8, 0], 
-              scale: [0, 1.2, 0] 
-            }}
-            transition={{ 
-              duration: 3,
-              repeat: Infinity,
-              delay: i * 0.5,
-              ease: "easeInOut"
-            }}
-          />
-        ))}
-
-        {/* Floating Circles/Orbs - Only on desktop */}
-        {!isMobileDevice && !reduceMotion && !isLowEndDevice && (
-          <>
-            <motion.div
-              className="absolute top-1/4 right-1/4 w-4 h-4 bg-primary/30 rounded-full blur-sm hidden md:block"
-              animate={{ 
-                y: [0, -30, 0],
-                x: [0, 15, 0],
-                scale: [1, 1.5, 1],
-                opacity: [0.3, 0.6, 0.3]
-              }}
-              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-              style={{ willChange: 'transform' }}
-            />
-            <motion.div
-              className="absolute bottom-1/3 right-1/3 w-3 h-3 bg-accent/40 rounded-full blur-sm hidden md:block"
-              animate={{ 
-                y: [0, 20, 0],
-                x: [0, -10, 0],
-                scale: [1, 1.3, 1],
-                opacity: [0.4, 0.7, 0.4]
-              }}
-              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              style={{ willChange: 'transform' }}
-            />
-            <motion.div
-              className="absolute top-1/3 left-[10%] w-3 h-3 bg-primary/20 rounded-full blur-sm hidden lg:block"
-              animate={{ 
-                y: [0, -20, 0],
-                scale: [1, 1.4, 1],
-                opacity: [0.2, 0.5, 0.2]
-              }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-              style={{ willChange: 'transform' }}
-            />
-          </>
-        )}
-
-        {/* ===== PULSING GLOW EFFECTS ===== */}
-        {!isLowEndDevice && !reduceMotion && (
-          <>
-            <motion.div
-              className="absolute top-1/3 left-[5%] w-40 h-40 bg-primary/10 rounded-full blur-3xl hidden lg:block pointer-events-none"
-              animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              style={{ willChange: 'transform' }}
-            />
-            <motion.div
-              className="absolute bottom-1/4 right-[30%] w-60 h-60 bg-accent/5 rounded-full blur-3xl hidden lg:block pointer-events-none"
-              animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              style={{ willChange: 'transform' }}
-            />
-          </>
-        )}
+      {/* Dynamic Background Layer */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-[#FFD200]" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 85%)" }} />
+        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
       </div>
 
-      {/* Content with Parallax - Simplified on mobile */}
-      <motion.div 
-        className="container-custom relative z-10 pt-16 sm:pt-20 lg:pt-24"
-        style={isMobileDevice || reduceMotion ? {} : { y: contentY, opacity: contentOpacity, x: smoothMouseX, rotateY: smoothMouseX }}
-      >
-        <div className="max-w-2xl px-2 sm:px-0">
-          {/* Animated Badge */}
-          <motion.div
-            variants={floatingBadgeVariants}
-            initial="initial"
-            animate="animate"
-            whileHover={isMobileDevice ? undefined : "hover"}
-            className="inline-flex items-center gap-2 bg-primary/20 backdrop-blur-md border border-primary/30 rounded-full px-3 sm:px-4 py-1.5 sm:py-2 mb-4 sm:mb-6 cursor-pointer"
-          >
-            {!isMobileDevice && !reduceMotion && !isLowEndDevice ? (
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                style={{ willChange: 'transform' }}
-              >
-                <Star className="h-3 w-3 sm:h-4 sm:w-4 text-accent fill-accent" />
-              </motion.div>
-            ) : (
-              <Star className="h-3 w-3 sm:h-4 sm:w-4 text-accent fill-accent" />
-            )}
-            <span className="text-primary-foreground text-xs sm:text-sm font-medium">
-              #1 Broast in Vehari City
-            </span>
-            <Sparkles className={`h-3 w-3 sm:h-4 sm:w-4 text-accent ${!isMobileDevice && !reduceMotion && !isLowEndDevice ? 'animate-pulse' : ''}`} />
-          </motion.div>
+      <div className="container-custom relative z-10 w-full px-6 flex flex-col items-center justify-center pt-24 lg:pt-0">
 
-          {/* Logo and Brand Section */}
-          <div className="flex items-center gap-4 mb-4 sm:mb-6">
+        {/* Mobile-First Layout: Vertical Stack */}
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-20 w-full">
+
+          {/* Main Visual Core */}
+          <div className="relative order-1 lg:order-2">
+            {/* The Vertical "Road" Strap - DESKTOP ONLY */}
             <motion.div
-              initial={{ opacity: 0, scale: isMobileDevice ? 1 : 0, rotate: isMobileDevice ? 0 : -180 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              transition={isMobileDevice || reduceMotion ? { duration: 0.2 } : { 
-                type: "spring", 
-                stiffness: 200, 
-                damping: 15,
-                delay: 0.2 
-              }}
-              whileHover={isMobileDevice ? undefined : { scale: 1.1, rotate: 5 }}
-              className="relative"
+              style={{ y: y }}
+              className="absolute top-[-100vh] bottom-[-100vh] left-1/2 -translate-x-1/2 w-32 md:w-48 lg:w-80 bg-[#111111] z-0 shadow-2xl hidden lg:block"
+            />
+
+            {/* Pizza Core with Kinetic Rotation */}
+            <motion.div
+              style={{ scale, x: mousePos.x, y: mousePos.y }}
+              className="relative z-10 w-64 h-64 sm:w-80 sm:h-80 lg:w-[550px] lg:h-[550px]"
             >
-              <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 relative">
-                <Image 
-                  src="/assets/zoiro-logo.png" 
-                  alt="ZOIRO Injected Broast Logo"
+              {/* Outer Decorative Rings - DESKTOP ONLY */}
+              <div className="absolute inset-[-10px] lg:inset-[-20px] border-[5px] lg:border-[10px] border-black rounded-full z-0 hidden lg:block" />
+              <div className="absolute inset-[-20px] lg:inset-[-40px] border-[1px] lg:border-[2px] border-dashed border-black/30 rounded-full animate-spin-slow hidden lg:block" />
+
+              <div className="relative w-full h-full rounded-full border-[10px] lg:border-[30px] border-[#111111] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)] lg:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.7)] overflow-hidden bg-white">
+                <Image
+                  src={HERO_PIZZA}
+                  alt="Fifth Avenue Core"
                   fill
-                  sizes="112px"
-                  className="object-cover"
                   priority
+                  className="object-cover"
                 />
               </div>
-              {/* Animated ring around logo - only on desktop */}
-              {!isMobileDevice && !reduceMotion && (
-                <motion.div
-                  className="absolute -inset-2 border-2 border-dashed border-primary/40 rounded-3xl"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                />
-              )}
-            </motion.div>
-          </div>
 
-          {/* Animated Heading with Letter-by-Letter Animation */}
-          <div className="overflow-hidden mb-2 sm:mb-4">
-            <motion.h1
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bebas text-primary-foreground leading-[0.9] sm:leading-tight"
-            >
-              <motion.span 
-                className="text-primary inline-block"
-                initial={{ opacity: 0, x: isMobileDevice ? 0 : -100, rotateY: isMobileDevice ? 0 : -90 }}
-                animate={{ 
-                  opacity: 1, 
-                  x: 0, 
-                  rotateY: 0
-                }}
-                transition={isMobileDevice || reduceMotion ? { duration: 0.2 } : { 
-                  duration: 0.8, 
-                  ease: [0.6, -0.05, 0.01, 0.99]
-                }}
-              >
-                ZOIRO
-              </motion.span>
-              <br />
-              <motion.span
-                className="inline-block text-2xl sm:text-3xl md:text-4xl lg:text-5xl"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: isMobileDevice ? 0.1 : 0.5, duration: isMobileDevice ? 0.15 : 0.5 }}
-              >
-                INJECTED BROAST
-              </motion.span>
-            </motion.h1>
-          </div>
-
-          {/* Animated Punchline - Saucy. Juicy. Crispy. - Static on mobile */}
-          <motion.div
-            className="mb-4 sm:mb-6 overflow-hidden relative"
-            initial={{ opacity: 0, y: isMobileDevice ? 5 : 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: isMobileDevice ? 0.15 : 0.6, delay: isMobileDevice ? 0.1 : 0.3 }}
-          >
-            <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-              {isMobileDevice || reduceMotion ? (
-                // Static version for mobile
-                ["Saucy", "Juicy", "Crispy"].map((word, index) => (
-                  <span
-                    key={word}
-                    className={`punch-word punch-word-${word.toLowerCase()} text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl`}
-                  >
-                    {word}<span className="punch-dot">.</span>
-                  </span>
-                ))
-              ) : (
-                // Animated version for desktop
-                ["Saucy", "Juicy", "Crispy"].map((word, index) => (
-                  <motion.span
-                    key={word}
-                    className={`punch-word punch-word-${word.toLowerCase()} text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl`}
-                    initial={{ opacity: 0, y: 30, scale: 0.5 }}
-                    animate={{ 
-                      opacity: [0, 1, 1, 0],
-                      y: [30, 0, 0, -20],
-                      scale: [0.5, 1, 1, 0.8],
-                    }}
-                    transition={{ 
-                      duration: 3,
-                      delay: index * 1,
-                      repeat: Infinity,
-                      repeatDelay: 6,
-                      times: [0, 0.15, 0.85, 1],
-                      ease: "easeInOut"
-                    }}
-                  >
-                    {word}<span className="punch-dot">.</span>
-                  </motion.span>
-                ))
-              )}
-            </div>
-            
-            {/* Animated underline */}
-            <motion.div
-              className="h-1 sm:h-1.5 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 rounded-full mt-3"
-              initial={{ scaleX: 0, originX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: isMobileDevice ? 0.3 : 1, delay: isMobileDevice ? 0.1 : 0.8, ease: "easeOut" }}
-              style={{ maxWidth: "350px" }}
-            />
-          </motion.div>
-
-          {/* Subtitle with Staggered Animation */}
-          <motion.p
-            initial={{ opacity: 0, y: isMobileDevice ? 10 : 30, filter: isMobileDevice ? "blur(0px)" : "blur(10px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ duration: isMobileDevice ? 0.15 : 0.6, delay: isMobileDevice ? 0.15 : 0.4 }}
-            className="text-sm sm:text-base md:text-lg lg:text-xl text-primary-foreground/80 mb-6 sm:mb-8 max-w-lg leading-relaxed"
-          >
-            Experience the perfect crunch. Zoiro Broast Vehari&apos;s signature chicken is marinated with
-            secret spices and cooked to golden perfection. Best broast in Vehari, delivered fast.
-            {isMobileDevice || reduceMotion ? (
-              <span className="text-primary font-semibold"> Taste the difference.</span>
-            ) : (
-              <motion.span 
-                className="text-primary font-semibold"
-                animate={{ opacity: [1, 0.5, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                {" "}Taste the difference.
-              </motion.span>
-            )}
-          </motion.p>
-
-          {/* CTA Buttons with Enhanced Animation */}
-          <motion.div
-            initial={{ opacity: 0, y: isMobileDevice ? 10 : 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: isMobileDevice ? 0.15 : 0.6, delay: isMobileDevice ? 0.2 : 0.5 }}
-            className="flex flex-col sm:flex-row gap-3 sm:gap-4"
-          >
-            <Link href="/menu" className="w-full sm:w-auto">
+              {/* Dynamic "Urban Craft" Badge - DESKTOP ONLY */}
               <motion.div
-                whileHover={isMobileDevice ? undefined : { scale: 1.05 }}
-                whileTap={isMobileDevice ? undefined : { scale: 0.95 }}
-                className="relative overflow-hidden"
-              >
-                <Button className="btn-zoiro w-full sm:w-auto group relative overflow-hidden">
-                  {!isMobileDevice && !reduceMotion && (
-                    <motion.span
-                      className="absolute inset-0 bg-white/20"
-                      initial={{ x: "-100%", skewX: -15 }}
-                      whileHover={{ x: "100%" }}
-                      transition={{ duration: 0.5 }}
-                    />
-                  )}
-                  <Flame className={`h-4 w-4 sm:h-5 sm:w-5 mr-1 ${!isMobileDevice && !reduceMotion ? 'animate-pulse' : ''}`} />
-                  Order Now
-                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 transition-transform group-hover:translate-x-2" />
-                </Button>
-              </motion.div>
-            </Link>
-            <Link href="/menu" className="w-full sm:w-auto">
-              <motion.div whileHover={isMobileDevice ? undefined : { scale: 1.05 }} whileTap={isMobileDevice ? undefined : { scale: 0.95 }}>
-                <Button variant="outline" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 font-semibold text-lg rounded-full transition-all duration-300 bg-transparent border-2 border-white text-white hover:bg-white hover:text-foreground">
-                  <ChefHat className="h-4 w-4 sm:h-5 sm:w-5 mr-1" />
-                  View Menu
-                </Button>
-              </motion.div>
-            </Link>
-          </motion.div>
-
-          {/* Enhanced Stats with Counter Animation */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="grid grid-cols-3 gap-4 sm:gap-8 mt-8 sm:mt-12"
-          >
-            {[
-              { value: "5000+", label: "Happy Customers", icon: "😊" },
-              { value: "4.9", label: "Average Rating", icon: "⭐" },
-              { value: "30 min", label: "Fast Delivery", icon: "🚀" },
-            ].map((stat, index) => (
-              <motion.div
-                key={index}
-                className="text-center sm:text-left group cursor-pointer"
-                initial={{ opacity: 0, scale: 0.5 }}
+                initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.7 + index * 0.1, type: "spring" }}
-                whileHover={{ scale: 1.1, y: -5 }}
+                className="absolute top-0 right-[-10px] lg:top-[-20px] lg:right-[-30px] z-30 hidden lg:block"
               >
-                <motion.p 
-                  className="text-xl sm:text-2xl md:text-3xl font-bebas text-primary flex items-center justify-center sm:justify-start gap-1"
-                  animate={{ textShadow: ["0 0 0px hsl(var(--primary))", "0 0 20px hsl(var(--primary))", "0 0 0px hsl(var(--primary))"] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: index * 0.3 }}
-                >
-                  <span className="text-lg sm:text-xl">{stat.icon}</span>
-                  {stat.value}
-                </motion.p>
-                <p className="text-[10px] sm:text-xs md:text-sm text-primary-foreground/70 group-hover:text-primary-foreground transition-colors">
-                  {stat.label}
-                </p>
+                <div className="relative group">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                    className="w-24 h-24 lg:w-36 lg:h-36 rounded-full border-2 border-dashed border-black/30 flex items-center justify-center p-2"
+                  >
+                    <svg viewBox="0 0 100 100" className="w-full h-full">
+                      <path id="circlePath" d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" fill="none" />
+                      <text className="font-bebas text-[12px] lg:text-[14px] uppercase tracking-[0.2em] fill-black">
+                        <textPath xlinkHref="#circlePath">
+                          • URBAN CRAFT • PREMIUM QUALITY • STREET STYLE •
+                        </textPath>
+                      </text>
+                    </svg>
+                  </motion.div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="bg-black text-[#FFD200] p-3 lg:p-4 rounded-full shadow-xl border-2 border-white">
+                      <Sparkles className="w-4 h-4 lg:w-6 lg:h-6 fill-[#FFD200]" />
+                    </div>
+                  </div>
+                </div>
               </motion.div>
-            ))}
-          </motion.div>
 
-          {/* Quick Features Row - Mobile optimized */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="flex flex-wrap gap-2 sm:gap-4 mt-6 sm:mt-8"
-          >
-            {[
-              { icon: Timer, text: "Fresh Made" },
-              { icon: Flame, text: "Hot & Spicy" },
-              { icon: ChefHat, text: "Chef's Special" },
-            ].map((feature, index) => (
+              {/* Branding Disc - DESKTOP ONLY */}
               <motion.div
-                key={index}
-                className="flex items-center gap-1 sm:gap-2 bg-white/10 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1 sm:py-1.5"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.2 + index * 0.1 }}
-                whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.2)" }}
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                className="absolute -bottom-4 -left-4 lg:-bottom-10 lg:-left-10 w-24 h-24 lg:w-56 lg:h-56 bg-[#FFD200] rounded-full border-4 lg:border-8 border-black flex items-center justify-center shadow-2xl z-20 hidden lg:flex"
               >
-                <feature.icon className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
-                <span className="text-[10px] sm:text-xs text-primary-foreground/80">{feature.text}</span>
+                <div className="flex flex-col items-center p-2 lg:p-4 text-center">
+                  <span className="font-bebas text-[10px] lg:text-3xl text-black leading-none">FIFTH AVENUE</span>
+                  <div className="w-full h-0.5 bg-black my-1 lg:my-2" />
+                  <span className="font-caveat text-[8px] lg:text-lg text-black font-bold uppercase">Chasing Flavours</span>
+                </div>
               </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </motion.div>
-
-      {/* ===== ADVANCED CORNER DECORATIONS - Disabled on low-end ===== */}
-      
-      {/* Top Left Corner */}
-      {!isLowEndDevice && (
-        <motion.div
-          className="absolute top-16 left-4 hidden md:block"
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 1, duration: 0.5 }}
-        >
-          <div className="relative">
-            <div className="w-24 h-24 lg:w-32 lg:h-32 border-l-2 border-t-2 border-primary/40" />
-            <motion.div
-              className="absolute top-0 left-0 w-3 h-3 bg-primary rounded-full"
-              animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              style={{ willChange: 'transform' }}
-            />
-          </div>
-        </motion.div>
-      )}
-
-      {/* Top Right Corner */}
-      {!isLowEndDevice && (
-        <motion.div
-          className="absolute top-16 right-4 hidden lg:block"
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 1.1, duration: 0.5 }}
-        >
-          <div className="relative">
-            <div className="w-24 h-24 border-r-2 border-t-2 border-accent/30" />
-            <motion.div
-              className="absolute top-0 right-0 w-2 h-2 bg-accent rounded-full"
-              animate={{ scale: [1, 1.3, 1] }}
-              transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-              style={{ willChange: 'transform' }}
-            />
-          </div>
-        </motion.div>
-      )}
-
-      {/* Bottom Left Corner */}
-      {!isLowEndDevice && (
-        <motion.div
-          className="absolute bottom-16 left-4 hidden lg:block"
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 1.2, duration: 0.5 }}
-        >
-          <div className="relative">
-            <div className="w-20 h-20 border-l-2 border-b-2 border-accent/30" />
-            <motion.div
-              className="absolute bottom-0 left-0 w-2 h-2 bg-accent rounded-full"
-              animate={{ scale: [1, 1.3, 1] }}
-              transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}
-              style={{ willChange: 'transform' }}
-            />
-          </div>
-        </motion.div>
-      )}
-
-      {/* Bottom Right Corner */}
-      {!isLowEndDevice && (
-        <motion.div
-          className="absolute bottom-16 right-4 hidden md:block"
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 1.3, duration: 0.5 }}
-        >
-          <div className="relative">
-            <div className="w-28 h-28 lg:w-36 lg:h-36 border-r-2 border-b-2 border-primary/40" />
-            <motion.div
-              className="absolute bottom-0 right-0 w-3 h-3 bg-primary rounded-full"
-              animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
-              transition={{ duration: 3, repeat: Infinity, delay: 0.7 }}
-              style={{ willChange: 'transform' }}
-            />
-          </div>
-        </motion.div>
-      )}
-
-      {/* ===== ANIMATED LINES - Disabled on low-end ===== */}
-      {!isLowEndDevice && (
-        <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none z-[2] hidden lg:block" preserveAspectRatio="none">
-          <motion.path
-            d="M0,20 L15,20"
-            stroke="hsl(var(--primary))"
-            strokeWidth="0.3"
-            strokeOpacity="0.3"
-            fill="none"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 1 }}
-          />
-          <motion.path
-            d="M85,80 L100,80"
-            stroke="hsl(var(--primary))"
-            strokeWidth="0.3"
-            strokeOpacity="0.3"
-            fill="none"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 2, delay: 1.2 }}
-          />
-        </svg>
-      )}
-
-      {/* ===== FLOATING AWARD BADGE - Disabled on low-end ===== */}
-      {!isLowEndDevice && (
-        <motion.div
-          className="absolute top-28 left-8 hidden xl:flex items-center gap-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-full px-4 py-2 z-[6]"
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 1.5, type: "spring" }}
-          whileHover={{ scale: 1.05 }}
-        >
-          <motion.div
-            animate={{ rotate: [0, 10, -10, 0] }}
-            transition={{ duration: 3, repeat: Infinity }}
-            style={{ willChange: 'transform' }}
-          >
-            <Award className="h-6 w-6 text-accent" />
-          </motion.div>
-          <div>
-            <p className="text-white text-xs font-semibold">Premium Quality</p>
-            <p className="text-white/60 text-[10px]">Since 2020</p>
-          </div>
-        </motion.div>
-      )}
-
-      {/* ===== ROTATING CIRCLE DECORATION - Disabled on low-end ===== */}
-      {!isLowEndDevice && (
-        <motion.div
-          className="absolute top-1/4 left-[8%] w-32 h-32 hidden xl:block pointer-events-none"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 35, repeat: Infinity, ease: "linear" }}
-          style={{ willChange: 'transform' }}
-        >
-          <div className="w-full h-full border border-dashed border-white/10 rounded-full" />
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-primary/50 rounded-full" />
-        </motion.div>
-      )}
-
-      {/* ===== FOOD ICON TRAIL - Left Side - Disabled on low-end ===== */}
-      {!isLowEndDevice && (
-        <div className="absolute left-6 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-6 z-[6]">
-          {["🍗", "🍔", "🍟", "🥤"].map((emoji, index) => (
-            <motion.div
-              key={index}
-              className="w-10 h-10 bg-white/5 backdrop-blur-sm rounded-full flex items-center justify-center text-lg border border-white/10"
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 1.5 + index * 0.15 }}
-              whileHover={{ scale: 1.2, backgroundColor: "rgba(255,255,255,0.15)" }}
-              style={{ willChange: isLowEndDevice ? 'auto' : 'transform' }}
-            >
-              <motion.span
-                animate={{ y: [0, -3, 0] }}
-                transition={{ duration: 2.5, repeat: Infinity, delay: index * 0.2 }}
-              >
-                {emoji}
-              </motion.span>
             </motion.div>
-          ))}
+          </div>
+
+          {/* Typography Content */}
+          <div className="flex flex-col items-center lg:items-start text-center lg:text-left order-2 lg:order-1 max-w-2xl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-black text-[#FFD200] px-4 py-1 font-bebas text-sm md:text-xl mb-4 lg:mb-8 border-l-4 border-white inline-block"
+            >
+              PREMIUM STREET FOOD
+            </motion.div>
+
+            <div className="relative mb-8 lg:mb-12">
+              <h1 className="font-bebas text-[5.5rem] sm:text-[7rem] lg:text-[10rem] leading-[0.75] text-black tracking-[0.05em] lg:tracking-tighter uppercase">
+                FIFTH <br />
+                <span className="text-white drop-shadow-[4px_4px_0px_rgba(0,0,0,1)] lg:drop-shadow-[8px_8px_0px_rgba(0,0,0,1)]">AVENUE</span>
+              </h1>
+              <motion.span
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="font-caveat text-4xl sm:text-5xl lg:text-7xl text-[#ED1C24] absolute bottom-[-64px] right-[-15px] lg:bottom-[-56px] lg:right-[-200px] whitespace-nowrap drop-shadow-lg z-20 rotate-[-5deg] lg:rotate-0"
+              >
+                Chasing Flavours
+              </motion.span>
+            </div>
+
+            <p className="font-source-sans text-lg lg:text-2xl font-bold text-black/60 mb-8 lg:mb-12 uppercase tracking-tighter">
+              Vehari's Original <span className="text-black">Pizza Watch</span> Engine.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-6 lg:gap-10 w-full sm:w-auto">
+              <Link href="/menu" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto h-16 lg:h-24 px-10 lg:px-16 bg-black text-white rounded-none font-bebas text-2xl lg:text-4xl tracking-widest hover:bg-white hover:text-black transition-all border-4 border-black shadow-[10px_10px_0px_0px_rgba(255,210,0,1)] group">
+                  ORDER NOW
+                  <ArrowRight className="ml-3 lg:ml-4 w-6 lg:w-8 h-6 lg:h-8 group-hover:translate-x-2 transition-transform" />
+                </Button>
+              </Link>
+
+              <div className="flex flex-col items-center lg:items-start">
+                <span className="font-bebas text-xs lg:text-sm text-black/40 tracking-widest uppercase">The Squad Hotline</span>
+                <div className="font-bebas text-xl lg:text-3xl text-black leading-tight">
+                  0304-1116617 <br />
+                  0330-2506617
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
-      )}
+      </div>
+
+      {/* Decorative Branding Line - DESKTOP ONLY */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 opacity-10 hidden md:flex">
+        <div className="h-px w-20 bg-black" />
+        <p className="font-bebas text-xl tracking-[0.5em] text-black">FIFTH AVENUE PIZZA — CHASING FLAVOURS</p>
+        <div className="h-px w-20 bg-black" />
+      </div>
     </section>
   );
 }

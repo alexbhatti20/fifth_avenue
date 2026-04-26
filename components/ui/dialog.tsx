@@ -41,13 +41,13 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         // Base styles - no animations
-        "fixed z-50 grid w-full gap-4 border bg-background shadow-2xl",
+        "fixed z-50 grid w-full gap-4 border-8 border-black bg-white shadow-[20px_20px_0px_0px_rgba(0,0,0,1)]",
         // Mobile: Bottom sheet style
-        "inset-x-0 bottom-0 rounded-t-[20px] p-4 pb-8",
-        "max-h-[92vh] overflow-y-auto",
+        "inset-x-0 bottom-0 rounded-none p-6 pb-8",
+        "max-h-[95vh] overflow-y-auto",
         // Desktop: Centered modal
         "sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]",
-        "sm:rounded-xl sm:p-6 sm:pb-6 sm:max-h-[85vh]",
+        "sm:rounded-none sm:p-8 sm:max-w-xl",
         className,
       )}
       {...props}
@@ -56,8 +56,8 @@ const DialogContent = React.forwardRef<
       <div className="mx-auto w-12 h-1.5 bg-muted-foreground/30 rounded-full mb-2 sm:hidden" />
       {children}
       {showCloseButton && (
-        <DialogPrimitive.Close className="absolute right-3 top-3 sm:right-4 sm:top-4 h-8 w-8 sm:h-6 sm:w-6 rounded-full bg-muted/80 flex items-center justify-center opacity-70 ring-offset-background transition-all hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-          <X className="h-4 w-4" />
+        <DialogPrimitive.Close className="absolute right-4 top-4 h-10 w-10 bg-black text-white border-2 border-white flex items-center justify-center opacity-70 transition-all hover:opacity-100 hover:bg-[#ED1C24] focus:outline-none">
+          <X className="h-6 h-6" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
       )}
@@ -82,7 +82,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+    className={cn("text-5xl font-bebas leading-none tracking-tight text-black uppercase", className)}
     {...props}
   />
 ));
@@ -92,7 +92,7 @@ const DialogDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
+  <DialogPrimitive.Description ref={ref} className={cn("text-lg font-source-sans font-bold text-black/60 uppercase", className)} {...props} />
 ));
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 

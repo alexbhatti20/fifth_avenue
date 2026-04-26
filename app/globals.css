@@ -4,29 +4,29 @@
 
 @layer base {
   :root {
-    /* ZOIRO Brand Colors */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 8%;
+    /* Fifth Avenue Brand Colors */
+    --background: 0 0% 100%; /* #FFFFFF */
+    --foreground: 0 0% 10%; /* #1A1A1A */
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 8%;
+    --card-foreground: 0 0% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 8%;
+    --popover-foreground: 0 0% 10%;
 
-    /* Zoiro Red - Primary Brand Color */
-    --primary: 352 82% 47%;
-    --primary-foreground: 0 0% 100%;
+    /* Fifth Avenue Yellow - Primary */
+    --primary: 49 100% 50%; /* #FFD200 */
+    --primary-foreground: 0 0% 0%;
 
-    /* Light Gray - Secondary */
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 8%;
+    /* Fifth Avenue Green - Secondary */
+    --secondary: 150 100% 27%; /* #008A45 */
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
 
-    /* Golden Accent for highlights */
-    --accent: 38 92% 50%;
+    /* Fifth Avenue Red - Accent */
+    --accent: 359 84% 53%; /* #ED1C24 */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -34,37 +34,24 @@
 
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 352 82% 47%;
+    --ring: 49 100% 50%;
 
-    --radius: 0.75rem;
+    --radius: 1rem; /* More modern, slightly less rounded than botanical */
 
-    /* Custom brand tokens */
-    --zoiro-red: 352 82% 47%;
-    --zoiro-red-dark: 352 82% 38%;
-    --zoiro-red-light: 352 82% 95%;
-    --zoiro-gold: 38 92% 50%;
-    --zoiro-black: 0 0% 8%;
-    --zoiro-cream: 40 33% 96%;
+    /* Custom Fifth Avenue tokens */
+    --fifth-yellow: 49 100% 50%;
+    --fifth-green: 150 100% 27%;
+    --fifth-red: 359 84% 53%;
+    --fifth-black: 0 0% 0%;
 
-    /* Gradients */
-    --gradient-hero: linear-gradient(135deg, hsl(352, 82%, 47%) 0%, hsl(352, 82%, 35%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(40, 33%, 98%) 100%);
-    --gradient-dark: linear-gradient(180deg, hsl(0, 0%, 8%) 0%, hsl(0, 0%, 15%) 100%);
-
-    /* Shadows */
-    --shadow-sm: 0 2px 8px -2px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 8px 24px -8px hsl(0 0% 0% / 0.15);
-    --shadow-lg: 0 16px 48px -16px hsl(0 0% 0% / 0.2);
-    --shadow-glow: 0 0 40px -10px hsl(352 82% 47% / 0.4);
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 10%;
+    --sidebar-primary: 49 100% 50%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 150 100% 27%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 49 100% 50%;
   }
 
   .dark {
@@ -105,6 +92,83 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  .fa-landing-theme {
+    --background: 44 100% 90%;
+    --foreground: 0 0% 7%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7%;
+
+    --primary: 48 100% 48%;
+    --primary-foreground: 0 0% 7%;
+
+    --secondary: 0 0% 9%;
+    --secondary-foreground: 50 100% 50%;
+
+    --muted: 46 85% 85%;
+    --muted-foreground: 0 0% 24%;
+
+    --accent: 35 100% 47%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 75% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 14%;
+    --input: 0 0% 78%;
+    --ring: 48 100% 48%;
+
+    --zoiro-red: 48 100% 48%;
+    --zoiro-black: 0 0% 7%;
+    --zoiro-cream: 44 100% 90%;
+
+    --gradient-hero: linear-gradient(135deg, #ffd200 0%, #f4c400 50%, #eab308 100%);
+    --gradient-card: linear-gradient(180deg, #fff4cc 0%, #ffffff 100%);
+    --gradient-dark: linear-gradient(180deg, #111111 0%, #1e1e1e 100%);
+
+    --shadow-glow: 0 0 40px -10px hsl(48 100% 48% / 0.45);
+  }
+
+  .dark .fa-landing-theme {
+    --background: 0 0% 8%;
+    --foreground: 44 100% 92%;
+
+    --card: 0 0% 11%;
+    --card-foreground: 44 100% 92%;
+
+    --popover: 0 0% 11%;
+    --popover-foreground: 44 100% 92%;
+
+    --primary: 50 100% 52%;
+    --primary-foreground: 0 0% 7%;
+
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 50 100% 52%;
+
+    --muted: 0 0% 18%;
+    --muted-foreground: 44 20% 78%;
+
+    --accent: 35 100% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 28%;
+    --input: 0 0% 25%;
+    --ring: 50 100% 52%;
+
+    --zoiro-red: 50 100% 52%;
+    --zoiro-red-dark: 0 0% 10%;
+    --zoiro-red-light: 0 0% 15%;
+    --zoiro-gold: 50 100% 52%;
+    --zoiro-black: 0 0% 92%;
+    --zoiro-cream: 0 0% 12%;
+  }
 }
 
 @layer base {
@@ -113,15 +177,16 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', sans-serif;
+    @apply bg-background text-foreground antialiased font-source-sans;
     letter-spacing: 0.01em;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Bebas Neue', sans-serif;
-    letter-spacing: 0.05em;
-    word-spacing: 0.1em;
+    @apply font-bebas tracking-wide uppercase;
+  }
+
+  .tagline {
+    @apply font-caveat text-accent;
   }
 }
 
@@ -135,91 +200,62 @@
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--primary)));
     background-size: 200% auto;
-    animation: gradient-shift 3s ease infinite;
+    animation: gradient-shift 4s ease infinite;
   }
 
-  /* Portal Heading Styles - Red to Black Animated Gradient */
-  .portal-heading {
-    @apply bg-clip-text text-transparent font-bold;
-    background-image: linear-gradient(
-      90deg,
-      #dc2626 0%,
-      #1f1f1f 25%,
-      #dc2626 50%,
-      #1f1f1f 75%,
-      #dc2626 100%
+  /* Fifth Avenue Utilities */
+  .fa-heading {
+    @apply font-bebas font-bold text-foreground leading-tight;
+  }
+
+  .urban-image {
+    @apply border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden;
+  }
+
+  .block-button {
+    @apply rounded-none px-8 py-4 font-bebas text-xl tracking-widest transition-all duration-300 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)];
+  }
+
+  .fa-hero-stripe {
+    background: repeating-linear-gradient(
+      135deg,
+      #111111 0 14px,
+      #1e1e1e 14px 28px
     );
-    background-size: 200% auto;
-    animation: portal-gradient 4s linear infinite;
-    font-family: 'Inter', sans-serif;
-    letter-spacing: 0.03em;
+    box-shadow: inset 0 0 0 1px rgba(255, 210, 0, 0.24);
   }
 
-  .portal-heading-static {
-    @apply bg-clip-text text-transparent font-semibold;
-    background-image: linear-gradient(135deg, #dc2626 0%, #450a0a 100%);
-    font-family: 'Inter', sans-serif;
-    letter-spacing: 0.02em;
+  .fa-light-glow {
+    background: radial-gradient(circle, rgba(255, 244, 204, 0.95) 0%, rgba(255, 244, 204, 0.4) 35%, rgba(255, 244, 204, 0) 72%);
+    animation: fa-light-drift 10s ease-in-out infinite;
+    mix-blend-mode: screen;
   }
 
-  /* Portal Card Title */
-  .portal-card-title {
-    @apply bg-clip-text text-transparent font-semibold;
-    background-image: linear-gradient(90deg, #ef4444, #18181b, #ef4444);
-    background-size: 200% auto;
-    animation: portal-gradient 3s ease infinite;
+  .fa-order-chip {
+    background: #111111;
+    color: #ffd200;
+    border: 2px solid #ffd200;
+    box-shadow: 0 12px 30px -15px rgba(0, 0, 0, 0.6);
   }
 
-  /* Punchline words - Saucy. Juicy. Crispy. - LOOPED APPEAR ANIMATION */
-  .punch-word {
-    @apply font-bebas tracking-wider;
-    color: #ff4500;
+  .fa-cta-primary {
+    @apply inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full font-semibold;
+    @apply bg-primary text-primary-foreground border-2 border-foreground;
+    box-shadow: 0 12px 24px -14px rgba(17, 17, 17, 0.8);
   }
 
-  .punch-word-saucy {
-    color: #ff0000;
+  .fa-cta-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px -16px rgba(17, 17, 17, 0.85);
   }
 
-  .punch-word-juicy {
-    color: #ff6600;
+  .fa-cta-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full font-semibold;
+    @apply bg-foreground text-primary border-2 border-primary;
   }
 
-  .punch-word-crispy {
-    color: #ffaa00;
-  }
-
-  .punch-dot {
-    color: #ff4500;
-    opacity: 0.7;
-  }
-
-  /* Fire underline animation */
-  .fire-underline {
-    background: linear-gradient(
-      90deg,
-      #ff0000,
-      #ff4500,
-      #ffa500,
-      #ffff00,
-      #ffa500,
-      #ff4500,
-      #ff0000
-    );
-    background-size: 200% 100%;
-    animation: fire-sweep 2s linear infinite;
-    box-shadow: 
-      0 0 10px rgba(255, 69, 0, 0.8),
-      0 0 20px rgba(255, 165, 0, 0.6),
-      0 0 30px rgba(255, 0, 0, 0.4);
-  }
-
-  @keyframes fire-sweep {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 200% 50%; }
-  }
-
-  .bg-zoiro-gradient {
-    background: var(--gradient-hero);
+  .fa-cta-secondary:hover {
+    @apply bg-black text-yellow-300;
   }
 
   .card-elevated {
@@ -258,7 +294,7 @@
   }
 
   .container-custom {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-12;
   }
 }
 
@@ -297,6 +333,28 @@
   }
   50% {
     background-position: 200% center;
+  }
+}
+
+@keyframes fa-gradient-flow {
+  0%,
+  100% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+}
+
+@keyframes fa-light-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translate3d(18px, -14px, 0) scale(1.12);
+    opacity: 1;
   }
 }
 
@@ -509,6 +567,13 @@
 .animate-gradient-x {
   background-size: 200% 100%;
   animation: gradient-x 3s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fa-hero-poster,
+  .fa-light-glow {
+    animation: none;
+  }
 }
 
 @keyframes gradient-x {

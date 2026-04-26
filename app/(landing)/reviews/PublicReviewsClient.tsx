@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback, useMemo, memo } from "react";
-import { motion, useInView, useScroll, useTransform } from "framer-motion";
+import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { 
   Star, 
   Quote, 
@@ -12,7 +12,11 @@ import {
   CheckCircle2,
   Loader2,
   Send,
-  Sparkles
+  Sparkles,
+  ArrowRight,
+  TrendingUp,
+  MapPin,
+  Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,6 +40,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { getAuthToken } from "@/lib/cookies";
 import { cn } from "@/lib/utils";
 import type { PublicReviewServer, ReviewStatsServer, PublicReviewsResponseServer } from "@/lib/server-queries";
+import Link from "next/link";
+import PageHero from "@/components/custom/PageHero";
+
+// ── Components ───────────────────────────────────────────────────────────────
 
 // Animated Counter Component
 function AnimatedCounter({ value, suffix = "", decimals = 0 }: { value: number; suffix?: string; decimals?: number }) {
@@ -69,33 +77,33 @@ function AnimatedCounter({ value, suffix = "", decimals = 0 }: { value: number; 
   );
 }
 
-// Rating Bar Component
+// Rating Bar Component - Urban Style
 function RatingBar({ rating, count, total, delay }: { rating: number; count: number; total: number; delay: number }) {
   const percentage = total > 0 ? (count / total) * 100 : 0;
   
   return (
     <motion.div 
-      className="flex items-center gap-3"
+      className="flex items-center gap-4"
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay }}
     >
-      <span className="text-sm font-medium w-3">{rating}</span>
-      <Star className="h-4 w-4 text-accent fill-accent" />
-      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+      <span className="font-bebas text-2xl w-4 text-black">{rating}</span>
+      <Star className="h-5 w-5 text-[#FFD200] fill-[#FFD200] stroke-black stroke-2" />
+      <div className="flex-1 h-4 bg-white border-2 border-black rounded-none overflow-hidden">
         <motion.div 
-          className="h-full bg-accent rounded-full"
+          className="h-full bg-[#008A45]"
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
           transition={{ delay: delay + 0.2, duration: 0.8, ease: "easeOut" }}
         />
       </div>
-      <span className="text-sm text-muted-foreground w-12 text-right">{count}</span>
+      <span className="font-bebas text-xl text-black/40 w-16 text-right">{count} VIBES</span>
     </motion.div>
   );
 }
 
-// Review Card Component
+// Review Card Component - Urban Style
 const ReviewCard = memo(function ReviewCard({ 
   review, 
   index, 
@@ -114,96 +122,99 @@ const ReviewCard = memo(function ReviewCard({
     const date = new Date(review.created_at);
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    if (days === 0) return "Today";
+    if (days === 0) return "Just Now";
     if (days === 1) return "Yesterday";
-    if (days < 7) return `${days} days ago`;
-    if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
-    if (days < 365) return `${Math.floor(days / 30)} months ago`;
-    return `${Math.floor(days / 365)} years ago`;
+    if (days < 7) return `${days} Days Ago`;
+    if (days < 30) return `${Math.floor(days / 7)} Weeks Ago`;
+    return `${Math.floor(days / 30)} Months Ago`;
   }, [review.created_at]);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50, scale: 0.9 }}
-      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-      transition={{ 
-        delay: index * 0.1,
-        type: "spring",
-        stiffness: 100,
-        damping: 15 
-      }}
-      className="bg-card rounded-2xl p-6 relative group shadow-lg hover:shadow-xl transition-all duration-300"
-      whileHover={{ y: -8, scale: 1.02 }}
+      initial={{ opacity: 0, y: 50, rotate: -2 }}
+      animate={isInView ? { opacity: 1, y: 0, rotate: 0 } : {}}
+      transition={{ delay: index * 0.05 }}
+      className="bg-white border-4 border-black p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] relative group hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all"
     >
-      {/* Quote icon */}
-      <Quote className="absolute top-4 right-4 h-8 w-8 text-primary/20 group-hover:text-primary/40 transition-colors" />
+      {/* Quote decoration */}
+      <div className="absolute -top-4 -right-4 bg-[#ED1C24] text-white p-3 border-4 border-black rotate-12">
+        <Quote className="h-6 w-6" />
+      </div>
       
       {/* Verified badge */}
       {review.is_verified && (
-        <Badge variant="secondary" className="absolute top-4 left-4 gap-1 text-xs">
-          <CheckCircle2 className="h-3 w-3" />
-          Verified
-        </Badge>
+        <div className="absolute -top-3 left-6 bg-[#008A45] text-white px-3 py-1 font-bebas text-sm border-2 border-black -rotate-2">
+           STREET VERIFIED
+        </div>
       )}
 
+      {/* Author Info */}
+      <div className="flex items-center gap-4 mb-6 border-b-2 border-black/5 pb-4">
+        <div className="w-14 h-14 bg-[#FFD200] border-4 border-black flex items-center justify-center font-bebas text-3xl shadow-[4px_4px_0px_0px_rgba(237,28,36,1)]">
+          {review.customer.initial}
+        </div>
+        <div>
+          <p className="font-bebas text-2xl text-black leading-none uppercase">{review.customer.name}</p>
+          <p className="font-source-sans text-xs font-black text-[#008A45] uppercase tracking-widest">{timeAgo}</p>
+        </div>
+      </div>
+
       {/* Rating */}
-      <div className="flex gap-1 mb-4 mt-6">
+      <div className="flex gap-1 mb-4">
         {[...Array(5)].map((_, i) => (
           <Star
             key={i}
             className={cn(
-              "h-4 w-4 transition-colors",
-              i < review.rating ? "text-accent fill-accent" : "text-muted-foreground/30"
+              "h-5 w-5 transition-colors",
+              i < review.rating ? "text-[#FFD200] fill-[#FFD200] stroke-black" : "text-black/10"
             )}
+            strokeWidth={2}
           />
         ))}
       </div>
 
       {/* Item/Meal badge */}
       {(review.item || review.meal) && (
-        <Badge variant="outline" className="mb-3 text-xs">
-          {review.item?.name || review.meal?.name}
-        </Badge>
+        <span className="inline-block bg-black text-white px-3 py-1 font-bebas text-sm mb-4 uppercase tracking-tighter">
+          TARGET: {review.item?.name || review.meal?.name}
+        </span>
       )}
 
       {/* Comment */}
-      <p className="text-foreground/90 mb-4 line-clamp-4">{review.comment}</p>
+      <p className="font-source-sans text-lg font-bold text-black/80 leading-snug italic mb-6">
+        "{review.comment}"
+      </p>
 
       {/* Admin Reply */}
       {review.admin_reply && (
-        <div className="mt-4 p-3 bg-muted/50 rounded-lg border-l-4 border-primary">
-          <p className="text-xs font-semibold text-primary mb-1">ZOIRO Response:</p>
-          <p className="text-sm text-muted-foreground">{review.admin_reply}</p>
+        <div className="mb-6 p-4 bg-[#FFD200]/10 border-l-8 border-[#ED1C24]">
+          <p className="font-bebas text-sm text-[#ED1C24] mb-1">FIFTH AVENUE SQUAD RESPONSE:</p>
+          <p className="font-source-sans text-sm font-bold text-black/70 italic">{review.admin_reply}</p>
         </div>
       )}
 
-      {/* Footer */}
-      <div className="flex items-center justify-between mt-4 pt-4 border-t">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-            {review.customer.initial}
-          </div>
-          <div>
-            <p className="font-medium text-sm">{review.customer.name}</p>
-            <p className="text-xs text-muted-foreground">{timeAgo}</p>
-          </div>
+      {/* Footer Actions */}
+      <div className="flex items-center justify-between pt-4 border-t-2 border-black/5">
+        <div className="flex items-center gap-2">
+           <span className="font-bebas text-sm text-black/40">LEVEL OF RESPECT:</span>
+           <span className="font-bebas text-xl text-black">{review.helpful_count}</span>
         </div>
         <Button
           variant="ghost"
           size="sm"
-          className="gap-1 text-muted-foreground hover:text-primary"
+          className="rounded-none hover:bg-black hover:text-white border-2 border-transparent hover:border-black transition-all"
           onClick={() => onHelpful(review.id)}
           disabled={helpfulLoading === review.id}
         >
-          <ThumbsUp className="h-4 w-4" />
-          <span className="text-xs">{review.helpful_count}</span>
+          <ThumbsUp className="h-4 w-4 mr-2" />
+          RESPECT
         </Button>
       </div>
     </motion.div>
   );
 });
 
-// Review Form Modal Component
+// Review Form Modal Component - Urban Style
 function ReviewFormModal({ 
   open, 
   onOpenChange, 
@@ -223,9 +234,7 @@ function ReviewFormModal({
   const [hoveredRating, setHoveredRating] = useState<number | null>(null);
 
   const handleSubmit = () => {
-    if (comment.trim().length < 10) {
-      return;
-    }
+    if (comment.trim().length < 10) return;
     onSubmit({ rating, comment: comment.trim(), review_type: reviewType });
     setComment("");
     setRating(5);
@@ -233,22 +242,22 @@ function ReviewFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Write a Review
-          </DialogTitle>
-          <DialogDescription>
-            Share your experience with others ({remainingReviews} reviews remaining today)
+      <DialogContent className="max-w-md border-[8px] border-black rounded-none bg-white p-8">
+        <DialogHeader className="text-center mb-6">
+          <div className="mx-auto w-20 h-20 bg-[#FFD200] border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center mb-6 transform -rotate-3">
+             <MessageSquare className="w-10 h-10 text-black" strokeWidth={3} />
+          </div>
+          <DialogTitle className="text-4xl font-bebas text-black mb-2">DROP THE TRUTH</DialogTitle>
+          <DialogDescription className="font-bold text-black/60 uppercase text-xs">
+            {remainingReviews} stories remaining today. Make them count.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Rating Selection */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Your Rating</label>
-            <div className="flex gap-2">
+        <div className="space-y-6">
+          {/* Rating */}
+          <div className="text-center">
+            <label className="font-bebas text-2xl text-black block mb-4">VIBE LEVEL</label>
+            <div className="flex justify-center gap-2">
               {[1, 2, 3, 4, 5].map((value) => (
                 <button
                   key={value}
@@ -256,14 +265,14 @@ function ReviewFormModal({
                   onMouseEnter={() => setHoveredRating(value)}
                   onMouseLeave={() => setHoveredRating(null)}
                   onClick={() => setRating(value)}
-                  className="p-1 transition-transform hover:scale-110"
+                  className="p-1 transition-transform hover:scale-125"
                 >
                   <Star
                     className={cn(
-                      "h-8 w-8 transition-colors",
+                      "h-10 w-10 transition-colors",
                       (hoveredRating !== null ? value <= hoveredRating : value <= rating)
-                        ? "text-accent fill-accent"
-                        : "text-muted-foreground/30"
+                        ? "text-[#FFD200] fill-[#FFD200] stroke-black stroke-2"
+                        : "text-black/10"
                     )}
                   />
                 </button>
@@ -272,52 +281,40 @@ function ReviewFormModal({
           </div>
 
           {/* Review Type */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Review Type</label>
+          <div className="space-y-2">
+            <label className="font-bebas text-xl text-black uppercase">WHAT'S THE WORD?</label>
             <Select value={reviewType} onValueChange={setReviewType}>
-              <SelectTrigger>
+              <SelectTrigger className="rounded-none border-4 border-black font-bebas text-xl h-14 focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="overall">Overall Experience</SelectItem>
-                <SelectItem value="service">Service</SelectItem>
-                <SelectItem value="delivery">Delivery</SelectItem>
-                <SelectItem value="food">Food Quality</SelectItem>
+              <SelectContent className="rounded-none border-4 border-black">
+                <SelectItem value="overall">OVERALL VIBE</SelectItem>
+                <SelectItem value="service">THE SQUAD SERVICE</SelectItem>
+                <SelectItem value="delivery">STREET DELIVERY</SelectItem>
+                <SelectItem value="food">FLAVOUR QUALITY</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Comment */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Your Review</label>
+          <div className="space-y-2">
+            <label className="font-bebas text-xl text-black uppercase">YOUR STORY</label>
             <Textarea
-              placeholder="Tell us about your experience (min 10 characters)..."
+              placeholder="Drop the truth (min 10 chars)..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              rows={4}
+              className="min-h-[120px] rounded-none border-4 border-black font-source-sans text-lg font-bold p-4 focus-visible:ring-0 focus-visible:bg-gray-50"
+              maxLength={500}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              {comment.length}/500 characters
-            </p>
           </div>
 
           {/* Submit */}
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || comment.trim().length < 10}
-            className="w-full"
+            className="w-full h-16 rounded-none bg-black text-white font-bebas text-3xl tracking-widest hover:bg-[#ED1C24] border-2 border-black shadow-[6px_6px_0px_0px_rgba(255,210,0,1)] hover:shadow-none"
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4 mr-2" />
-                Submit Review
-              </>
-            )}
+            {isSubmitting ? "SENDING..." : "SEND IT"}
           </Button>
         </div>
       </DialogContent>
@@ -325,73 +322,33 @@ function ReviewFormModal({
   );
 }
 
-// Props interface
-interface PublicReviewsClientProps {
-  initialData: PublicReviewsResponseServer;
-}
+// ── Main Page Component ──────────────────────────────────────────────────────
 
-// Container variants for animation
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
-};
-
-// Main Component
 export default function PublicReviewsClient({ initialData }: PublicReviewsClientProps) {
-  // State with SSR data
   const [reviews, setReviews] = useState<PublicReviewServer[]>(initialData.reviews);
   const [stats, setStats] = useState<ReviewStatsServer>(initialData.stats);
   const [hasMore, setHasMore] = useState(initialData.has_more);
-  const [offset, setOffset] = useState(20); // SSR fetched first 20
-  
-  // Loading states
+  const [offset, setOffset] = useState(20);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  
-  // Filters
   const [sortBy, setSortBy] = useState("recent");
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [filterType, setFilterType] = useState<string | null>(null);
-  const fetchedFiltersRef = useRef('recent|null|null'); // Track SSR filter combo
-  
-  // UI states
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [remainingReviews, setRemainingReviews] = useState(3);
   const [helpfulLoading, setHelpfulLoading] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  
   const { toast } = useToast();
   const { user: customer, isLoading: authLoading } = useAuth();
   
-  // Set mounted after hydration to avoid auth-dependent mismatch
   useEffect(() => { setMounted(true); }, []);
 
-  const ref = useRef(null);
-  const statsRef = useRef(null);
-  const containerRef = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-  const statsInView = useInView(statsRef, { once: true, margin: "-50px" });
+  const containerRef = useRef(null);
+  const isInView = useInView(containerRef, { once: true, margin: "-100px" });
 
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start end", "end start"],
-  });
-
-  const bgY = useTransform(scrollYProgress, [0, 1], [80, -80]);
-  const contentY = useTransform(scrollYProgress, [0, 1], [40, -40]);
-
-  // Fetch reviews (only when filters change from SSR defaults)
   const fetchReviews = useCallback(async (reset = false, forceRefresh = false) => {
-    const currentFilterKey = `${sortBy}|${filterRating}|${filterType}`;
-    
-    // Skip if this is the initial SSR data and we haven't changed filters (unless force refresh)
-    if (reset && !forceRefresh && fetchedFiltersRef.current === currentFilterKey) {
-      return;
-    }
-
     try {
       const newOffset = reset ? 0 : offset;
       if (reset) setLoading(true);
@@ -402,21 +359,10 @@ export default function PublicReviewsClient({ initialData }: PublicReviewsClient
         offset: newOffset.toString(),
         sort: sortBy,
       });
-      
       if (filterRating) params.set('min_rating', filterRating.toString());
       if (filterType) params.set('type', filterType);
 
       const res = await fetch(`/api/customer/reviews?${params}`);
-      
-      if (!res.ok) {
-        if (reset) {
-          setReviews([]);
-          setStats({ total_reviews: 0, average_rating: 0, five_star: 0, four_star: 0, three_star: 0, two_star: 0, one_star: 0 });
-          setHasMore(false);
-        }
-        return;
-      }
-      
       const data = await res.json();
       
       if (reset) {
@@ -424,41 +370,24 @@ export default function PublicReviewsClient({ initialData }: PublicReviewsClient
         setStats(data.stats);
         setHasMore(data.has_more);
         setOffset(20);
-        fetchedFiltersRef.current = currentFilterKey;
       } else {
         setReviews(prev => [...prev, ...(data.reviews || [])]);
-        setStats(data.stats);
         setHasMore(data.has_more);
         setOffset(newOffset + 20);
       }
     } catch (error) {
-      if (reset) {
-        setReviews([]);
-        setStats({ total_reviews: 0, average_rating: 0, five_star: 0, four_star: 0, three_star: 0, two_star: 0, one_star: 0 });
-        setHasMore(false);
-      }
+      console.error(error);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
   }, [offset, sortBy, filterRating, filterType]);
 
-  // Fetch when filters change (but skip initial SSR match)
   useEffect(() => {
-    fetchReviews(true);
-  }, [sortBy, filterRating, filterType]);
+    if (mounted) fetchReviews(true);
+  }, [sortBy, filterRating, filterType, mounted]);
 
-  // Submit review
-  const handleSubmitReview = async (data: { rating: number; comment: string; review_type: string }) => {
-    if (!customer) {
-      toast({
-        title: "Login Required",
-        description: "Please login to submit a review.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleSubmitReview = async (data: any) => {
     setIsSubmitting(true);
     try {
       const token = getAuthToken();
@@ -471,335 +400,218 @@ export default function PublicReviewsClient({ initialData }: PublicReviewsClient
         credentials: 'include',
         body: JSON.stringify(data),
       });
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(result.error || 'Failed to submit review');
-      }
-
-      toast({
-        title: "Review Submitted! 🎉",
-        description: "Thank you for sharing your experience.",
-      });
-
+      if (!res.ok) throw new Error('Failed');
+      toast({ title: "SENT IT!", description: "Your story is now part of the street." });
       setShowReviewModal(false);
-      setRemainingReviews(prev => Math.max(0, prev - 1));
-      
-      // Refresh reviews (force refresh to get new review)
       fetchReviews(true, true);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to submit review",
-        variant: "destructive",
-      });
+    } catch (error) {
+      toast({ title: "WHACK!", description: "Something went wrong. Try again.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handle helpful
-  const handleHelpful = async (reviewId: string) => {
-    setHelpfulLoading(reviewId);
+  const handleHelpful = async (id: string) => {
+    setHelpfulLoading(id);
     try {
       const token = getAuthToken();
-      const res = await fetch(`/api/customer/reviews/${reviewId}/helpful`, {
+      const res = await fetch(`/api/customer/reviews/${id}/helpful`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         credentials: 'include',
       });
-
       if (res.ok) {
-        setReviews(prev => 
-          prev.map(r => 
-            r.id === reviewId 
-              ? { ...r, helpful_count: r.helpful_count + 1 }
-              : r
-          )
-        );
+        setReviews(prev => prev.map(r => r.id === id ? { ...r, helpful_count: r.helpful_count + 1 } : r));
       }
-    } catch (error) {
-      // Silent fail
-    } finally {
-      setHelpfulLoading(null);
-    }
+    } catch {} finally { setHelpfulLoading(null); }
   };
 
   return (
-    <>
-      <div className="min-h-screen pt-24">
-      {/* Hero Section */}
-      <section className="py-16 bg-gradient-to-b from-primary/5 to-background relative overflow-hidden">
-        <motion.div 
-            className="absolute inset-0 pointer-events-none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1 }}
-          >
-            <div className="absolute top-10 left-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-10 right-10 w-40 h-40 bg-accent/10 rounded-full blur-3xl" />
-          </motion.div>
+    <main className="min-h-screen bg-white pt-[96px]">
+      <PageHero 
+        title="VEHARI" 
+        subtitle="NOW SERVING IN" 
+        accentText="The Squad Reckoning" 
+      />
 
-          <div className="container-custom relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center max-w-3xl mx-auto"
-            >
-              <Badge variant="secondary" className="mb-4">
-                <Star className="w-3 h-3 mr-1 fill-accent text-accent" />
-                Customer Reviews
-              </Badge>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bebas mb-4">
-                What Our Customers Say
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                Real reviews from real customers. Your feedback helps us serve you better.
-              </p>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Stats Section */}
-        <section ref={statsRef} className="py-12 border-b">
-          <div className="container-custom">
-            <motion.div 
-              className="grid grid-cols-2 md:grid-cols-4 gap-8"
-              initial="hidden"
-              animate={statsInView ? "visible" : "hidden"}
-              variants={containerVariants}
-            >
-              <motion.div className="text-center" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
-                <p className="text-4xl md:text-5xl font-bebas text-primary">
-                  {statsInView ? <AnimatedCounter value={stats?.total_reviews || 0} /> : '-'}
-                </p>
-                <p className="text-muted-foreground mt-1">Total Reviews</p>
-              </motion.div>
-              <motion.div className="text-center" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
-                <p className="text-4xl md:text-5xl font-bebas text-primary flex items-center justify-center gap-1">
-                  {statsInView ? (
-                    <AnimatedCounter value={stats?.average_rating || 0} decimals={1} />
-                  ) : '-'}
-                  <Star className="w-8 h-8 text-accent fill-accent" />
-                </p>
-                <p className="text-muted-foreground mt-1">Average Rating</p>
-              </motion.div>
-              <motion.div className="text-center" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
-                <p className="text-4xl md:text-5xl font-bebas text-primary">
-                  {statsInView ? (
-                    <AnimatedCounter value={stats?.five_star || 0} />
-                  ) : '-'}
-                </p>
-                <p className="text-muted-foreground mt-1">5-Star Reviews</p>
-              </motion.div>
-              <motion.div className="text-center" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
-                <p className="text-4xl md:text-5xl font-bebas text-primary">
-                  {statsInView && stats?.total_reviews > 0 ? (
-                    <AnimatedCounter 
-                      value={Math.round(((stats.four_star + stats.five_star) / stats.total_reviews) * 100)} 
-                      suffix="%" 
-                    />
-                  ) : '-'}
-                </p>
-                <p className="text-muted-foreground mt-1">Satisfaction</p>
-              </motion.div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Rating Distribution */}
-        {stats && stats.total_reviews > 0 && (
-          <section className="py-8 border-b">
-            <div className="container-custom max-w-md mx-auto">
-              <h3 className="text-lg font-semibold mb-4 text-center">Rating Distribution</h3>
-              <div className="space-y-2">
-                <RatingBar rating={5} count={stats.five_star} total={stats.total_reviews} delay={0} />
-                <RatingBar rating={4} count={stats.four_star} total={stats.total_reviews} delay={0.1} />
-                <RatingBar rating={3} count={stats.three_star} total={stats.total_reviews} delay={0.2} />
-                <RatingBar rating={2} count={stats.two_star} total={stats.total_reviews} delay={0.3} />
-                <RatingBar rating={1} count={stats.one_star} total={stats.total_reviews} delay={0.4} />
+      {/* Stats Hub */}
+      <section className="py-20 border-b-8 border-black">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-16 items-center">
+            {/* Main Score */}
+            <div className="bg-[#FFD200] border-8 border-black p-10 shadow-[15px_15px_0px_0px_rgba(0,0,0,1)] transform rotate-1">
+              <h3 className="font-bebas text-3xl text-black mb-4 tracking-widest">STREET CRED</h3>
+              <div className="flex items-end gap-2 mb-4">
+                <span className="font-bebas text-9xl leading-none text-black">
+                   <AnimatedCounter value={stats?.average_rating || 0} decimals={1} />
+                </span>
+                <Star className="w-16 h-16 mb-4 fill-black text-black" />
               </div>
+              <p className="font-bebas text-2xl text-black/60 uppercase">BASED ON {stats?.total_reviews || 0} REVIEWS</p>
             </div>
-          </section>
-        )}
 
-        {/* Filters */}
-        <section className="py-6 border-b sticky top-0 bg-background/95 backdrop-blur-sm z-20">
-          <div className="container-custom">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Filter:</span>
-                <Select 
-                  value={filterRating?.toString() || "all"} 
-                  onValueChange={(v) => setFilterRating(v === "all" ? null : parseInt(v))}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="All Ratings" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Ratings</SelectItem>
-                    <SelectItem value="5">5 Stars</SelectItem>
-                    <SelectItem value="4">4+ Stars</SelectItem>
-                    <SelectItem value="3">3+ Stars</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select 
-                  value={filterType || "all"} 
-                  onValueChange={(v) => setFilterType(v === "all" ? null : v)}
-                >
-                  <SelectTrigger className="w-36">
-                    <SelectValue placeholder="All Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="overall">Overall</SelectItem>
-                    <SelectItem value="service">Service</SelectItem>
-                    <SelectItem value="delivery">Delivery</SelectItem>
-                    <SelectItem value="item">Food</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* Bars */}
+            <div className="space-y-6">
+               <RatingBar rating={5} count={stats?.five_star || 0} total={stats?.total_reviews || 0} delay={0.1} />
+               <RatingBar rating={4} count={stats?.four_star || 0} total={stats?.total_reviews || 0} delay={0.2} />
+               <RatingBar rating={3} count={stats?.three_star || 0} total={stats?.total_reviews || 0} delay={0.3} />
+               <RatingBar rating={2} count={stats?.two_star || 0} total={stats?.total_reviews || 0} delay={0.4} />
+               <RatingBar rating={1} count={stats?.one_star || 0} total={stats?.total_reviews || 0} delay={0.5} />
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 gap-6">
+               <div className="bg-black text-white p-6 border-4 border-black">
+                  <TrendingUp className="w-8 h-8 text-[#FFD200] mb-4" />
+                  <p className="font-bebas text-5xl leading-none mb-1">98%</p>
+                  <p className="font-bebas text-sm text-white/50 tracking-widest">LOYAL FANS</p>
+               </div>
+               <div className="bg-[#ED1C24] text-white p-6 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                  <MapPin className="w-8 h-8 text-white mb-4" />
+                  <p className="font-bebas text-5xl leading-none mb-1">50+</p>
+                  <p className="font-bebas text-sm text-white/50 tracking-widest">STREETS FED</p>
+               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Control Bar */}
+      <section className="sticky top-20 z-40 bg-white/95 backdrop-blur-md border-b-4 border-black py-6">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2 bg-black text-white px-4 py-2">
+                <Filter className="w-4 h-4" />
+                <span className="font-bebas text-lg">FILTER</span>
               </div>
-              
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Sort by" />
+              <Select value={filterRating?.toString() || "all"} onValueChange={(v) => setFilterRating(v === "all" ? null : parseInt(v))}>
+                <SelectTrigger className="w-40 border-4 border-black rounded-none font-bebas text-lg h-12 focus:ring-0">
+                  <SelectValue placeholder="RATING" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recent">Most Recent</SelectItem>
-                  <SelectItem value="rating_high">Highest Rated</SelectItem>
-                  <SelectItem value="rating_low">Lowest Rated</SelectItem>
-                  <SelectItem value="helpful">Most Helpful</SelectItem>
+                <SelectContent className="rounded-none border-4 border-black">
+                  <SelectItem value="all">ALL RATINGS</SelectItem>
+                  <SelectItem value="5">5 STARS ONLY</SelectItem>
+                  <SelectItem value="4">4+ STARS</SelectItem>
+                  <SelectItem value="3">3+ STARS</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterType || "all"} onValueChange={(v) => setFilterType(v === "all" ? null : v)}>
+                <SelectTrigger className="w-40 border-4 border-black rounded-none font-bebas text-lg h-12 focus:ring-0">
+                  <SelectValue placeholder="TYPE" />
+                </SelectTrigger>
+                <SelectContent className="rounded-none border-4 border-black">
+                  <SelectItem value="all">ALL TYPES</SelectItem>
+                  <SelectItem value="overall">OVERALL</SelectItem>
+                  <SelectItem value="service">SERVICE</SelectItem>
+                  <SelectItem value="delivery">DELIVERY</SelectItem>
+                  <SelectItem value="food">FLAVOURS</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="flex items-center gap-4">
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-48 border-4 border-black rounded-none font-bebas text-lg h-12 focus:ring-0">
+                  <SelectValue placeholder="SORT BY" />
+                </SelectTrigger>
+                <SelectContent className="rounded-none border-4 border-black">
+                  <SelectItem value="recent">LATEST STORIES</SelectItem>
+                  <SelectItem value="rating_high">TOP RECKONED</SelectItem>
+                  <SelectItem value="rating_low">ROUGH BITES</SelectItem>
+                  <SelectItem value="helpful">MOST RESPECTED</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                onClick={() => setShowReviewModal(true)}
+                className="bg-[#ED1C24] text-white rounded-none border-4 border-black font-bebas text-xl h-12 px-8 shadow-[4px_4px_0px_0px_rgba(255,210,0,1)] hover:shadow-none transition-all"
+              >
+                JOIN THE RECKONING
+              </Button>
+            </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Reviews Grid */}
-        <section className="py-16 overflow-hidden relative" style={{ position: 'relative' }} ref={containerRef}>
-          <motion.div 
-            className="absolute inset-0 pointer-events-none overflow-hidden"
-            style={{ y: bgY }}
-          >
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-accent/5 rounded-full blur-3xl" />
-          </motion.div>
-
-          <motion.div className="container-custom relative z-10" style={{ y: contentY }} ref={ref}>
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : reviews.length === 0 ? (
-              <div className="text-center py-20">
-                <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No Reviews Yet</h3>
-                <p className="text-muted-foreground mb-6">Be the first to share your experience!</p>
-                {mounted && !authLoading && customer && (
-                  <Button onClick={() => setShowReviewModal(true)}>
-                    Write the First Review
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <>
-                <motion.div
-                  className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate={isInView ? "visible" : "hidden"}
-                >
-                  {reviews.map((review, index) => (
-                    <ReviewCard
-                      key={review.id}
-                      review={review}
-                      index={index}
-                      isInView={isInView}
-                      onHelpful={handleHelpful}
-                      helpfulLoading={helpfulLoading}
+      {/* Grid */}
+      <section className="py-20 bg-gray-50/50" ref={containerRef}>
+        <div className="max-w-7xl mx-auto px-6">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-40">
+               <Loader2 className="w-16 h-16 animate-spin text-[#ED1C24] mb-4" />
+               <p className="font-bebas text-2xl tracking-widest">LOADING THE VIBE...</p>
+            </div>
+          ) : reviews.length === 0 ? (
+            <div className="text-center py-40 border-8 border-dashed border-black/10">
+               <MessageSquare className="w-20 h-20 mx-auto text-black/10 mb-6" />
+               <h3 className="font-bebas text-5xl text-black/20">NO STORIES YET</h3>
+               <Button onClick={() => setShowReviewModal(true)} variant="outline" className="mt-8 border-4 border-black rounded-none font-bebas text-2xl h-16 px-10">
+                  START THE TRUTH
+               </Button>
+            </div>
+          ) : (
+            <>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-12">
+                <AnimatePresence mode="popLayout">
+                  {reviews.map((review, idx) => (
+                    <ReviewCard 
+                      key={review.id} 
+                      review={review} 
+                      index={idx} 
+                      isInView={true} 
+                      onHelpful={handleHelpful} 
+                      helpfulLoading={helpfulLoading} 
                     />
                   ))}
-                </motion.div>
+                </AnimatePresence>
+              </div>
 
-                {/* Load More */}
-                {hasMore && (
-                  <div className="text-center mt-12">
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={() => fetchReviews(false)}
-                      disabled={loadingMore}
-                    >
-                      {loadingMore ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Loading...
-                        </>
-                      ) : (
-                        <>
-                          Load More Reviews
-                          <ChevronDown className="h-4 w-4 ml-2" />
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
-          </motion.div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-16 bg-primary">
-          <div className="container-custom text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <MessageSquare className="w-12 h-12 text-primary-foreground mx-auto mb-4" />
-              <h2 className="text-4xl font-bebas text-primary-foreground mb-4">
-                Share Your Experience
-              </h2>
-              <p className="text-primary-foreground/80 max-w-xl mx-auto mb-8">
-                Loved our food? We'd love to hear from you! Your feedback helps us serve you better.
-              </p>
-              {mounted && !authLoading && customer ? (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowReviewModal(true)}
-                  className="inline-flex items-center gap-2 bg-background text-foreground px-8 py-3 rounded-full font-semibold"
-                >
-                  Write a Review <ThumbsUp className="w-5 h-5" />
-                </motion.button>
-              ) : (
-                <motion.a
-                  href="/menu"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="inline-flex items-center gap-2 bg-background text-foreground px-8 py-3 rounded-full font-semibold"
-                >
-                  Order Now <ThumbsUp className="w-5 h-5" />
-                </motion.a>
+              {hasMore && (
+                <div className="mt-20 text-center">
+                  <Button 
+                    onClick={() => fetchReviews(false)}
+                    disabled={loadingMore}
+                    className="bg-black text-white rounded-none border-4 border-black font-bebas text-3xl h-20 px-16 shadow-[8px_8px_0px_0px_rgba(255,210,0,1)] hover:shadow-none transition-all"
+                  >
+                    {loadingMore ? "SCOUTING..." : "SEE MORE STORIES"}
+                  </Button>
+                </div>
               )}
-            </motion.div>
-          </div>
-        </section>
-      </div>
+            </>
+          )}
+        </div>
+      </section>
 
-      {/* Review Form Modal */}
-      <ReviewFormModal
-        open={showReviewModal}
-        onOpenChange={setShowReviewModal}
-        onSubmit={handleSubmitReview}
-        isSubmitting={isSubmitting}
-        remainingReviews={remainingReviews}
+      {/* Bottom CTA */}
+      <section className="py-32 bg-[#FFD200] border-t-8 border-black relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-20 opacity-10">
+           <Quote className="w-64 h-64 text-black" />
+        </div>
+        <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
+           <h2 className="font-bebas text-7xl md:text-9xl text-black leading-none mb-8">
+              FEED THE<br/>SQUAD<br/>FEEDBACK
+           </h2>
+           <p className="font-source-sans text-2xl font-black mb-12 uppercase tracking-tight">Your voice is the heartbeat of these streets.</p>
+           <Button 
+              onClick={() => setShowReviewModal(true)}
+              className="bg-black text-white h-24 px-16 rounded-none font-bebas text-4xl tracking-widest border-4 border-white shadow-[10px_10px_0px_0px_rgba(237,28,36,1)] hover:shadow-none hover:translate-x-2 hover:translate-y-2 transition-all"
+           >
+              DROP YOUR REVIEW NOW
+           </Button>
+        </div>
+      </section>
+
+      <ReviewFormModal 
+        open={showReviewModal} 
+        onOpenChange={setShowReviewModal} 
+        onSubmit={handleSubmitReview} 
+        isSubmitting={isSubmitting} 
+        remainingReviews={remainingReviews} 
       />
-    </>
+    </main>
   );
+}
+
+interface PublicReviewsClientProps {
+  initialData: PublicReviewsResponseServer;
 }

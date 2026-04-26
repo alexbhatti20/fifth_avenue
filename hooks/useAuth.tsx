@@ -595,7 +595,11 @@ export function useAuth(): UseAuthReturn {
     } catch (e) {
       // Ignore logout API errors
     }
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Even if provider sign-out fails, continue clearing local session state.
+    }
     setUser(null);
     setAuthUser(null);
     // Reset global auth cache

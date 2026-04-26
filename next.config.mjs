@@ -14,6 +14,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'images.unsplash.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
+      },
     ],
     // Optimize images for Vercel
     formats: ['image/avif', 'image/webp'],
