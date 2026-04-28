@@ -1143,6 +1143,22 @@ export function ProtectedPage({ children, allowedRoles, permission }: ProtectedP
 // STATS CARD COMPONENT - Mobile Optimized
 // =============================================
 
+interface StatsCardProps {
+  title: string;
+  value: string | number;
+  change?: string;
+  changeType?: 'positive' | 'negative' | 'neutral';
+  icon?: React.ReactNode;
+  className?: string;
+}
+
+interface SectionHeaderProps {
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+  icon?: React.ReactNode;
+}
+
 export function StatsCard({ title, value, change, changeType = 'neutral', icon, className }: StatsCardProps) {
   return (
     <div

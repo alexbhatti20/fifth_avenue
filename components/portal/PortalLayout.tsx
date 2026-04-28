@@ -495,17 +495,6 @@ export const PortalAppbar = memo(function PortalAppbar({ sidebarCollapsed, onMen
             </div>
           </div>
 
-          {/* System Ticker */}
-          <div className="flex-1 max-w-md hidden lg:flex items-center gap-4 px-4 h-10 border-2 border-black bg-black text-[#FFD200] overflow-hidden ml-auto">
-            <div className="flex items-center gap-2 whitespace-nowrap animate-marquee">
-              <span className="font-bebas text-sm tracking-widest uppercase">Fresh Off The Flame</span>
-              <span className="w-2 h-2 rounded-full bg-[#008A45]" />
-              <span className="font-bebas text-sm tracking-widest uppercase ml-4">Bold Bites. Fast Service.</span>
-              <span className="w-2 h-2 rounded-full bg-[#FFD200]" />
-              <span className="font-bebas text-sm tracking-widest uppercase ml-4">{employee?.name?.split(' ')[0]} On Deck</span>
-              <span className="w-2 h-2 rounded-full bg-[#ED1C24]" />
-            </div>
-          </div>
         </div>
         <div className="min-w-0 md:hidden">
           <h1 className="text-xl sm:text-2xl font-bebas text-black tracking-tight uppercase leading-none truncate">
