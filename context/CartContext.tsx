@@ -23,7 +23,6 @@ export interface MenuItem {
   image?: string;          // Single image URL
   images?: string[];       // Multiple images array
   is_available?: boolean;
-  is_featured?: boolean;
   isPopular?: boolean;     // UI display flag
   isNew?: boolean;         // UI display flag
   preparation_time?: number;
