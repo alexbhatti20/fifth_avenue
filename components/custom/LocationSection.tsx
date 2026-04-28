@@ -84,7 +84,7 @@ export default function LocationSection() {
                 style={{ border: 0, filter: 'grayscale(1) invert(0.1)' }}
                 allowFullScreen
                 loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
+                referrerPolicy="no-referrer"
                 title="Fifth Avenue Location"
               />
               {/* Spinning Overlay Badge */}

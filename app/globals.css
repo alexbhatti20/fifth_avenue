@@ -231,31 +231,24 @@
     mix-blend-mode: screen;
   }
 
-  .fa-order-chip {
-    background: #111111;
-    color: #ffd200;
-    border: 2px solid #ffd200;
-    box-shadow: 0 12px 30px -15px rgba(0, 0, 0, 0.6);
-  }
-
   .fa-cta-primary {
-    @apply inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full font-semibold;
-    @apply bg-primary text-primary-foreground border-2 border-foreground;
-    box-shadow: 0 12px 24px -14px rgba(17, 17, 17, 0.8);
+    @apply inline-flex items-center justify-center gap-2 px-8 py-4 rounded-none font-bebas text-xl tracking-widest;
+    @apply bg-[#FFD200] text-black border-4 border-black;
+    box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
   }
 
   .fa-cta-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 30px -16px rgba(17, 17, 17, 0.85);
+    transform: translate(2px, 2px);
+    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
   }
 
   .fa-cta-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full font-semibold;
-    @apply bg-foreground text-primary border-2 border-primary;
+    @apply inline-flex items-center justify-center gap-2 px-8 py-4 rounded-none font-bebas text-xl tracking-widest;
+    @apply bg-black text-[#FFD200] border-4 border-[#FFD200];
   }
 
   .fa-cta-secondary:hover {
-    @apply bg-black text-yellow-300;
+    @apply bg-[#FFD200] text-black;
   }
 
   .card-elevated {
@@ -655,13 +648,9 @@
     @apply px-3 py-3;
   }
   
-  /* Mobile cards with subtle shadows */
+  /* Mobile cards with bold industrial style */
   .mobile-card {
-    @apply rounded-xl shadow-md border-0;
-    background: linear-gradient(180deg, 
-      hsl(var(--card)) 0%, 
-      hsl(var(--card) / 0.95) 100%
-    );
+    @apply rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-4 border-black bg-white;
   }
   
   /* Touch-friendly interactive elements */
@@ -694,15 +683,13 @@
     );
   }
   
-  /* Floating action button style */
+  /* Floating action button style - Urban */
   .mobile-fab {
-    @apply fixed bottom-4 right-4 z-50;
-    @apply w-14 h-14 rounded-full shadow-xl;
+    @apply fixed bottom-6 right-6 z-50;
+    @apply w-16 h-16 rounded-none border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)];
     @apply flex items-center justify-center;
-    background: linear-gradient(135deg, 
-      hsl(var(--primary)) 0%, 
-      hsl(var(--accent)) 100%
-    );
+    background: #FFD200;
+    color: black;
   }
   
   /* Mobile bottom sheet enhancements */
@@ -727,12 +714,10 @@
     @apply bg-primary text-primary-foreground;
   }
   
-  /* Glassmorphism cards on mobile */
+  /* Industrial cards on mobile */
   .glass-card {
-    @apply rounded-2xl border-0;
-    background: hsl(var(--card) / 0.8);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    @apply rounded-none border-4 border-black bg-white;
+    box-shadow: 6px 6px 0px 0px rgba(0,0,0,1);
   }
   
   /* Mobile stat cards with gradient borders */
@@ -1639,3 +1624,15 @@ html, body {
     justify-content: center;
   }
 }
+
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 30s linear infinite;
+}
+

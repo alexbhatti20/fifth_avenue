@@ -79,6 +79,7 @@ export default function PageHero({
                 fill
                 priority
                 className="object-cover"
+                sizes="400px"
               />
             </div>
           </motion.div>

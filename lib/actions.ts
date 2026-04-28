@@ -146,7 +146,7 @@ export async function deleteMenuItemsBatchServer(itemIds: string[]) {
 // Toggle menu item availability (hidden from Network tab)
 export async function toggleMenuItemAvailability(itemId: string, isAvailable: boolean) {
   try {
-    const { error } = await supabase
+    const { error } = await (await getAuthenticatedClient())
       .from('menu_items')
       .update({ is_available: isAvailable, updated_at: new Date().toISOString() })
       .eq('id', itemId);
@@ -207,7 +207,7 @@ export async function createMenuItem(formData: FormData) {
       is_available: formData.get('is_available') === 'true',
     };
 
-    const { data: item, error } = await supabase
+    const { data: item, error } = await (await getAuthenticatedClient())
       .from('menu_items')
       .insert(data)
       .select()
@@ -234,7 +234,7 @@ export async function updateMenuItem(id: string, formData: FormData) {
       is_available: formData.get('is_available') === 'true',
     };
 
-    const { data: item, error } = await supabase
+    const { data: item, error } = await (await getAuthenticatedClient())
       .from('menu_items')
       .update(data)
       .eq('id', id)
@@ -256,7 +256,7 @@ export async function updateMenuItem(id: string, formData: FormData) {
 
 export async function deleteMenuItem(id: string) {
   try {
-    const { error } = await supabase
+    const { error } = await (await getAuthenticatedClient())
       .from('menu_items')
       .delete()
       .eq('id', id);
@@ -448,7 +448,7 @@ export async function createDeal(formData: FormData) {
       is_active: formData.get('is_active') === 'true',
     };
 
-    const { data: deal, error } = await supabase
+    const { data: deal, error } = await (await getAuthenticatedClient())
       .from('deals')
       .insert(data)
       .select()
@@ -474,7 +474,7 @@ export async function updateDeal(id: string, formData: FormData) {
       is_active: formData.get('is_active') === 'true',
     };
 
-    const { data: deal, error } = await supabase
+    const { data: deal, error } = await (await getAuthenticatedClient())
       .from('deals')
       .update(data)
       .eq('id', id)
@@ -730,7 +730,7 @@ export async function updateSiteContent(section: string, formData: FormData) {
       is_active: formData.get('is_active') === 'true',
     };
 
-    const { data: content, error } = await supabase
+    const { data: content, error } = await (await getAuthenticatedClient())
       .from('site_content')
       .update(data)
       .eq('section', section)

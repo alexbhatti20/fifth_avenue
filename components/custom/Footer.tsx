@@ -57,6 +57,7 @@ export default function Footer() {
                 { name: "URBAN MENU", href: "/menu" },
                 { name: "OUR STORY", href: "/#about" },
                 { name: "HOT OFFERS", href: "/offers" },
+                { name: "STREET FEATURES", href: "/features" },
                 { name: "CONTACT HUB", href: "/contact" }
               ].map((link) => (
                 <li key={link.name}>

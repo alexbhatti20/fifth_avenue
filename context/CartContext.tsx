@@ -33,7 +33,10 @@ export interface MenuItem {
   nutritional_info?: Record<string, unknown>;
   has_variants?: boolean;
   size_variants?: SizeVariant[];
-  // New fields for piece count and serving info
+  // Additional fields for display and database compatibility
+  image_url?: string | null;
+  is_new?: boolean | null;
+  is_featured?: boolean | null;
   piece_count?: number | null;
   serves_count?: number | null;
   includes?: string | null;

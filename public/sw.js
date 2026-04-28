@@ -1,18 +1,18 @@
 // =====================================================
-// ZOIRO BROAST - Push Notification Service Worker
+// FIFTH AVENUE - Push Notification Service Worker
 // Advanced branded notifications with offline support
 // =====================================================
 
-const CACHE_NAME = 'zoiro-push-v2';
+const CACHE_NAME = 'fifth-avenue-push-v1';
 const OFFLINE_URL = '/offline.html';
 
 // Branding configuration
 const BRAND = {
-  name: 'Zoiro Broast',
-  icon: '/assets/zoiro-logo.png',
-  badge: '/assets/zoiro-logo.png',
-  defaultImage: '/assets/promo-banner.png',
-  color: '#dc2626',
+  name: 'Fifth Avenue',
+  icon: '/assets/fifth_avenue_urban_logo_1777394607150.png',
+  badge: '/assets/fifth_avenue_urban_logo_1777394607150.png',
+  defaultImage: '/assets/fifth_avenue_urban_logo_1777394607150.png',
+  color: '#FFD200',
 };
 
 // Notification type icons/emojis
@@ -70,7 +70,7 @@ self.addEventListener('push', (event) => {
     type: 'general',
     icon: BRAND.icon,
     badge: BRAND.badge,
-    tag: 'zoiro-notification',
+    tag: 'fifth-avenue-notification',
     data: {},
   };
 
@@ -86,7 +86,7 @@ self.addEventListener('push', (event) => {
         icon: payload.icon || BRAND.icon,
         badge: payload.badge || BRAND.badge,
         image: payload.image || null,
-        tag: payload.tag || `zoiro-${type}-${Date.now()}`,
+        tag: payload.tag || `fifth-avenue-${type}-${Date.now()}`,
         type: type,
         data: {
           type: type,

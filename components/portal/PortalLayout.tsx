@@ -266,8 +266,8 @@ export function PortalSidebar({ collapsed, onCollapse }: PortalSidebarProps) {
     <>
     <aside
       className={cn(
-        'fixed left-0 top-0 h-screen bg-zinc-900 text-white z-50 flex flex-col',
-        'border-r border-zinc-800 transition-[width] duration-200',
+        'fixed left-0 top-0 h-screen bg-[#111111] text-white z-50 flex flex-col',
+        'border-r border-white/5 transition-[width] duration-200 shadow-2xl',
         collapsed ? 'w-20' : 'w-[280px]'
       )}
     >
@@ -275,10 +275,10 @@ export function PortalSidebar({ collapsed, onCollapse }: PortalSidebarProps) {
       <div className="h-16 flex items-center justify-between px-4 border-b border-zinc-800">
         {!collapsed ? (
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg overflow-hidden shadow-md relative">
+            <div className="w-10 h-10 border-2 border-black overflow-hidden shadow-[4px_4px_0px_0px_rgba(255,210,0,1)] relative">
               <Image 
-                src="/assets/zoiro-logo.png" 
-                alt="ZOIRO" 
+                src="/assets/fifth_avenue_urban_logo_1777394607150.png" 
+                alt="FIFTH AVENUE" 
                 fill
                 sizes="40px"
                 className="object-cover"
@@ -286,17 +286,17 @@ export function PortalSidebar({ collapsed, onCollapse }: PortalSidebarProps) {
               />
             </div>
             <div>
-              <span className="text-xl font-bebas text-primary">ZOIRO</span>
-              <span className="text-[10px] block text-zinc-400 -mt-1">
-                {role?.replace('_', ' ').toUpperCase() || 'PORTAL'}
+              <span className="text-2xl font-bebas text-[#FFD200] tracking-widest leading-none">FIFTH AVENUE</span>
+              <span className="text-[10px] block text-[#ED1C24] font-bold tracking-[0.2em] -mt-0.5">
+                {role?.replace('_', ' ').toUpperCase() || 'CORE HUB'}
               </span>
             </div>
           </div>
         ) : (
-          <div className="w-10 h-10 rounded-lg overflow-hidden shadow-md mx-auto relative">
+          <div className="w-10 h-10 border-2 border-black overflow-hidden shadow-[4px_4px_0px_0px_rgba(255,210,0,1)] mx-auto relative">
             <Image 
-              src="/assets/zoiro-logo.png" 
-              alt="ZOIRO" 
+              src="/assets/fifth_avenue_urban_logo_1777394607150.png" 
+              alt="FIFTH AVENUE" 
               fill
               sizes="40px"
               className="object-cover"
@@ -332,14 +332,14 @@ export function PortalSidebar({ collapsed, onCollapse }: PortalSidebarProps) {
               <Link key={item.path} href={item.path} prefetch={false} target={item.external ? '_blank' : undefined} rel={item.external ? 'noopener noreferrer' : undefined}>
                 <div
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-150',
-                    'hover:bg-zinc-800/80',
-                    isActive && 'bg-primary/20 text-primary'
+                    'flex items-center gap-3 px-4 py-3 rounded-none transition-all duration-150 border-l-4',
+                    'hover:bg-white/5 border-transparent',
+                    isActive ? 'bg-[#FFD200] text-black border-[#ED1C24] shadow-[4px_4px_0px_0px_rgba(237,28,36,0.3)]' : 'text-zinc-400'
                   )}
                 >
-                  <Icon className={cn('h-5 w-5 flex-shrink-0', isActive && 'text-primary')} />
+                  <Icon className={cn('h-5 w-5 flex-shrink-0', isActive ? 'text-black' : 'text-zinc-500')} />
                   {!collapsed && (
-                    <span className="text-sm font-medium whitespace-nowrap overflow-hidden">
+                    <span className="text-lg font-bebas tracking-widest whitespace-nowrap overflow-hidden uppercase">
                       {item.label}
                     </span>
                   )}
@@ -461,28 +461,56 @@ export const PortalAppbar = memo(function PortalAppbar({ sidebarCollapsed, onMen
     <>
     <header
       className={cn(
-        'fixed top-0 right-0 h-14 sm:h-16 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-200 dark:border-zinc-800 z-40',
-        'flex items-center justify-between px-3 sm:px-4 md:px-6 transition-[left] duration-200',
+        'fixed top-0 right-0 h-14 sm:h-20 bg-white border-b-4 border-black z-40',
+        'flex items-center justify-between px-3 sm:px-6 md:px-10 transition-[left] duration-200',
         sidebarCollapsed ? 'left-0 md:left-20' : 'left-0 md:left-[280px]'
       )}
     >
       {/* Left side */}
-      <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+      <div className="flex items-center gap-4 sm:gap-6 min-w-0 flex-1">
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden flex-shrink-0 h-9 w-9"
+          className="md:hidden flex-shrink-0 h-10 w-10 border-2 border-black"
           onClick={onMenuClick}
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-6 w-6" />
         </Button>
-        <div className="min-w-0">
-          <h1 className="text-sm sm:text-base md:text-lg font-semibold tracking-wide truncate">
+        <div className="hidden md:flex items-center gap-8 flex-1">
+          {/* Main Logo & Tagline */}
+          <div className="flex items-center gap-4 group cursor-default">
+            <div className="relative h-14 w-14 bg-black border-2 border-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform group-hover:rotate-3">
+              <Image 
+                src="/assets/fifth_avenue_urban_logo_1777394607150.png"
+                alt="FIFTH AVENUE"
+                fill
+                className="object-contain p-1"
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bebas text-4xl leading-none tracking-tighter text-black uppercase">
+                FIFTH <span className="text-[#ED1C24]">AVENUE</span>
+              </span>
+              <span className="font-caveat text-xl text-[#ED1C24] -mt-1 rotate-[-2deg]">Chasing Flavours</span>
+            </div>
+          </div>
+
+          {/* System Ticker */}
+          <div className="flex-1 max-w-md hidden lg:flex items-center gap-4 px-4 h-10 border-2 border-black bg-black text-[#FFD200] overflow-hidden ml-auto">
+            <div className="flex items-center gap-2 whitespace-nowrap animate-marquee">
+              <span className="font-bebas text-sm tracking-widest uppercase">Fresh Off The Flame</span>
+              <span className="w-2 h-2 rounded-full bg-[#008A45]" />
+              <span className="font-bebas text-sm tracking-widest uppercase ml-4">Bold Bites. Fast Service.</span>
+              <span className="w-2 h-2 rounded-full bg-[#FFD200]" />
+              <span className="font-bebas text-sm tracking-widest uppercase ml-4">{employee?.name?.split(' ')[0]} On Deck</span>
+              <span className="w-2 h-2 rounded-full bg-[#ED1C24]" />
+            </div>
+          </div>
+        </div>
+        <div className="min-w-0 md:hidden">
+          <h1 className="text-xl sm:text-2xl font-bebas text-black tracking-tight uppercase leading-none truncate">
             {pageTitle}
           </h1>
-          <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">
-            {formattedDate}
-          </p>
         </div>
       </div>
 
@@ -693,7 +721,7 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
     <Sheet open={open} onOpenChange={onClose} modal={true}>
       <SheetContent 
         side="left" 
-        className="w-[300px] sm:w-[320px] p-0 bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 text-white border-zinc-800/50 overflow-hidden"
+        className="w-[300px] sm:w-[320px] p-0 bg-[#111111] text-white border-r-4 border-black overflow-hidden"
         showCloseButton
       >
         <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
@@ -801,13 +829,11 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
               })}
             </div>
 
-            {/* Secondary Navigation */}
             {secondaryNavItems.length > 0 && (
               <div className="pt-2 border-t border-zinc-800/30">
                 <p className="px-3 py-2 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
                   More Options
-                </p>
-                {secondaryNavItems.map((item) => {
+                </p>  {secondaryNavItems.map((item) => {
                   const Icon = iconMap[item.icon];
                   const isActive = pathname === item.path ||
                     (item.path !== '/portal' && pathname.startsWith(item.path));
@@ -831,14 +857,14 @@ export const MobileSidebar = memo(function MobileSidebar({ open, onClose }: Mobi
                           'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
                           !disableAnimations && 'active:scale-[0.98]',
                           isActive 
-                            ? 'bg-gradient-to-r from-primary/20 to-primary/5 text-primary' 
-                            : 'hover:bg-zinc-800/60 text-zinc-400 hover:text-white'
+                            ? 'bg-[#FFD200] border-black text-black' 
+                            : 'hover:bg-zinc-100 text-black border-transparent'
                         )}
                       >
-                        <Icon className={cn('h-4 w-4', isActive && 'text-primary')} />
-                        <span className="text-sm font-medium">{item.label}</span>
+                        <Icon className={cn('h-4 w-4', isActive && 'text-black')} />
+                        <span className="text-sm font-bold uppercase tracking-tight">{item.label}</span>
                         {item.badge && (
-                          <Badge variant="destructive" className="ml-auto text-xs">
+                          <Badge variant="destructive" className="ml-auto rounded-none border-2 border-black bg-[#ED1C24] text-white font-black">
                             {item.badge}
                           </Badge>
                         )}

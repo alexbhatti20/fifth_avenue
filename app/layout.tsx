@@ -47,15 +47,15 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/assets/zoiro-logo.png', sizes: '32x32', type: 'image/png' },
-      { url: '/assets/zoiro-logo.png', sizes: '16x16', type: 'image/png' },
-      { url: '/assets/zoiro-logo.png', sizes: '192x192', type: 'image/png' },
-      { url: '/assets/zoiro-logo.png', sizes: '512x512', type: 'image/png' },
+      { url: '/assets/fifth_avenue_urban_logo_1777394607150.png', sizes: '32x32', type: 'image/png' },
+      { url: '/assets/fifth_avenue_urban_logo_1777394607150.png', sizes: '16x16', type: 'image/png' },
+      { url: '/assets/fifth_avenue_urban_logo_1777394607150.png', sizes: '192x192', type: 'image/png' },
+      { url: '/assets/fifth_avenue_urban_logo_1777394607150.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/assets/zoiro-logo.png', sizes: '180x180', type: 'image/png' },
+      { url: '/assets/fifth_avenue_urban_logo_1777394607150.png', sizes: '180x180', type: 'image/png' },
     ],
-    shortcut: '/assets/zoiro-logo.png',
+    shortcut: '/assets/fifth_avenue_urban_logo_1777394607150.png',
   },
   manifest: '/manifest.json',
   openGraph: {
@@ -68,11 +68,11 @@ export const metadata: Metadata = {
     description: `${SITE_NAME} serves bold street food, premium quality, and fast delivery from the Fifth Avenue kitchen.`,
     images: [
       {
-        url: '/assets/zoiro-og-image.jpg',
+        url: `${SITE_URL}/assets/fifth_avenue_urban_logo_1777394607150.png`,
         width: 1200,
         height: 630,
         alt: `${SITE_NAME} - Chasing Flavours`,
-        type: 'image/jpeg',
+        type: 'image/png',
       },
     ],
   },
@@ -82,7 +82,7 @@ export const metadata: Metadata = {
     creator: '@fifthavenue',
     title: `${SITE_NAME} | Chasing Flavours`,
     description: `${SITE_NAME} serves bold street food with fast delivery and signature flavour.`,
-    images: ['/assets/zoiro-og-image.jpg'],
+    images: [`${SITE_URL}/assets/fifth_avenue_urban_logo_1777394607150.png`],
   },
   robots: {
     index: true,
@@ -137,15 +137,15 @@ export default async function RootLayout({
         {/* Preconnect to external domains for performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://eqfeeiryzslccyivkphf.supabase.co" />
+        <link rel="preconnect" href="https://zvtunfmgivpifemowgsh.supabase.co" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
 
         {/* Additional SEO meta tags */}
-        <meta name="theme-color" content="#f4c400" />
-        <meta name="msapplication-TileColor" content="#f4c400" />
+        <meta name="theme-color" content="#FFD200" />
+        <meta name="msapplication-TileColor" content="#FFD200" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
-      <body className={`${playfair.variable} ${sourceSans.variable} ${bebas.variable} ${caveat.variable}`}>
+      <body className={`${playfair.variable} ${sourceSans.variable} ${bebas.variable} ${caveat.variable} relative`}>
         <div
           className="pointer-events-none fixed inset-0 z-[9999] opacity-[0.012]"
           style={{

@@ -72,6 +72,7 @@ export default function Hero() {
                   fill
                   priority
                   className="object-cover"
+                  sizes="(max-width: 768px) 256px, (max-width: 1024px) 320px, 550px"
                 />
               </div>
 
@@ -108,13 +109,14 @@ export default function Hero() {
               <motion.div
                 animate={{ rotate: [0, 360] }}
                 transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                className="absolute -bottom-4 -left-4 lg:-bottom-10 lg:-left-10 w-24 h-24 lg:w-56 lg:h-56 bg-[#FFD200] rounded-full border-4 lg:border-8 border-black flex items-center justify-center shadow-2xl z-20 hidden lg:flex"
+                className="absolute -bottom-4 -left-4 lg:-bottom-10 lg:-left-10 w-24 h-24 lg:w-56 lg:h-56 rounded-full overflow-hidden border-4 lg:border-8 border-black shadow-2xl z-20 hidden lg:flex"
               >
-                <div className="flex flex-col items-center p-2 lg:p-4 text-center">
-                  <span className="font-bebas text-[10px] lg:text-3xl text-black leading-none">FIFTH AVENUE</span>
-                  <div className="w-full h-0.5 bg-black my-1 lg:my-2" />
-                  <span className="font-caveat text-[8px] lg:text-lg text-black font-bold uppercase">Chasing Flavours</span>
-                </div>
+                <Image 
+                  src="/assets/fifth_avenue_urban_logo_1777394607150.png"
+                  alt="FIFTH AVENUE Branding"
+                  fill
+                  className="object-cover"
+                />
               </motion.div>
             </motion.div>
           </div>

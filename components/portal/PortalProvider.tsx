@@ -1049,8 +1049,8 @@ export function PortalProvider({ children, initialEmployee }: PortalProviderProp
                 }}
               >
                 <Image
-                  src="/assets/zoiro-logo.png"
-                  alt="Zoiro"
+                  src="/assets/fifth_avenue_urban_logo_1777394607150.png"
+                  alt="Fifth Avenue"
                   fill
                   sizes="(max-width: 480px) 80px, 140px"
                   style={{ 
@@ -1065,14 +1065,14 @@ export function PortalProvider({ children, initialEmployee }: PortalProviderProp
             <div
               style={{
                 fontFamily: 'var(--font-bebas, "Bebas Neue", sans-serif)',
-                fontSize: 'clamp(1.8rem, 8vw, 4.5rem)',
-                letterSpacing: 'clamp(0.1em, 2vw, 0.22em)',
+                fontSize: 'clamp(1.5rem, 6vw, 3.5rem)',
+                letterSpacing: 'clamp(0.1em, 1.5vw, 0.2em)',
                 lineHeight: 1,
                 display: 'flex',
-                gap: 'clamp(2px, 0.8vw, 6px)',
+                gap: 'clamp(2px, 0.6vw, 5px)',
               }}
             >
-              {'ZOIRO'.split('').map((letter, index) => (
+              {'FIFTH AVENUE'.split('').map((letter, index) => (
                 <span key={index} className="portal-letter">
                   {letter}
                 </span>
@@ -1143,42 +1143,35 @@ export function ProtectedPage({ children, allowedRoles, permission }: ProtectedP
 // STATS CARD COMPONENT - Mobile Optimized
 // =============================================
 
-interface StatsCardProps {
-  title: string;
-  value: string | number;
-  change?: string;
-  changeType?: 'positive' | 'negative' | 'neutral';
-  icon: React.ReactNode;
-  className?: string;
-}
-
 export function StatsCard({ title, value, change, changeType = 'neutral', icon, className }: StatsCardProps) {
   return (
     <div
       className={cn(
-        'bg-white dark:bg-zinc-900 rounded-xl p-3 sm:p-4 md:p-6 shadow-sm border border-zinc-200 dark:border-zinc-800',
-        'transition-shadow duration-200 hover:shadow-md',
+        'bg-white rounded-none p-4 sm:p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]',
+        'transition-all duration-200 hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px]',
         className
       )}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground truncate">{title}</p>
-          <p className="text-lg sm:text-xl md:text-2xl font-bold mt-0.5 sm:mt-1 truncate">{value}</p>
+          <p className="text-sm font-bebas tracking-widest text-black/40 uppercase mb-1">{title}</p>
+          <p className="text-3xl sm:text-4xl font-bebas text-black leading-none">{value}</p>
           {change && (
             <p
               className={cn(
-                'text-[10px] sm:text-xs mt-0.5 sm:mt-1 truncate',
-                changeType === 'positive' && 'text-green-500',
-                changeType === 'negative' && 'text-red-500',
-                changeType === 'neutral' && 'text-muted-foreground'
+                'text-xs font-black uppercase tracking-tighter mt-2',
+                changeType === 'positive' && 'text-[#008A45]',
+                changeType === 'negative' && 'text-[#ED1C24]',
+                changeType === 'neutral' && 'text-zinc-400'
               )}
             >
               {change}
             </p>
           )}
         </div>
-        <div className="p-1.5 sm:p-2 md:p-3 rounded-lg bg-primary/10 text-primary flex-shrink-0">{icon}</div>
+        <div className="p-3 bg-black text-[#FFD200] shadow-[4px_4px_0px_0px_rgba(237,28,36,1)] flex-shrink-0">
+          {icon}
+        </div>
       </div>
     </div>
   );
@@ -1188,30 +1181,20 @@ export function StatsCard({ title, value, change, changeType = 'neutral', icon, 
 // SECTION HEADER COMPONENT - Mobile Optimized
 // =============================================
 
-interface SectionHeaderProps {
-  title: React.ReactNode;
-  description?: React.ReactNode;
-  action?: React.ReactNode;
-  icon?: React.ReactNode;
-}
-
 export function SectionHeader({ title, description, action, icon }: SectionHeaderProps) {
   return (
-    <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-center justify-between mb-4 sm:mb-6">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-end justify-between mb-8 sm:mb-12 border-b-8 border-black pb-6">
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          {icon && <span className="flex-shrink-0 text-primary">{icon}</span>}
-          <Label 
-            variant="gradientSubtle" 
-            size="2xl" 
-            spacing="wider"
-            className="text-lg sm:text-xl md:text-2xl font-bold truncate"
-          >
+        <div className="flex items-center gap-3">
+          {icon && <span className="flex-shrink-0 text-[#ED1C24]">{icon}</span>}
+          <h2 className="hidden md:block text-3xl sm:text-4xl md:text-6xl font-bebas text-black tracking-tight uppercase leading-none">
             {title}
-          </Label>
+          </h2>
         </div>
         {description && (
-          <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 sm:mt-1 line-clamp-2 sm:truncate">{description}</p>
+          <p className="text-black/60 font-source-sans font-black text-xs sm:text-sm mt-2 uppercase tracking-widest">
+            {description}
+          </p>
         )}
       </div>
       {action && <div className="flex-shrink-0 w-full sm:w-auto">{action}</div>}

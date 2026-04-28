@@ -1,7 +1,7 @@
 # =============================================
-# Zoiro Broast Vehari - robots.txt
-# ZOIRO Injected Broast - Best Broast Chicken in Vehari, Pakistan
-# https://zoirobroast.me
+# Fifth Avenue Vehari - robots.txt
+# FIFTH AVENUE URBAN HUB - Urban Street Food in Vehari, Pakistan
+# https://fifthavenue.com
 # =============================================
 
 # Google Bot (Primary)
@@ -105,7 +105,7 @@ User-agent: *
 Crawl-delay: 1
 
 # Sitemap Location
-Sitemap: https://zoirobroast.me/sitemap.xml
+Sitemap: https://fifthavenue.com/sitemap.xml
 
 # Host directive (for Yandex)
-Host: https://zoirobroast.me
+Host: https://fifthavenue.com

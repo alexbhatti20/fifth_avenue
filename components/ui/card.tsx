@@ -4,9 +4,7 @@ import { cn } from "@/lib/utils";
 
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
   <div ref={ref} className={cn(
-    "rounded-xl border bg-card text-card-foreground shadow-sm",
-    // Mobile: slightly more rounded, touch-friendly
-    "active:scale-[0.99] transition-transform",
+    "rounded-none border-4 border-black bg-card text-card-foreground shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all",
     className
   )} {...props} />
 ));
@@ -27,9 +25,9 @@ CardHeader.displayName = "CardHeader";
 const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
     <h3 ref={ref} className={cn(
-      "font-semibold leading-none tracking-wide portal-card-title",
+      "font-bebas leading-none tracking-widest uppercase text-[#ED1C24] drop-shadow-[1px_1px_0px_rgba(0,0,0,1)]",
       // Responsive text size
-      "text-lg sm:text-xl",
+      "text-xl sm:text-2xl md:text-3xl",
       className
     )} {...props} />
   ),

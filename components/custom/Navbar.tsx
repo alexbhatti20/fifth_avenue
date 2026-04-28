@@ -36,6 +36,7 @@ const navLinks = [
   { name: "HOME", path: "/" },
   { name: "MENU", path: "/menu" },
   { name: "OFFERS", path: "/offers" },
+  { name: "FEATURES", path: "/features" },
   { name: "REVIEWS", path: "/reviews" },
   { name: "CONTACT", path: "/contact" },
 ];
@@ -137,15 +138,28 @@ const Navbar: React.FC<NavbarProps> = ({ bookingEnabled = true }) => {
               key={link.path}
               href={link.path}
               className={cn(
-                "font-bebas text-lg tracking-widest px-3 py-1 transition-all relative group",
+                "font-bebas text-lg tracking-widest px-5 py-2 transition-all relative group overflow-hidden",
                 isScrolled
                   ? (pathname === link.path ? "text-[#ED1C24]" : "text-black hover:text-[#008A45]")
                   : "text-white hover:text-[#FFD200]"
               )}
             >
-              <span className="relative z-10">{link.name}</span>
+              {/* Text that hides on hover */}
+              <span className="relative z-10 transition-all duration-500 group-hover:translate-y-[-150%] group-hover:opacity-0 block">
+                {link.name}
+              </span>
+              
+              {/* Indicator that appears on hover when text is hidden */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-[100%] group-hover:translate-y-0">
+                <div className={cn(
+                  "w-1.5 h-1.5 rotate-45",
+                  isScrolled ? "bg-[#ED1C24]" : "bg-white"
+                )} />
+              </div>
+
+              {/* Bottom Line Animation */}
               <div className={cn(
-                "absolute bottom-0 left-0 w-full h-0.5 transform transition-transform duration-300 origin-left scale-x-0 group-hover:scale-x-100",
+                "absolute bottom-1 left-0 w-full h-0.5 transform transition-transform duration-500 origin-left scale-x-0 group-hover:scale-x-100",
                 isScrolled ? "bg-[#ED1C24]" : "bg-white"
               )} />
             </Link>
@@ -162,14 +176,19 @@ const Navbar: React.FC<NavbarProps> = ({ bookingEnabled = true }) => {
                 <DropdownMenuTrigger asChild>
                   <Button
                     className={cn(
-                      "rounded-none h-9 px-4 font-bebas text-lg tracking-widest border-2 transition-all",
+                      "rounded-none h-10 px-6 font-bebas text-lg tracking-widest border-2 transition-all relative overflow-hidden group",
                       isScrolled
-                        ? "bg-black text-[#FFD200] border-black shadow-[3px_3px_0_0_rgba(255,210,0,1)] hover:shadow-none"
-                        : "bg-white text-black border-black shadow-[3px_3px_0_0_rgba(0,0,0,0.2)] hover:shadow-none"
+                        ? "bg-black text-[#FFD200] border-black shadow-[4px_4px_0_0_rgba(255,210,0,1)] hover:shadow-none"
+                        : "bg-white text-black border-black shadow-[4px_4px_0_0_rgba(0,0,0,0.2)] hover:shadow-none"
                     )}
                   >
-                    <UserCircle2 className="h-5 w-5 mr-2" />
-                    ACCOUNT
+                    <span className="relative z-10 transition-all duration-300 group-hover:translate-x-[150%] group-hover:opacity-0 flex items-center">
+                      <UserCircle2 className="h-5 w-5 mr-2" />
+                      ACCOUNT
+                    </span>
+                    <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 translate-x-[-100%] group-hover:translate-x-0 opacity-0 group-hover:opacity-100">
+                       <UserCircle2 className={cn("h-6 w-6", isScrolled ? "text-[#FFD200]" : "text-black")} />
+                    </div>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -200,23 +219,33 @@ const Navbar: React.FC<NavbarProps> = ({ bookingEnabled = true }) => {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "font-bebas text-lg tracking-widest h-9 px-3",
+                      "font-bebas text-lg tracking-widest h-10 px-5 relative overflow-hidden group transition-all",
                       isScrolled ? "text-black hover:bg-black/5" : "text-white hover:bg-white/10"
                     )}
                   >
-                    LOGIN
+                    <span className="relative z-10 transition-all duration-300 group-hover:scale-0 group-hover:opacity-0 block">
+                      LOGIN
+                    </span>
+                    <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 scale-0 group-hover:scale-110 opacity-0 group-hover:opacity-100">
+                       <LogOut className={cn("h-6 w-6 rotate-180", isScrolled ? "text-black" : "text-white")} />
+                    </div>
                   </Button>
                 </Link>
                 <Link href="/auth?tab=register">
                   <Button
                     className={cn(
-                      "rounded-none h-9 px-4 font-bebas text-lg tracking-widest border-2 transition-all",
+                      "rounded-none h-10 px-6 font-bebas text-lg tracking-widest border-2 transition-all relative overflow-hidden group",
                       isScrolled
-                        ? "bg-black text-white border-black shadow-[3px_3px_0_0_rgba(255,210,0,1)] hover:shadow-none"
-                        : "bg-white text-black border-white shadow-[3px_3px_0_0_rgba(0,0,0,0.2)] hover:shadow-none"
+                        ? "bg-black text-white border-black shadow-[4px_4px_0_0_rgba(255,210,0,1)] hover:shadow-none"
+                        : "bg-white text-black border-white shadow-[4px_4px_0_0_rgba(0,0,0,0.2)] hover:shadow-none"
                     )}
                   >
-                    JOIN
+                    <span className="relative z-10 transition-all duration-300 group-hover:translate-y-[150%] group-hover:opacity-0 block">
+                      JOIN
+                    </span>
+                    <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 translate-y-[-100%] group-hover:translate-y-0 opacity-0 group-hover:opacity-100">
+                       <ArrowRight className={cn("h-6 w-6", isScrolled ? "text-white" : "text-black")} />
+                    </div>
                   </Button>
                 </Link>
               </>
@@ -241,12 +270,17 @@ const Navbar: React.FC<NavbarProps> = ({ bookingEnabled = true }) => {
 
             <Link href="/menu" className="hidden lg:block">
               <Button className={cn(
-                "rounded-none px-6 h-9 font-bebas text-xl tracking-widest border-2 border-black transition-all",
+                "rounded-none px-8 h-10 font-bebas text-xl tracking-widest border-2 border-black transition-all relative overflow-hidden group",
                 isScrolled
-                  ? "bg-[#FFD200] text-black shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:shadow-none"
-                  : "bg-black text-white border-white shadow-[3px_3px_0_0_rgba(255,210,0,1)] hover:shadow-none"
+                  ? "bg-[#FFD200] text-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:shadow-none"
+                  : "bg-black text-white border-white shadow-[4px_4px_0_0_rgba(255,210,0,1)] hover:shadow-none"
               )}>
-                ORDER
+                <span className="relative z-10 transition-all duration-300 group-hover:rotate-[10deg] group-hover:scale-0 group-hover:opacity-0 block">
+                  ORDER
+                </span>
+                <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 rotate-[-10deg] group-hover:rotate-0 scale-0 group-hover:scale-110 opacity-0 group-hover:opacity-100">
+                   <ShoppingBag className={cn("h-6 w-6", isScrolled ? "text-black" : "text-[#FFD200]")} />
+                </div>
               </Button>
             </Link>
 

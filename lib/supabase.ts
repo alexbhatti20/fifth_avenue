@@ -40,42 +40,8 @@ export const supabase: SupabaseClient = createSupabaseClient(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: false,
-      // Use default localStorage storage - don't interfere with Supabase's session JSON
-      // Our custom cookie storage was returning raw access token instead of JSON session object
-      storage: {
-        getItem: (key: string) => {
-          if (typeof window === 'undefined') return null;
-          try {
-            return localStorage.getItem(key);
-          } catch {
-            return null;
-          }
-        },
-        setItem: (key: string, value: string) => {
-          if (typeof window === 'undefined') return;
-          try {
-            localStorage.setItem(key, value);
-            // Extract and store access token separately for our use
-            if (key.includes('auth-token') && value) {
-              try {
-                const parsed = JSON.parse(value);
-                if (parsed?.access_token) {
-                  localStorage.setItem('sb_access_token', parsed.access_token);
-                }
-              } catch { /* ignore parse errors */ }
-            }
-          } catch {}
-        },
-        removeItem: (key: string) => {
-          if (typeof window === 'undefined') return;
-          try {
-            localStorage.removeItem(key);
-            if (key.includes('auth-token')) {
-              localStorage.removeItem('sb_access_token');
-            }
-          } catch {}
-        },
-      },
+      // Use standard localStorage in browser, no storage on server (handled by getAuthenticatedClient)
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     },
   }
 );

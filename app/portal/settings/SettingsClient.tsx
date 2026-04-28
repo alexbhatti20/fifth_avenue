@@ -267,7 +267,7 @@ function OnlineOrdersSettingsForm({ initialSettings }: { initialSettings: Online
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="rounded-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white overflow-hidden">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <ShoppingCart className="h-4 w-4" /> Online Orders Management
@@ -617,7 +617,7 @@ function PersonalSettings({
 
   if (!employeeData) {
     return (
-      <Card>
+      <Card className="rounded-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white overflow-hidden">
         <CardContent className="py-8">
           <div className="text-center text-muted-foreground">
             <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -634,7 +634,7 @@ function PersonalSettings({
   return (
     <div className="space-y-6">
       {/* Profile Photo - Advanced Preview */}
-      <Card>
+      <Card className="rounded-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white overflow-hidden">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Camera className="h-4 w-4" /> Profile Photo
@@ -647,7 +647,7 @@ function PersonalSettings({
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             {/* Photo Preview Box */}
             <div className="relative group">
-              <div className="h-32 w-32 rounded-xl border-2 border-dashed border-muted-foreground/25 overflow-hidden bg-muted/50 flex items-center justify-center transition-all hover:border-primary/50">
+              <div className="h-32 w-32 rounded-none border-4 border-black overflow-hidden bg-zinc-100 flex items-center justify-center transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] group-hover:shadow-none group-hover:translate-x-[2px] group-hover:translate-y-[2px]">
                 {photoPreview ? (
                   <>
                     <img 
@@ -702,7 +702,7 @@ function PersonalSettings({
                   size="sm" 
                   onClick={handleRemovePhoto}
                   disabled={isRemovingPhoto}
-                  className="mt-2"
+                  className="mt-2 rounded-none border-2 border-black font-bebas tracking-wider hover:bg-[#ED1C24] hover:text-white"
                 >
                   {isRemovingPhoto ? (
                     <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Removing...</>
@@ -717,7 +717,7 @@ function PersonalSettings({
       </Card>
 
       {/* Personal Info */}
-      <Card>
+      <Card className="rounded-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white overflow-hidden">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <User className="h-4 w-4" /> Personal Information
@@ -773,11 +773,11 @@ function PersonalSettings({
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleRefresh} disabled={isSubmitting}>
+        <CardFooter className="flex justify-between border-t-4 border-black pt-6">
+          <Button variant="outline" onClick={handleRefresh} disabled={isSubmitting} className="rounded-none border-2 border-black font-bebas tracking-widest uppercase hover:bg-black hover:text-white transition-all">
             <RotateCw className="h-4 w-4 mr-2" /> Refresh
           </Button>
-          <Button onClick={handleSave} disabled={isSubmitting}>
+          <Button onClick={handleSave} disabled={isSubmitting} className="rounded-none border-2 border-black bg-[#FFD200] text-black font-bebas tracking-widest uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] active:scale-95 transition-all">
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
@@ -797,10 +797,10 @@ function PersonalSettings({
 // Website Settings (Admin only)
 function WebsiteSettingsForm({ initialSettings }: { initialSettings: WebsiteSettings | null }) {
   const defaultSettings: WebsiteSettings = {
-    siteName: 'ZOIRO Injected Broast',
-    tagline: 'Broast & Fast Food',
-    phone: '+92 42 1234567',
-    email: 'info@zoiro.pk',
+    siteName: 'FIFTH AVENUE',
+    tagline: 'URBAN STREET HUB',
+    phone: '+92 321 5550199',
+    email: 'hub@fifthavenue.com',
     address: 'Lahore, Pakistan',
     openingHours: '11:00 AM - 11:00 PM',
     facebook: '',
@@ -873,7 +873,7 @@ function WebsiteSettingsForm({ initialSettings }: { initialSettings: WebsiteSett
   return (
     <div className="space-y-6">
       {/* General */}
-      <Card>
+      <Card className="rounded-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white overflow-hidden">
         <CardHeader>
           <CardTitle className="text-base">General Information</CardTitle>
         </CardHeader>
@@ -926,7 +926,7 @@ function WebsiteSettingsForm({ initialSettings }: { initialSettings: WebsiteSett
       </Card>
 
       {/* Social Media */}
-      <Card>
+      <Card className="rounded-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white overflow-hidden">
         <CardHeader>
           <CardTitle className="text-base">Social Media Links</CardTitle>
         </CardHeader>
@@ -967,7 +967,7 @@ function WebsiteSettingsForm({ initialSettings }: { initialSettings: WebsiteSett
       </Card>
 
       {/* Delivery Settings */}
-      <Card>
+      <Card className="rounded-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white overflow-hidden">
         <CardHeader>
           <CardTitle className="text-base">Delivery Settings</CardTitle>
         </CardHeader>
@@ -2487,40 +2487,40 @@ function MaintenanceModeSettings({
     <div className="space-y-6">
       {/* Status Card */}
       <Card className={cn(
-        "border-2 transition-colors",
-        status.is_enabled ? "border-orange-500 bg-orange-500/5" : "border-green-500 bg-green-500/5"
+        "rounded-none border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all",
+        status.is_enabled ? "bg-[#ED1C24] text-white" : "bg-[#008A45] text-white"
       )}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={cn(
-                "p-3 rounded-full",
-                status.is_enabled ? "bg-orange-500/20" : "bg-green-500/20"
+                "p-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                status.is_enabled ? "bg-black" : "bg-black"
               )}>
                 {status.is_enabled ? (
-                  <Wrench className="h-6 w-6 text-orange-500 animate-pulse" />
+                  <Wrench className="h-6 w-6 text-[#FFD200] animate-pulse" />
                 ) : (
-                  <Power className="h-6 w-6 text-green-500" />
+                  <Power className="h-6 w-6 text-[#008A45]" />
                 )}
               </div>
               <div>
-                <CardTitle className="text-lg">
-                  {status.is_enabled ? 'Maintenance Mode Active' : 'Website Online'}
+                <CardTitle className="text-2xl font-bebas tracking-wider uppercase">
+                  {status.is_enabled ? 'MAINTENANCE ACTIVE' : 'SYSTEM ONLINE'}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className={cn(status.is_enabled ? "text-white/80" : "text-white/80", "font-medium")}>
                   {status.is_enabled 
                     ? 'Only admins can access the website. All other users see the maintenance page.'
-                    : 'Website is accessible to all users.'}
+                    : 'Website is currently accessible to all users globally.'}
                 </CardDescription>
               </div>
             </div>
             <div className={cn(
-              "px-3 py-1 rounded-full text-sm font-medium",
+              "px-4 py-1 border-2 border-black font-bebas tracking-widest uppercase",
               status.is_enabled 
-                ? "bg-orange-500/20 text-orange-500" 
-                : "bg-green-500/20 text-green-500"
+                ? "bg-black text-[#FFD200]" 
+                : "bg-black text-[#008A45]"
             )}>
-              {status.is_enabled ? 'Maintenance' : 'Online'}
+              {status.is_enabled ? 'OFFLINE' : 'ONLINE'}
             </div>
           </div>
         </CardHeader>
@@ -2560,17 +2560,17 @@ function MaintenanceModeSettings({
 
       {/* Configuration Card */}
       {!status.is_enabled && (
-        <Card>
+        <Card className="rounded-none border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Maintenance Configuration
+            <CardTitle className="text-xl font-bebas flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              MAINTENANCE CONFIGURATION
             </CardTitle>
-            <CardDescription>
-              Configure the maintenance settings before enabling
+            <CardDescription className="font-medium">
+              Configure the maintenance page settings before flipping the switch.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label>Reason Type</Label>
               <Select
@@ -2579,7 +2579,7 @@ function MaintenanceModeSettings({
                   setFormData(prev => ({ ...prev, reason_type: value }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="rounded-none border-2 border-black h-12 font-bebas text-lg">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2634,6 +2634,7 @@ function MaintenanceModeSettings({
                 placeholder="We'll Be Right Back"
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                className="rounded-none border-2 border-black h-12 font-bebas text-lg"
               />
             </div>
 
@@ -2656,6 +2657,7 @@ function MaintenanceModeSettings({
                 value={formData.estimated_end_time}
                 onChange={(e) => setFormData(prev => ({ ...prev, estimated_end_time: e.target.value }))}
                 min={getMinDateTime()}
+                className="rounded-none border-2 border-black h-12"
               />
               <p className="text-xs text-muted-foreground">
                 Users will see a countdown timer until this time
@@ -2666,30 +2668,33 @@ function MaintenanceModeSettings({
       )}
 
       {/* Actions Card */}
-      <Card>
+      <Card className="rounded-none border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white overflow-hidden">
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Power className="h-4 w-4" />
-            Actions
+          <CardTitle className="text-xl font-bebas flex items-center gap-2">
+            <Power className="h-5 w-5" />
+            ACTIONS
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
               variant={status.is_enabled ? "default" : "destructive"}
               onClick={() => setShowConfirmDialog(true)}
               disabled={isToggling}
-              className="flex-1"
+              className={cn(
+                "flex-1 h-16 rounded-none border-4 border-black font-bebas text-2xl tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all",
+                status.is_enabled ? "bg-[#FFD200] text-black" : "bg-[#ED1C24] text-white"
+              )}
             >
               {isToggling ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {status.is_enabled ? 'Disabling...' : 'Enabling...'}
+                  <Loader2 className="h-6 w-6 mr-3 animate-spin" />
+                  {status.is_enabled ? 'TERMINATING...' : 'ENABLING...'}
                 </>
               ) : (
                 <>
-                  <Power className="h-4 w-4 mr-2" />
-                  {status.is_enabled ? 'Disable Maintenance Mode' : 'Enable Maintenance Mode'}
+                  <Power className="h-6 w-6 mr-3" />
+                  {status.is_enabled ? 'RESTORE SYSTEM ONLINE' : 'ACTIVATE MAINTENANCE'}
                 </>
               )}
             </Button>
@@ -2699,17 +2704,17 @@ function MaintenanceModeSettings({
                 variant="outline"
                 onClick={handleSendNotifications}
                 disabled={isSendingEmails}
-                className="flex-1"
+                className="flex-1 h-16 rounded-none border-4 border-black font-bebas text-2xl tracking-widest hover:bg-black hover:text-[#FFD200] transition-all"
               >
                 {isSendingEmails ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Sending... {emailProgress.total > 0 && `${emailProgress.sent}/${emailProgress.total}`}
+                    <Loader2 className="h-6 w-6 mr-3 animate-spin" />
+                    NOTIFYING... {emailProgress.total > 0 && `${emailProgress.sent}/${emailProgress.total}`}
                   </>
                 ) : (
                   <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Notify All Users
+                    <Send className="h-6 w-6 mr-3" />
+                    NOTIFY CUSTOMERS
                   </>
                 )}
               </Button>
@@ -3279,34 +3284,34 @@ export default function SettingsClient({
       <Tabs defaultValue="personal" className="space-y-4 sm:space-y-6">
         {/* Horizontally scrollable tabs on mobile */}
         <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide">
-          <TabsList className="inline-flex w-max sm:w-auto h-auto gap-1 sm:gap-0 bg-zinc-100/80 dark:bg-zinc-800/80 p-1 rounded-xl">
-            <TabsTrigger value="personal" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+          <TabsList className="inline-flex w-max sm:w-auto h-auto gap-2 bg-black p-1 rounded-none border-2 border-black">
+            <TabsTrigger value="personal" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-4 py-2 rounded-none border-2 border-transparent data-[state=active]:bg-[#FFD200] data-[state=active]:text-black data-[state=active]:border-black font-bebas tracking-widest text-white/60 uppercase transition-all">
               <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Personal
             </TabsTrigger>
-            <TabsTrigger value="security" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+            <TabsTrigger value="security" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-4 py-2 rounded-none border-2 border-transparent data-[state=active]:bg-[#FFD200] data-[state=active]:text-black data-[state=active]:border-black font-bebas tracking-widest text-white/60 uppercase transition-all">
               <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Security
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+            <TabsTrigger value="notifications" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-4 py-2 rounded-none border-2 border-transparent data-[state=active]:bg-[#FFD200] data-[state=active]:text-black data-[state=active]:border-black font-bebas tracking-widest text-white/60 uppercase transition-all">
               <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Notifications
             </TabsTrigger>
-            <TabsTrigger value="keyboard" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+            <TabsTrigger value="keyboard" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-4 py-2 rounded-none border-2 border-transparent data-[state=active]:bg-[#FFD200] data-[state=active]:text-black data-[state=active]:border-black font-bebas tracking-widest text-white/60 uppercase transition-all">
               <Keyboard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Shortcuts
             </TabsTrigger>
             {isAdmin && (
               <>
-                <TabsTrigger value="payment-methods" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+                <TabsTrigger value="payment-methods" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-4 py-2 rounded-none border-2 border-transparent data-[state=active]:bg-[#FFD200] data-[state=active]:text-black data-[state=active]:border-black font-bebas tracking-widest text-white/60 uppercase transition-all">
                   <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Payments
                 </TabsTrigger>
-                <TabsTrigger value="orders-management" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+                <TabsTrigger value="orders-management" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-4 py-2 rounded-none border-2 border-transparent data-[state=active]:bg-[#FFD200] data-[state=active]:text-black data-[state=active]:border-black font-bebas tracking-widest text-white/60 uppercase transition-all">
                   <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Orders
                 </TabsTrigger>
-                <TabsTrigger value="billing-settings" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+                <TabsTrigger value="billing-settings" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-4 py-2 rounded-none border-2 border-transparent data-[state=active]:bg-[#FFD200] data-[state=active]:text-black data-[state=active]:border-black font-bebas tracking-widest text-white/60 uppercase transition-all">
                   <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Billing
                 </TabsTrigger>
-                <TabsTrigger value="website" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+                <TabsTrigger value="website" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-4 py-2 rounded-none border-2 border-transparent data-[state=active]:bg-[#FFD200] data-[state=active]:text-black data-[state=active]:border-black font-bebas tracking-widest text-white/60 uppercase transition-all">
                   <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Website
                 </TabsTrigger>
-                <TabsTrigger value="maintenance" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-3 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700">
+                <TabsTrigger value="maintenance" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap px-4 py-2 rounded-none border-2 border-transparent data-[state=active]:bg-[#FFD200] data-[state=active]:text-black data-[state=active]:border-black font-bebas tracking-widest text-white/60 uppercase transition-all">
                   <Wrench className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Maintenance
                 </TabsTrigger>
               </>

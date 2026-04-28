@@ -281,8 +281,8 @@ export async function POST(request: NextRequest) {
       supabase.from('notifications').insert({
         user_type: 'customer',
         user_id: customer.id,
-        title: 'Welcome to Zoiro Broast Hub! 🍗',
-        message: 'Your account has been created successfully. Start ordering delicious food now!',
+        title: 'Welcome to FIFTH AVENUE URBAN HUB! ⚡',
+        message: 'Your account has been created successfully. Welcome to the Urban Street Hub!',
         type: 'system',
       });
     } catch {}
@@ -300,7 +300,7 @@ export async function POST(request: NextRequest) {
     // Set auth cookie
     const response = NextResponse.json({
       success: true,
-      message: 'Account created successfully! Welcome to Zoiro Broast Hub!',
+      message: 'Account created successfully! Welcome to FIFTH AVENUE URBAN HUB!',
       user: {
         id: customer.id,
         email: customer.email,

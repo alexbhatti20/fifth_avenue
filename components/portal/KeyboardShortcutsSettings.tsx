@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
@@ -101,12 +101,12 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  admin: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  manager: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  waiter: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  cashier: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  chef: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-  delivery: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  admin: 'bg-[#ED1C24] text-white border-2 border-black',
+  manager: 'bg-[#FFD200] text-black border-2 border-black',
+  waiter: 'bg-zinc-800 text-white border-2 border-black',
+  cashier: 'bg-zinc-800 text-white border-2 border-black',
+  chef: 'bg-zinc-800 text-white border-2 border-black',
+  delivery: 'bg-zinc-800 text-white border-2 border-black',
 };
 
 // Map shortcut id prefix â†’ canonical page path
@@ -317,27 +317,27 @@ export default function KeyboardShortcutsSettings() {
     return (
       <div
         className={cn(
-          'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-xl border bg-card hover:bg-accent/40 transition-colors',
-          !localEnabled && 'opacity-50'
+          'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 rounded-none border-4 border-black bg-white hover:bg-[#FFD200]/10 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all',
+          !localEnabled && 'opacity-50 grayscale'
         )}
       >
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="font-medium text-sm">{shortcut.name}</span>
-            {modified && <Badge variant="secondary" className="text-[10px]">Modified</Badge>}
+            <span className="font-bebas text-lg tracking-wide">{shortcut.name}</span>
+            {modified && <Badge className="bg-[#ED1C24] text-white rounded-none border-2 border-black text-[10px] px-1.5 py-0">Modified</Badge>}
             {pageFilter === 'all' && bucket !== 'global' && (
-              <Badge variant="outline" className="text-[10px] text-muted-foreground">{pageName}</Badge>
+              <Badge variant="outline" className="text-[10px] rounded-none border-black font-semibold text-black/60">{pageName}</Badge>
             )}
-            <Badge variant="outline" className="text-[10px] capitalize">{shortcut.category}</Badge>
+            <Badge variant="outline" className="text-[10px] rounded-none border-black font-semibold capitalize bg-zinc-100">{shortcut.category}</Badge>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{shortcut.description}</p>
+          <p className="text-[11px] font-medium text-black/50 mt-0.5 line-clamp-1">{shortcut.description}</p>
         </div>
         <div className="flex items-center justify-between sm:justify-end gap-2">
-          <code className="font-mono text-xs px-2.5 py-1 rounded-md border bg-muted/60 whitespace-nowrap">
+          <code className="font-mono text-sm px-3 py-1 rounded-none border-2 border-black bg-black text-[#FFD200] font-bold whitespace-nowrap shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
             {formatKeyCombo(configuredKey)}
           </code>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(shortcut)} disabled={!localEnabled} title="Edit shortcut">
-            <Edit3 className="h-3.5 w-3.5" />
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-none border-2 border-black hover:bg-black hover:text-white" onClick={() => handleEdit(shortcut)} disabled={!localEnabled} title="Edit shortcut">
+            <Edit3 className="h-4 w-4" />
           </Button>
           {modified && (
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleReset(shortcut)} disabled={!localEnabled} title="Reset to default">
@@ -355,16 +355,16 @@ export default function KeyboardShortcutsSettings() {
     <>
       <div className="space-y-4">
         {/* Header */}
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className="rounded-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-[#FFD200]">
+          <CardHeader className="pb-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Keyboard className="h-5 w-5 text-primary" />
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-black rounded-none border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <Keyboard className="h-6 w-6 text-[#FFD200]" />
                 </div>
                 <div>
-                  <CardTitle className="text-base">Keyboard Shortcuts</CardTitle>
-                  <CardDescription className="text-xs">Customize bindings â€” role-specific</CardDescription>
+                  <CardTitle className="text-2xl font-bebas tracking-wider text-black uppercase">Keyboard Shortcuts</CardTitle>
+                  <CardDescription className="text-xs font-bold text-black/60 uppercase tracking-widest">Customize bindings • Industrial Access</CardDescription>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -457,21 +457,19 @@ export default function KeyboardShortcutsSettings() {
         </div>
 
         {/* Shortcuts list */}
-        <Card>
-          <CardContent className="pt-4">
-            {filteredShortcuts.length === 0 ? (
-              <div className="py-12 text-center text-muted-foreground text-sm">
-                No shortcuts found matching your search.
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {filteredShortcuts.map((shortcut) => (
-                  <ShortcutRow key={shortcut.id} shortcut={shortcut} />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          {filteredShortcuts.length === 0 ? (
+            <Card className="rounded-none border-4 border-black p-12 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <p className="text-muted-foreground text-sm font-medium">No shortcuts found matching your search.</p>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {filteredShortcuts.map((shortcut) => (
+                <ShortcutRow key={shortcut.id} shortcut={shortcut} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Edit Dialog */}

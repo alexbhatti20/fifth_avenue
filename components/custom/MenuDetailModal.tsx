@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
-import { Clock, Star, Minus, Plus, Users, Package, ChevronLeft, ChevronRight, Tag } from "lucide-react";
+import { Clock, Star, Minus, Plus, Users, Package, ChevronLeft, ChevronRight, Tag, Flame, Sparkles, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CartItem } from "@/context/CartContext";
+import { useAuth } from "@/hooks/useAuth";
 import type { Deal } from "@/lib/server-queries";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1200&h=1200&fit=crop&q=80";
@@ -38,6 +39,7 @@ export default function MenuDetailModal({
   const [selectedSizePrice, setSelectedSizePrice] = useState<number | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [dialogImgError, setDialogImgError] = useState(false);
+  const [localQuantity, setLocalQuantity] = useState(1);
 
   const itemImages = useMemo(() => {
     const fromArray = Array.isArray(selectedItem?.images)
@@ -83,8 +85,15 @@ export default function MenuDetailModal({
       setSelectedSizePrice(null);
       setActiveImageIndex(0);
       setDialogImgError(false);
+      setLocalQuantity(1);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (qty > 0) {
+      setLocalQuantity(qty);
+    }
+  }, [qty]);
 
   useEffect(() => {
     if (!open) return;
@@ -105,36 +114,79 @@ export default function MenuDetailModal({
     setSelectedSizePrice(null);
   }, [open, selectedItem]);
 
+  const { user } = useAuth();
+
   const handleAddCurrentItem = () => {
     if (!selectedItem || requiresSizeSelection) return;
 
-    if (qty === 0) {
-      addToCart(selectedItem, selectedSize || undefined, currentPrice);
-      toast({ title: "ADDED TO SQUAD", description: "FLAVOUR SECURED." });
+    if (!user) {
+      toast({
+        title: "STREET ACCESS ONLY",
+        description: "JOIN THE SQUAD TO ADD FLAVOURS TO YOUR BASKET.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    // Add multiple if localQuantity > 1
+    // We call addToCart once, but we need to modify addToCart to accept quantity?
+    // Looking at CartContext, addToCart only adds 1.
+    // I'll call it in a loop but with a small delay or ensure state updates are handled.
+    // Actually, I can just call it N times, state functional updates will handle it.
+    for (let i = 0; i < localQuantity; i++) {
+      addToCart(selectedItem, selectedSize || undefined, currentPrice);
+    }
+    
+    toast({ 
+      title: "ADDED TO SQUAD", 
+      description: `${localQuantity}x ${selectedItem.name} SECURED.` 
+    });
 
     onOpenChange(false);
   };
 
   const handleIncreaseQty = () => {
-    if (!selectedItem || !cartItemId || requiresSizeSelection) return;
-
-    if (qty === 0) {
-      addToCart(selectedItem, selectedSize || undefined, currentPrice);
-      toast({ title: "ADDED TO SQUAD", description: "FLAVOUR SECURED." });
+    if (!user) {
+      toast({
+        title: "STREET ACCESS ONLY",
+        description: "JOIN THE SQUAD TO ADD FLAVOURS TO YOUR BASKET.",
+        variant: "destructive",
+      });
       return;
     }
 
-    updateQuantity(cartItemId, qty + 1);
+    const nextQty = localQuantity + 1;
+    setLocalQuantity(nextQty);
+    
+    // If already in cart, sync immediately
+    if (qty > 0 && cartItemId) {
+      updateQuantity(cartItemId, nextQty);
+    }
   };
 
   const handleDecreaseQty = () => {
-    if (!cartItemId || qty === 0) return;
-    updateQuantity(cartItemId, Math.max(0, qty - 1));
+    if (localQuantity <= 1) return;
+    
+    const nextQty = localQuantity - 1;
+    setLocalQuantity(nextQty);
+    
+    // If already in cart, sync immediately
+    if (qty > 0 && cartItemId) {
+      updateQuantity(cartItemId, nextQty);
+    }
   };
 
   const handleIncreaseDealQty = () => {
     if (!selectedDeal || !dealCartItemId) return;
+
+    if (!user) {
+      toast({
+        title: "STREET ACCESS ONLY",
+        description: "JOIN THE SQUAD TO ADD FLAVOURS TO YOUR BASKET.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (dealQty === 0) {
       handleAddDealToCart(selectedDeal);
@@ -163,7 +215,23 @@ export default function MenuDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="inset-x-2 sm:inset-auto max-w-[94vw] sm:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl p-0 overflow-y-auto sm:overflow-hidden max-h-[88dvh] sm:max-h-[90vh] border-[4px] sm:border-[8px] border-black rounded-none bg-white shadow-[14px_14px_0px_0px_rgba(0,0,0,1)] sm:shadow-[24px_24px_0px_0px_rgba(0,0,0,1)]">
+      <DialogContent className="fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] w-[95vw] sm:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl p-0 overflow-y-auto sm:overflow-hidden max-h-[90dvh] border-[8px] border-black rounded-none bg-white shadow-[24px_24px_0px_0px_rgba(0,0,0,1)]">
+        {!selectedItem && !selectedDeal && (
+          <div className="p-20 text-center flex flex-col items-center justify-center bg-[#FFF4CC] min-h-[400px]">
+            <div className="w-24 h-24 bg-black text-[#FFD200] border-8 border-black flex items-center justify-center mb-8 animate-bounce shadow-[10px_10px_0_0_rgba(237,28,36,1)]">
+              <Info className="w-12 h-12" />
+            </div>
+            <h2 className="font-bebas text-5xl text-black mb-4 tracking-tighter">SCANNING THE STREETS...</h2>
+            <p className="font-source-sans font-black text-black/60 uppercase text-xl mb-8">The squad is gathering the flavours for you.</p>
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="border-4 border-black rounded-none font-bebas text-2xl h-16 px-10"
+            >
+              CANCEL RECKONING
+            </Button>
+          </div>
+        )}
         <DialogTitle className="sr-only">
           {selectedItem?.name || selectedDeal?.name || "Item Details"}
         </DialogTitle>
@@ -175,13 +243,34 @@ export default function MenuDetailModal({
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.35fr]">
             <section className="bg-black text-white border-b-8 xl:border-b-0 xl:border-r-8 border-black">
               <div className="p-4 md:p-6 border-b-4 border-[#FFD200]">
-                <div className="inline-block bg-[#FFD200] text-black px-4 py-1 font-bebas text-lg md:text-xl border-2 border-black rotate-[-2deg] mb-3">
-                  FIFTH AVENUE SELECT
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <div className="inline-block bg-[#FFD200] text-black px-4 py-1 font-bebas text-lg md:text-xl border-2 border-black rotate-[-2deg]">
+                    FIFTH AVENUE SELECT
+                  </div>
+                  {selectedItem.is_featured && (
+                    <div className="bg-[#ED1C24] text-white px-3 py-1 font-bebas text-sm border-2 border-black rotate-[2deg] flex items-center gap-1">
+                      <Flame className="w-4 h-4 fill-white" /> POPULAR
+                    </div>
+                  )}
+                  {selectedItem.is_new && (
+                    <div className="bg-[#008A45] text-white px-3 py-1 font-bebas text-sm border-2 border-black rotate-[-1deg] flex items-center gap-1">
+                      <Sparkles className="w-4 h-4 fill-white" /> NEW
+                    </div>
+                  )}
                 </div>
                 <h2 className="font-bebas text-3xl md:text-4xl leading-none uppercase">{selectedItem.name}</h2>
-                <p className="font-source-sans text-sm md:text-base text-white/80 font-bold mt-3">
-                  {selectedItem.is_available === false ? "Currently unavailable" : "Freshly prepared and available now"}
-                </p>
+                <div className="flex items-center gap-3 mt-3">
+                  <p className="font-source-sans text-sm md:text-base text-white/80 font-bold">
+                    {selectedItem.is_available === false ? "Currently unavailable" : "Freshly prepared and available now"}
+                  </p>
+                  {selectedItem.total_reviews > 0 && (
+                    <div className="flex items-center gap-1 text-[#FFD200]">
+                      <Star className="w-4 h-4 fill-[#FFD200]" />
+                      <span className="font-bebas text-lg">{selectedItem.rating?.toFixed(1)}</span>
+                      <span className="text-xs text-white/50 font-source-sans">({selectedItem.total_reviews} RECKONS)</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="p-4 md:p-5">
@@ -255,7 +344,8 @@ export default function MenuDetailModal({
               </div>
             </section>
 
-            <section className="bg-[#FFF4CC]">
+            <section className="bg-[#FFF4CC] xl:max-h-[90dvh] xl:overflow-y-auto custom-scrollbar flex flex-col">
+
               <div className="p-4 md:p-6 border-b-4 border-black">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
@@ -274,7 +364,7 @@ export default function MenuDetailModal({
               </div>
 
               <div className="p-4 md:p-6 space-y-5">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white border-4 border-black p-4">
                     <div className="w-10 h-10 bg-black border-2 border-[#FFD200] flex items-center justify-center mb-3">
                       <Clock className="w-5 h-5 text-[#FFD200]" />
@@ -290,102 +380,71 @@ export default function MenuDetailModal({
                     <p className="font-bebas text-xs text-black/50 tracking-widest">RATING</p>
                     <p className="font-bebas text-2xl text-black leading-none">{selectedItem.rating?.toFixed(1) || "NEW"}</p>
                   </div>
-
-                  <div className="bg-white border-4 border-black p-4">
-                    <div className="w-10 h-10 bg-black border-2 border-[#FFD200] flex items-center justify-center mb-3">
-                      <Users className="w-5 h-5 text-[#FFD200]" />
-                    </div>
-                    <p className="font-bebas text-xs text-black/50 tracking-widest">SERVES</p>
-                    <p className="font-bebas text-2xl text-black leading-none">
-                      {selectedItem.serves_count ? `${selectedItem.serves_count} PEOPLE` : "SINGLE"}
-                    </p>
-                  </div>
-
-                  <div className="bg-white border-4 border-black p-4">
-                    <div className="w-10 h-10 bg-black border-2 border-[#FFD200] flex items-center justify-center mb-3">
-                      <Package className="w-5 h-5 text-[#FFD200]" />
-                    </div>
-                    <p className="font-bebas text-xs text-black/50 tracking-widest">PIECES</p>
-                    <p className="font-bebas text-2xl text-black leading-none">
-                      {selectedItem.piece_count ? `${selectedItem.piece_count} PCS` : "CUSTOM"}
-                    </p>
-                  </div>
                 </div>
 
-                {(selectedItem.includes || selectedItem.tags?.length > 0) && (
-                  <div className="bg-white border-4 border-black p-4 md:p-5 space-y-4">
-                    {selectedItem.includes && (
-                      <div>
-                        <p className="font-bebas text-xs text-black/50 tracking-widest mb-1">INCLUDES</p>
-                        <p className="font-source-sans text-base font-bold text-black/85">{selectedItem.includes}</p>
-                      </div>
-                    )}
-
-                    {selectedItem.tags?.length > 0 && (
-                      <div>
-                        <p className="font-bebas text-xs text-black/50 tracking-widest mb-2">TAGS</p>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedItem.tags.map((tag: string) => (
-                            <span
-                              key={tag}
-                              className="inline-flex items-center gap-1 px-3 py-1 border-2 border-black bg-[#FFD200] font-bebas text-sm tracking-wider text-black"
-                            >
-                              <Tag className="w-3 h-3" />
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                {selectedItem.includes && (
+                  <div className="bg-white border-4 border-black p-4 md:p-5">
+                    <p className="font-bebas text-xs text-black/50 tracking-widest mb-1">INCLUDES</p>
+                    <p className="font-source-sans text-base font-bold text-black/85">{selectedItem.includes}</p>
                   </div>
                 )}
 
                 {selectedItem.has_variants && selectedItem.size_variants && selectedItem.size_variants.length > 0 && (
-                  <div>
-                    <h4 className="font-bebas text-3xl mb-3 text-black tracking-widest">CHOOSE YOUR SIZE</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {selectedItem.size_variants.map((variant: any) => (
-                        <button
-                          key={variant.size}
-                          type="button"
-                          onClick={() => {
-                            if (variant.is_available) {
-                              setSelectedSize(variant.size);
-                              setSelectedSizePrice(variant.price);
-                            }
-                          }}
-                          disabled={!variant.is_available}
-                          className={cn(
-                            "w-full flex items-center justify-between p-4 border-4 transition-all text-left",
-                            selectedSize === variant.size
-                              ? "border-black bg-[#FFD200] shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
-                              : "bg-white border-black/20 text-black hover:border-black",
-                            !variant.is_available && "opacity-40 cursor-not-allowed"
-                          )}
-                        >
-                          <span className="font-bebas text-2xl uppercase tracking-tight">{variant.size}</span>
-                          <span className="font-bebas text-xl">RS. {variant.price}</span>
-                        </button>
-                      ))}
+                  <div className="bg-white border-4 border-black p-4 md:p-5">
+                    <h4 className="font-bebas text-2xl mb-4 text-black tracking-widest flex items-center gap-2">
+                      <Package className="w-5 h-5" /> CHOOSE YOUR SIZE
+                    </h4>
+                    <div className="max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {selectedItem.size_variants.map((variant: any) => (
+                          <button
+                            key={variant.size}
+                            type="button"
+                            onClick={() => {
+                              if (variant.is_available) {
+                                setSelectedSize(variant.size);
+                                setSelectedSizePrice(variant.price);
+                              }
+                            }}
+                            disabled={!variant.is_available}
+                            className={cn(
+                              "w-full flex items-center justify-between p-4 border-4 transition-all text-left relative overflow-hidden group",
+                              selectedSize === variant.size
+                                ? "border-black bg-[#FFD200] shadow-[4px_4px_0_0_rgba(0,0,0,1)]"
+                                : "bg-gray-50 border-black/10 text-black hover:border-black",
+                              !variant.is_available && "opacity-40 cursor-not-allowed"
+                            )}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-bebas text-xl leading-none">{variant.size}</span>
+                              {!variant.is_available && <span className="text-[10px] font-bold text-red-500 uppercase">SOLD OUT</span>}
+                            </div>
+                            <span className="font-bebas text-xl">RS. {variant.price}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
 
-                <div className="bg-white border-4 border-black p-4 md:p-5">
-                  <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+                {/* Spacing for sticky footer on mobile */}
+                <div className="h-24 sm:h-0" />
+
+                <div className="sticky bottom-0 sm:static bg-[#FFF4CC] sm:bg-transparent border-t-4 sm:border-t-0 border-black p-4 md:p-5 -mx-4 md:-mx-6 mt-auto z-30">
+                  <div className="flex flex-col lg:flex-row lg:items-end gap-4 max-w-5xl mx-auto">
                     <div className="w-full lg:max-w-[260px]">
                       <span className="font-bebas text-sm text-black/50 tracking-widest block mb-2">QUANTITY</span>
                       <div className="flex items-center border-4 border-black bg-white h-16">
                         <button
                           type="button"
                           onClick={handleDecreaseQty}
-                          disabled={qty === 0}
+                          disabled={localQuantity <= 1 && qty === 0}
                           className="flex-1 h-full flex items-center justify-center hover:bg-black/5 border-r-4 border-black disabled:opacity-40"
                           aria-label="Decrease quantity"
                         >
                           <Minus className="w-5 h-5" />
                         </button>
-                        <span className="w-16 text-center font-bebas text-3xl">{qty}</span>
+                        <span className="w-16 text-center font-bebas text-3xl">{localQuantity}</span>
                         <button
                           type="button"
                           onClick={handleIncreaseQty}

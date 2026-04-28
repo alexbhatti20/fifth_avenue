@@ -60,23 +60,22 @@ export default function PushNotificationSettings({
     });
   };
 
-  // Compact version for inline use
   if (compact) {
     return (
-      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 rounded-xl border border-red-100 dark:border-red-900/30">
+      <div className="flex items-center justify-between p-4 bg-white rounded-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
         <div className="flex items-center gap-3">
           <div className={cn(
-            'p-2 rounded-lg',
+            'p-2.5 rounded-none border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
             isSubscribed 
-              ? 'bg-gradient-to-br from-red-500 to-red-600 text-white' 
-              : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-500'
+              ? 'bg-[#FFD200] text-black' 
+              : 'bg-zinc-200 text-zinc-500'
           )}>
             <Bell className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-sm font-medium">Push Notifications</p>
-            <p className="text-xs text-muted-foreground">
-              {isSubscribed ? 'Enabled' : 'Get instant alerts'}
+            <p className="text-sm font-bebas tracking-wide">Push Notifications</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
+              {isSubscribed ? 'SYSTEM ACTIVE' : 'GET INSTANT ALERTS'}
             </p>
           </div>
         </div>
@@ -96,17 +95,17 @@ export default function PushNotificationSettings({
   // Not supported fallback
   if (!isSupported) {
     return (
-      <Card className="border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50/50 dark:border-amber-900 dark:from-amber-950/20 dark:to-yellow-950/20">
+      <Card className="rounded-none border-4 border-black bg-[#FFD200]/10 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
-              <BellOff className="h-5 w-5 text-amber-600" />
+            <div className="p-2 rounded-none border-2 border-black bg-white">
+              <BellOff className="h-5 w-5 text-black" />
             </div>
-            <CardTitle className="text-base">Push Notifications</CardTitle>
+            <CardTitle className="text-lg font-bebas tracking-wider uppercase">Push Notifications</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs font-bold uppercase tracking-tight text-black/60">
             Push notifications are not supported in your browser. Try Chrome, Firefox, or Edge for the best experience.
           </p>
         </CardContent>
@@ -115,38 +114,34 @@ export default function PushNotificationSettings({
   }
 
   return (
-    <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-red-50/30 dark:from-zinc-900 dark:to-red-950/10">
-      {/* Header with animated gradient */}
-      <div className="relative h-2 bg-gradient-to-r from-red-500 via-red-400 to-orange-500">
-        <div className="absolute inset-0 bg-gradient-to-r from-red-500 via-red-400 to-orange-500 animate-pulse opacity-50" />
-      </div>
+    <Card className="rounded-none border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white overflow-hidden">
+      <div className="h-3 bg-black border-b-2 border-black" />
       
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <div className={cn(
-              'p-2.5 rounded-xl shadow-lg transition-all duration-300',
+              'p-3 rounded-none border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all duration-300',
               isSubscribed 
-                ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-500/30' 
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
+                ? 'bg-[#FFD200] text-black' 
+                : 'bg-zinc-100 text-zinc-500'
             )}>
-              <Bell className={cn('h-5 w-5', isSubscribed && 'animate-pulse')} />
+              <Bell className={cn('h-6 w-6', isSubscribed && 'animate-pulse')} />
             </div>
             <div>
-              <CardTitle className="text-lg">Push Notifications</CardTitle>
-              <CardDescription className="text-xs">
-                100% Free • No external API needed
+              <CardTitle className="text-2xl font-bebas tracking-wider uppercase">Push Notifications</CardTitle>
+              <CardDescription className="text-xs font-bold text-black/60 uppercase tracking-widest">
+                DIRECT SYSTEM ALERTS • LOW LATENCY
               </CardDescription>
             </div>
           </div>
           <Badge 
-            variant={isSubscribed ? 'default' : 'secondary'}
             className={cn(
-              'transition-all duration-300',
-              isSubscribed && 'bg-gradient-to-r from-red-500 to-red-600 border-0'
+              'rounded-none border-2 border-black font-bebas tracking-widest px-3 py-1 text-sm transition-all duration-300',
+              isSubscribed ? 'bg-[#008A45] text-white' : 'bg-zinc-200 text-zinc-500'
             )}
           >
-            {isSubscribed ? '✓ Enabled' : 'Disabled'}
+            {isSubscribed ? '✓ ACTIVE' : 'INACTIVE'}
           </Badge>
         </div>
       </CardHeader>
@@ -261,11 +256,11 @@ export default function PushNotificationSettings({
         </div>
 
         {/* Security Note */}
-        <div className="flex items-start gap-2 p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-lg text-xs text-blue-600 dark:text-blue-400">
-          <ShieldCheck className="h-4 w-4 flex-shrink-0 mt-0.5" />
-          <div>
-            <span className="font-medium">Privacy First: </span>
-            We use secure Web Push (VAPID) with no third-party services. Your data stays between you and Zoiro.
+        <div className="flex items-start gap-3 p-4 bg-black text-[#FFD200] rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-xs">
+          <ShieldCheck className="h-5 w-5 flex-shrink-0" />
+          <div className="font-bebas tracking-wide text-sm">
+            <span className="text-white">Privacy First: </span>
+            We use secure Web Push (VAPID) with no third-party services. Your data stays between you and Fifth Avenue.
           </div>
         </div>
       </CardContent>

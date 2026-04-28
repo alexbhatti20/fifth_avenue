@@ -314,49 +314,49 @@ export default function BillingClient({ initialStats, initialPendingOrders, init
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-md"
           >
-            <Card className="border-2 border-purple-500 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/50 dark:to-indigo-950/50 shadow-2xl">
+            <Card className="border-4 border-black bg-white rounded-none shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center flex-shrink-0 animate-pulse">
+                  <div className="w-12 h-12 border-4 border-black bg-[#ED1C24] flex items-center justify-center flex-shrink-0">
                     <ShoppingBag className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <Bell className="h-4 w-4 text-purple-600 animate-bounce" />
-                      <span className="font-bold text-purple-700 dark:text-purple-300">New Online Order!</span>
+                      <span className="font-bebas text-lg tracking-widest text-[#ED1C24] uppercase">New Online Order!</span>
                     </div>
-                    <p className="font-semibold text-lg">#{newOnlineOrder.order_number}</p>
-                    <p className="text-sm text-muted-foreground">{newOnlineOrder.customer_name}</p>
-                    <p className="text-lg font-bold text-purple-600 mt-1">
-                      Rs. {newOnlineOrder.total?.toLocaleString()}
+                    <p className="font-bebas text-3xl tracking-tighter text-black">#{newOnlineOrder.order_number}</p>
+                    <p className="text-xs font-source-sans font-black uppercase tracking-widest text-black/40">{newOnlineOrder.customer_name}</p>
+                    <p className="text-2xl font-bebas text-[#008A45] mt-1">
+                      RS. {newOnlineOrder.total?.toLocaleString()}
                     </p>
                   </div>
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => setNewOnlineOrder(null)}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="text-black hover:bg-black/5"
                   >
                     ✕
                   </Button>
                 </div>
-                <div className="flex gap-2 mt-3">
+                <div className="flex gap-2 mt-4">
                   <Button
                     size="sm"
-                    className="flex-1 bg-purple-600 hover:bg-purple-700"
+                    className="flex-1 bg-black text-[#FFD200] font-bebas text-lg tracking-widest rounded-none border-2 border-black hover:bg-black/90"
                     onClick={() => {
                       router.push('/portal/orders');
                       setNewOnlineOrder(null);
                     }}
                   >
-                    View Orders
+                    VIEW ORDERS
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
+                    className="font-bebas text-lg tracking-widest rounded-none border-2 border-black hover:bg-black/5"
                     onClick={() => setNewOnlineOrder(null)}
                   >
-                    Dismiss
+                    DISMISS
                   </Button>
                 </div>
               </CardContent>
@@ -370,29 +370,28 @@ export default function BillingClient({ initialStats, initialPendingOrders, init
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-3 sm:p-4 rounded-lg bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-950/40 dark:to-indigo-950/40 border border-purple-300 dark:border-purple-800"
+          className="p-3 sm:p-4 border-4 border-black bg-[#FFD200] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
         >
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center animate-pulse">
-                <ShoppingBag className="h-4 w-4 text-white" />
+              <div className="w-10 h-10 border-4 border-black bg-black flex items-center justify-center">
+                <ShoppingBag className="h-5 w-5 text-[#FFD200]" />
               </div>
               <div>
-                <p className="font-semibold text-purple-800 dark:text-purple-200 text-sm sm:text-base">
-                  {onlineOrdersCount} Online Order{onlineOrdersCount > 1 ? 's' : ''} Pending
+                <p className="font-bebas text-2xl text-black tracking-tight leading-none">
+                  {onlineOrdersCount} ONLINE ORDER{onlineOrdersCount > 1 ? 'S' : ''} PENDING
                 </p>
-                <p className="text-xs text-purple-600 dark:text-purple-400">
-                  New orders received from online platform
+                <p className="text-[10px] font-source-sans font-black text-black/60 uppercase tracking-widest mt-1">
+                  NEW ORDERS RECEIVED FROM ONLINE PLATFORM
                 </p>
               </div>
             </div>
             <Button
               size="sm"
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-black text-[#FFD200] font-bebas text-lg tracking-widest rounded-none border-2 border-black hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
               onClick={() => router.push('/portal/orders')}
             >
-              <Volume2 className="h-4 w-4 mr-1" />
-              View Orders
+              VIEW ORDERS
             </Button>
           </div>
         </motion.div>
@@ -417,20 +416,18 @@ export default function BillingClient({ initialStats, initialPendingOrders, init
             size="sm"
             onClick={handleEnableSound}
             className={cn(
-              "transition-all",
+              "font-bebas text-lg tracking-widest rounded-none border-2 border-black transition-all",
               soundEnabled 
-                ? "bg-green-600 hover:bg-green-700 text-white" 
-                : "border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                ? "bg-[#008A45] text-white hover:bg-[#008A45]/90" 
+                : "bg-white text-black hover:bg-black/5"
             )}
           >
             {soundEnabled ? (
-              <Volume2 className="h-4 w-4 animate-pulse" />
+              <Volume2 className="h-4 w-4 mr-2" />
             ) : (
-              <VolumeX className="h-4 w-4" />
+              <VolumeX className="h-4 w-4 mr-2" />
             )}
-            <span className="hidden sm:inline ml-2">
-              {soundEnabled ? "Sound On" : "Enable Sound"}
-            </span>
+            {soundEnabled ? "SOUND ON" : "ENABLE SOUND"}
           </Button>
           
           <Button
@@ -451,18 +448,18 @@ export default function BillingClient({ initialStats, initialPendingOrders, init
 
       {/* Quick Stats Row */}
       {stats && (
-        <div className="grid grid-cols-2 gap-2 md:gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-3 md:p-4 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-900"
+            className="p-4 border-4 border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,138,69,1)]"
           >
-            <div className="flex items-center gap-1.5 md:gap-2 mb-1 md:mb-2">
-              <Banknote className="h-3.5 w-3.5 md:h-4 md:w-4 text-green-600" />
-              <span className="text-xs md:text-sm text-green-700 dark:text-green-300">Cash</span>
+            <div className="flex items-center gap-2 mb-2">
+              <Banknote className="h-4 w-4 text-[#008A45]" />
+              <span className="font-bebas text-lg tracking-widest text-black/40 uppercase">CASH</span>
             </div>
-            <p className="text-base md:text-lg font-bold text-green-700 dark:text-green-300">
-              Rs. {(stats.cash_today || 0).toLocaleString()}
+            <p className="text-2xl sm:text-3xl font-bebas text-black leading-none">
+              RS. {(stats.cash_today || 0).toLocaleString()}
             </p>
           </motion.div>
           
@@ -470,14 +467,14 @@ export default function BillingClient({ initialStats, initialPendingOrders, init
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="p-3 md:p-4 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-900"
+            className="p-4 border-4 border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
           >
-            <div className="flex items-center gap-1.5 md:gap-2 mb-1 md:mb-2">
-              <CreditCard className="h-3.5 w-3.5 md:h-4 md:w-4 text-blue-600" />
-              <span className="text-xs md:text-sm text-blue-700 dark:text-blue-300">Card</span>
+            <div className="flex items-center gap-2 mb-2">
+              <CreditCard className="h-4 w-4 text-black" />
+              <span className="font-bebas text-lg tracking-widest text-black/40 uppercase">CARD</span>
             </div>
-            <p className="text-base md:text-lg font-bold text-blue-700 dark:text-blue-300">
-              Rs. {(stats.card_today || 0).toLocaleString()}
+            <p className="text-2xl sm:text-3xl font-bebas text-black leading-none">
+              RS. {(stats.card_today || 0).toLocaleString()}
             </p>
           </motion.div>
           
@@ -485,14 +482,14 @@ export default function BillingClient({ initialStats, initialPendingOrders, init
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="p-3 md:p-4 rounded-lg bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 border border-purple-200 dark:border-purple-900"
+            className="p-4 border-4 border-black bg-white shadow-[6px_6px_0px_0px_rgba(237,28,36,1)]"
           >
-            <div className="flex items-center gap-1.5 md:gap-2 mb-1 md:mb-2">
-              <QrCode className="h-3.5 w-3.5 md:h-4 md:w-4 text-purple-600" />
-              <span className="text-xs md:text-sm text-purple-700 dark:text-purple-300">Online</span>
+            <div className="flex items-center gap-2 mb-2">
+              <QrCode className="h-4 w-4 text-[#ED1C24]" />
+              <span className="font-bebas text-lg tracking-widest text-black/40 uppercase">ONLINE</span>
             </div>
-            <p className="text-base md:text-lg font-bold text-purple-700 dark:text-purple-300">
-              Rs. {(stats.online_today || 0).toLocaleString()}
+            <p className="text-2xl sm:text-3xl font-bebas text-black leading-none">
+              RS. {(stats.online_today || 0).toLocaleString()}
             </p>
           </motion.div>
           
@@ -500,14 +497,14 @@ export default function BillingClient({ initialStats, initialPendingOrders, init
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="p-3 md:p-4 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-900"
+            className="p-4 border-4 border-black bg-white shadow-[6px_6px_0px_0px_rgba(255,210,0,1)]"
           >
-            <div className="flex items-center gap-1.5 md:gap-2 mb-1 md:mb-2">
-              <Clock className="h-3.5 w-3.5 md:h-4 md:w-4 text-amber-600" />
-              <span className="text-xs md:text-sm text-amber-700 dark:text-amber-300">Pending</span>
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="h-4 w-4 text-[#FFD200]" />
+              <span className="font-bebas text-lg tracking-widest text-black/40 uppercase">PENDING</span>
             </div>
-            <p className="text-base md:text-lg font-bold text-amber-700 dark:text-amber-300">
-              {pendingCount || stats.pending_count || 0} orders
+            <p className="text-2xl sm:text-3xl font-bebas text-black leading-none">
+              {pendingCount || stats.pending_count || 0} ORDERS
             </p>
           </motion.div>
         </div>

@@ -82,7 +82,7 @@ function exportToExcel(data: ExportData) {
   let csvContent = '';
   
   // Header with branding
-  csvContent += 'ZOIRO INJECTED BROAST - BUSINESS REPORT\n';
+  csvContent += 'FIFTH AVENUE - BUSINESS REPORT\n';
   csvContent += `Generated: ${new Date().toLocaleString()}\n`;
   csvContent += `Report Period: ${dateRangeLabel}\n`;
   csvContent += '\n';
@@ -148,7 +148,7 @@ function exportToExcel(data: ExportData) {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = `ZOIRO_Report_${dateRange}_${new Date().toISOString().split('T')[0]}.csv`;
+  link.download = `FIFTH_AVENUE_Report_${dateRange}_${new Date().toISOString().split('T')[0]}.csv`;
   link.click();
   URL.revokeObjectURL(link.href);
 }
@@ -173,12 +173,25 @@ function exportToPDF(data: ExportData) {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>ZOIRO Injected Broast - Business Report</title>
+      <title>FIFTH AVENUE - Business Report</title>
       <style>
         @page {
           size: A4;
           margin: 15mm 12mm;
         }
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-35deg);
+            font-size: 80px;
+            font-weight: 900;
+            color: rgba(0,0,0,0.03);
+            white-space: nowrap;
+            z-index: -1;
+            pointer-events: none;
+            font-family: 'Arial Black', sans-serif;
+          }
         * { 
           box-sizing: border-box; 
           margin: 0; 
@@ -197,11 +210,11 @@ function exportToPDF(data: ExportData) {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 15px 20px;
-          background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
-          color: white;
-          border-radius: 8px;
-          margin-bottom: 20px;
+          padding: 20px;
+          background: #000;
+          color: #FFD200;
+          border: 6px solid #FFD200;
+          margin-bottom: 25px;
         }
         .logo-section {
           display: flex;
@@ -215,16 +228,6 @@ function exportToPDF(data: ExportData) {
           background: white;
           border-radius: 8px;
           padding: 4px;
-        }
-        .brand-name {
-          font-size: 22px;
-          font-weight: 700;
-          letter-spacing: 1px;
-        }
-        .brand-tagline {
-          font-size: 10px;
-          opacity: 0.9;
-          margin-top: 2px;
         }
         .report-info {
           text-align: right;
@@ -276,10 +279,10 @@ function exportToPDF(data: ExportData) {
         .section-header {
           display: flex;
           align-items: center;
-          gap: 8px;
-          margin-bottom: 10px;
-          padding-bottom: 6px;
-          border-bottom: 2px solid #dc2626;
+          gap: 10px;
+          margin-bottom: 12px;
+          padding-bottom: 8px;
+          border-bottom: 4px solid #000;
         }
         .section-icon {
           width: 20px;
@@ -296,56 +299,6 @@ function exportToPDF(data: ExportData) {
           font-size: 13px;
           font-weight: 600;
           color: #1f2937;
-        }
-        
-        /* Charts */
-        .chart-container {
-          background: #f8fafc;
-          border-radius: 8px;
-          padding: 15px;
-          margin-bottom: 15px;
-        }
-        .chart-grid {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-around;
-          height: 120px;
-          gap: 8px;
-          padding: 10px 5px 0;
-          border-bottom: 1px solid #e2e8f0;
-        }
-        .chart-bar-wrapper {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          flex: 1;
-          max-width: 60px;
-        }
-        .chart-bar {
-          width: 24px;
-          background: linear-gradient(to top, #dc2626, #ef4444);
-          border-radius: 3px 3px 0 0;
-          min-height: 3px;
-          transition: height 0.3s;
-        }
-        .chart-value {
-          font-size: 8px;
-          color: #374151;
-          margin-bottom: 4px;
-          font-weight: 600;
-        }
-        .chart-label {
-          font-size: 8px;
-          color: #6b7280;
-          margin-top: 6px;
-          text-align: center;
-        }
-        
-        /* Two Column Layout */
-        .two-col {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 15px;
         }
         
         /* Tables */
@@ -397,28 +350,6 @@ function exportToPDF(data: ExportData) {
         }
         .text-amber {
           color: #d97706;
-        }
-        
-        /* Badges */
-        .badge {
-          display: inline-block;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-size: 8px;
-          font-weight: 600;
-          text-transform: uppercase;
-        }
-        .badge-danger {
-          background: #fef2f2;
-          color: #dc2626;
-        }
-        .badge-warning {
-          background: #fffbeb;
-          color: #d97706;
-        }
-        .badge-success {
-          background: #f0fdf4;
-          color: #16a34a;
         }
         
         /* Footer */
@@ -479,39 +410,11 @@ function exportToPDF(data: ExportData) {
             print-color-adjust: exact !important;
           }
           .print-actions { display: none !important; }
-          .header { 
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .section { page-break-inside: avoid; }
-          table { page-break-inside: avoid; }
-        }
-        
-        /* Compact inventory stats */
-        .inv-stats {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 10px;
-          margin-bottom: 12px;
-        }
-        .inv-stat {
-          text-align: center;
-          padding: 10px;
-          background: #f8fafc;
-          border-radius: 6px;
-        }
-        .inv-stat-value {
-          font-size: 16px;
-          font-weight: 700;
-        }
-        .inv-stat-label {
-          font-size: 8px;
-          color: #64748b;
-          text-transform: uppercase;
         }
       </style>
     </head>
     <body>
+      <div class="watermark">FIFTH AVENUE</div>
       <div class="print-actions">
         <button class="btn btn-primary" onclick="window.print()">
           <span>🖨️</span> Print / Save PDF
@@ -524,17 +427,18 @@ function exportToPDF(data: ExportData) {
       <!-- Header -->
       <div class="header">
         <div class="logo-section">
-          <img src="/assets/zoiro-logo.png" alt="ZOIRO Injected Broast" class="logo" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect fill=%22%23dc2626%22 width=%2240%22 height=%2240%22 rx=%228%22/><text x=%2220%22 y=%2228%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2220%22 font-weight=%22bold%22>Z</text></svg>'"/>
+          <img src="/assets/fifth_avenue_urban_logo_1777394607150.png" style="height: 60px;" />
           <div>
-            <div class="brand-name">ZOIRO INJECTED BROAST</div>
-            <div class="brand-tagline">Injected Broast — Saucy. Juicy. Crispy.</div>
+            <h1 style="font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: #fff;">FIFTH AVENUE</h1>
+            <p style="color: #FFD200; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Urban Street Hub • Vehari</p>
           </div>
         </div>
         <div class="report-info">
           <div class="report-title">📊 Business Analytics Report</div>
-          <div class="report-meta">
-            Period: <strong>${dateRangeLabel}</strong><br/>
-            Generated: ${generatedDate}
+          <div class="footer-col">
+            <strong>FIFTH AVENUE URBAN HUB</strong><br>
+            Faisal Town, Vehari, Punjab<br>
+            0321-5550199 | hub@fifthavenue.com
           </div>
         </div>
       </div>
@@ -559,205 +463,11 @@ function exportToPDF(data: ExportData) {
         </div>
       </div>
       
-      <!-- Charts Section -->
-      ${salesData?.dailyData?.length > 0 || categoryData.length > 0 ? `
-      <div class="two-col">
-        ${salesData?.dailyData?.length > 0 ? `
-        <div class="section">
-          <div class="section-header">
-            <div class="section-icon">📈</div>
-            <div class="section-title">Sales Trend</div>
-          </div>
-          <div class="chart-container">
-            <div class="chart-grid">
-              ${salesData.dailyData.map((day: any) => {
-                const maxVal = Math.max(...salesData.dailyData.map((d: any) => d.value));
-                const height = maxVal > 0 ? Math.max((day.value / maxVal) * 100, 3) : 3;
-                return `
-                  <div class="chart-bar-wrapper">
-                    <div class="chart-value">Rs.${day.value >= 1000 ? (day.value/1000).toFixed(1) + 'k' : day.value}</div>
-                    <div class="chart-bar" style="height: ${height}px"></div>
-                    <div class="chart-label">${day.label}</div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </div>
-        </div>
-        ` : ''}
-        
-        ${categoryData.length > 0 ? `
-        <div class="section">
-          <div class="section-header">
-            <div class="section-icon">📦</div>
-            <div class="section-title">Sales by Category</div>
-          </div>
-          <div class="chart-container">
-            <div class="chart-grid">
-              ${categoryData.slice(0, 8).map((cat) => {
-                const maxVal = Math.max(...categoryData.map((c) => c.total_sales));
-                const height = maxVal > 0 ? Math.max((cat.total_sales / maxVal) * 100, 3) : 3;
-                return `
-                  <div class="chart-bar-wrapper">
-                    <div class="chart-value">Rs.${cat.total_sales >= 1000 ? (cat.total_sales/1000).toFixed(0) + 'k' : cat.total_sales}</div>
-                    <div class="chart-bar" style="height: ${height}px"></div>
-                    <div class="chart-label">${cat.category.length > 8 ? cat.category.substring(0, 7) + '…' : cat.category}</div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </div>
-        </div>
-        ` : ''}
-      </div>
-      ` : ''}
-      
-      <!-- Category Performance Table -->
-      ${categoryData.length > 0 ? `
-      <div class="section">
-        <div class="section-header">
-          <div class="section-icon">🏷️</div>
-          <div class="section-title">Category Performance Details</div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 30px">#</th>
-              <th>Category</th>
-              <th class="text-center">Orders</th>
-              <th class="text-center">Items Sold</th>
-              <th class="text-right">Revenue</th>
-              <th class="text-right">% Share</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${categoryData.map((cat, i) => {
-              const totalRev = categoryData.reduce((s, c) => s + c.total_sales, 0);
-              const share = totalRev > 0 ? ((cat.total_sales / totalRev) * 100).toFixed(1) : '0';
-              return `
-              <tr>
-                <td class="text-center">${i + 1}</td>
-                <td class="font-semibold">${cat.category}</td>
-                <td class="text-center">${cat.order_count}</td>
-                <td class="text-center">${cat.items_sold}</td>
-                <td class="text-right font-semibold text-red">Rs. ${cat.total_sales.toLocaleString()}</td>
-                <td class="text-right">${share}%</td>
-              </tr>
-            `}).join('')}
-            <tr style="background: #fef2f2; font-weight: 600;">
-              <td colspan="2">TOTAL</td>
-              <td class="text-center">${categoryData.reduce((s, c) => s + c.order_count, 0)}</td>
-              <td class="text-center">${categoryData.reduce((s, c) => s + c.items_sold, 0)}</td>
-              <td class="text-right text-red">Rs. ${categoryData.reduce((s, c) => s + c.total_sales, 0).toLocaleString()}</td>
-              <td class="text-right">100%</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      ` : ''}
-      
-      <!-- Employee Performance -->
-      ${employeeData.length > 0 ? `
-      <div class="section">
-        <div class="section-header">
-          <div class="section-icon">👥</div>
-          <div class="section-title">Employee Performance</div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 30px">#</th>
-              <th>Employee Name</th>
-              <th>Role</th>
-              <th class="text-center">Orders</th>
-              <th class="text-right">Sales Generated</th>
-              <th class="text-center">Attendance</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${employeeData.map((emp, i) => `
-              <tr>
-                <td class="text-center">${i + 1}</td>
-                <td class="font-semibold">${emp.employee_name}</td>
-                <td><span class="badge badge-success">${emp.role}</span></td>
-                <td class="text-center">${emp.orders_handled}</td>
-                <td class="text-right font-semibold">Rs. ${emp.total_sales.toLocaleString()}</td>
-                <td class="text-center">
-                  <span class="badge ${emp.attendance_rate >= 90 ? 'badge-success' : emp.attendance_rate >= 70 ? 'badge-warning' : 'badge-danger'}">
-                    ${emp.attendance_rate}%
-                  </span>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-      ` : ''}
-      
-      <!-- Inventory Overview -->
-      ${inventoryData ? `
-      <div class="section">
-        <div class="section-header">
-          <div class="section-icon">📋</div>
-          <div class="section-title">Inventory Overview</div>
-        </div>
-        
-        <div class="inv-stats">
-          <div class="inv-stat">
-            <div class="inv-stat-value">${inventoryData.total_items}</div>
-            <div class="inv-stat-label">Total Items</div>
-          </div>
-          <div class="inv-stat">
-            <div class="inv-stat-value text-amber">${inventoryData.low_stock_count}</div>
-            <div class="inv-stat-label">Low Stock</div>
-          </div>
-          <div class="inv-stat">
-            <div class="inv-stat-value text-red">${inventoryData.out_of_stock}</div>
-            <div class="inv-stat-label">Out of Stock</div>
-          </div>
-          <div class="inv-stat">
-            <div class="inv-stat-value text-green">Rs. ${(inventoryData.total_value || 0).toLocaleString()}</div>
-            <div class="inv-stat-label">Total Value</div>
-          </div>
-        </div>
-        
-        ${inventoryData.low_stock_items?.length > 0 ? `
-        <table>
-          <thead>
-            <tr>
-              <th>Item Name</th>
-              <th class="text-center">Current Stock</th>
-              <th class="text-center">Min Required</th>
-              <th class="text-center">Unit</th>
-              <th class="text-center">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${inventoryData.low_stock_items.map((item: any) => `
-              <tr>
-                <td class="font-semibold">${item.name}</td>
-                <td class="text-center ${item.quantity === 0 ? 'text-red font-semibold' : ''}">${item.quantity}</td>
-                <td class="text-center">${item.min_quantity}</td>
-                <td class="text-center">${item.unit}</td>
-                <td class="text-center">
-                  <span class="badge ${item.quantity === 0 ? 'badge-danger' : 'badge-warning'}">
-                    ${item.quantity === 0 ? 'OUT OF STOCK' : 'LOW STOCK'}
-                  </span>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-        ` : '<p style="text-align: center; color: #16a34a; padding: 15px;">✓ All inventory items are well stocked</p>'}
-      </div>
-      ` : ''}
-      
       <!-- Footer -->
       <div class="footer">
-        <div class="footer-brand">ZOIRO INJECTED BROAST</div>
+        <div class="footer-brand">FIFTH AVENUE URBAN HUB</div>
         <div style="margin: 6px 0;">Business Analytics Report — Confidential</div>
         <div>Generated automatically on ${generatedDate}</div>
-        <div style="margin-top: 8px; font-size: 8px;">© ${new Date().getFullYear()} ZOIRO Injected Broast. All Rights Reserved.</div>
       </div>
     </body>
     </html>
@@ -777,14 +487,6 @@ function getDateRangeLabel(range: string): string {
     year: 'This Year',
   };
   return labels[range] || range;
-}
-
-// Props for SSR data
-interface ReportsClientProps {
-  initialSalesData?: SalesAnalyticsServer[];
-  initialCategoryData?: CategorySalesServer[];
-  initialEmployeeData?: EmployeePerformanceServer[];
-  initialInventoryData?: InventoryReportServer | null;
 }
 
 // Chart placeholder component
@@ -841,12 +543,10 @@ function SalesReport({
   const [categoryData, setCategoryData] = useState<CategorySales[]>((initialCategoryData || []) as CategorySales[]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // FIX #3: Track which date ranges we've already fetched - initialize with 'month' if we have SSR data
   const hasSSRData = !!(initialSalesData && initialSalesData.length > 0);
   const fetchedRangesRef = useRef<string>(hasSSRData ? 'month' : '');
   const initializedRef = useRef(false);
 
-  // Initialize from SSR data - only run once
   useEffect(() => {
     if (initializedRef.current) return;
     if (initialSalesData && initialSalesData.length > 0 && dateRange === 'month') {
@@ -868,7 +568,6 @@ function SalesReport({
       setSalesData(newSalesData);
       onDataChange?.(newSalesData, (initialCategoryData || []) as CategorySales[]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getDateRange = useCallback(() => {
@@ -912,7 +611,6 @@ function SalesReport({
   }, [dateRange]);
 
   useEffect(() => {
-    // Skip fetch if we already have SSR data for this range
     if (fetchedRangesRef.current === dateRange) {
       return;
     }
@@ -954,7 +652,6 @@ function SalesReport({
     };
 
     fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange, getDateRange]);
 
   if (isLoading && !salesData) {
@@ -968,7 +665,6 @@ function SalesReport({
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Sales"
@@ -992,7 +688,6 @@ function SalesReport({
         />
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {salesData?.dailyData?.length > 0 && (
           <BarChartPlaceholder data={salesData.dailyData} title="Sales Trend" />
@@ -1002,7 +697,6 @@ function SalesReport({
         )}
       </div>
 
-      {/* Category Details */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Category Performance</CardTitle>
@@ -1052,12 +746,10 @@ function EmployeeReport({
   const [isLoading, setIsLoading] = useState(false);
   const fetchedRangesRef = useRef<string>(dateRange === 'month' ? 'month' : '');
 
-  // Notify parent of initial data (run once)
   useEffect(() => {
     if (initialData && initialData.length > 0) {
       onDataChange?.((initialData || []) as EmployeePerformance[]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getDateRange = useCallback(() => {
@@ -1106,7 +798,6 @@ function EmployeeReport({
     };
 
     fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange, getDateRange]);
 
   return (
@@ -1168,12 +859,10 @@ function InventoryReportView({
   const [isLoading, setIsLoading] = useState(!initialData);
   const hasFetchedRef = useRef(!!initialData);
 
-  // Notify parent of initial data (run once)
   useEffect(() => {
     if (initialData) {
       onDataChange?.(initialData);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -1194,7 +883,6 @@ function InventoryReportView({
     };
 
     fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (isLoading) {
@@ -1203,7 +891,6 @@ function InventoryReportView({
 
   return (
     <div className="space-y-6">
-      {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Items"
@@ -1227,7 +914,6 @@ function InventoryReportView({
         />
       </div>
 
-      {/* Category Breakdown */}
       {report?.categories && report.categories.length > 0 && (
         <Card>
           <CardHeader>
@@ -1266,7 +952,6 @@ function InventoryReportView({
         </Card>
       )}
 
-      {/* Low Stock Alerts */}
       {report?.low_stock_items && report.low_stock_items.length > 0 && (
         <Card>
           <CardHeader>
@@ -1297,8 +982,8 @@ function InventoryReportView({
                         variant="outline"
                         className={cn(
                           item.quantity === 0
-                            ? 'bg-red-500/10 text-red-500'
-                            : 'bg-yellow-500/10 text-yellow-500'
+                            ? 'border-red-500 text-red-600 bg-red-500/10'
+                            : 'border-yellow-500 text-yellow-600 bg-yellow-500/10'
                         )}
                       >
                         {item.quantity === 0 ? 'Out of Stock' : 'Low Stock'}
@@ -1324,7 +1009,6 @@ export default function ReportsClient({
 }: ReportsClientProps) {
   const [dateRange, setDateRange] = useState('month');
   
-  // Track current data for export - initialize from SSR data
   const [currentSalesData, setCurrentSalesData] = useState<any>(() => {
     if (initialSalesData && initialSalesData.length > 0) {
       const totalSales = initialSalesData.reduce((sum, day) => sum + (day.total_sales || 0), 0);
@@ -1345,7 +1029,6 @@ export default function ReportsClient({
   const [currentEmployeeData, setCurrentEmployeeData] = useState<EmployeePerformance[]>((initialEmployeeData || []) as EmployeePerformance[]);
   const [currentInventoryData, setCurrentInventoryData] = useState<InventoryReportServer | null>(initialInventoryData || null);
 
-  // Memoize callbacks to prevent infinite loops
   const handleSalesDataChange = useCallback((sales: any, categories: CategorySales[]) => {
     setCurrentSalesData(sales);
     setCurrentCategoryData(categories);
@@ -1380,31 +1063,38 @@ export default function ReportsClient({
   return (
     <>
       <SectionHeader
-        title="Reports & Analytics"
-        description="View detailed reports and business analytics"
+        title="BUSINESS INTELLIGENCE HUB"
+        description="Real-time performance metrics, employee productivity, and industrial inventory tracking."
         action={
-          <div className="flex flex-wrap gap-2">
-            <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-full sm:w-40 h-8 sm:h-9 text-xs sm:text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="yesterday">Yesterday</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="quarter">This Quarter</SelectItem>
-                <SelectItem value="year">This Year</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => handleExport('excel')} size="sm" className="h-8 sm:h-9">
-                <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Excel</span>
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-[180px] group">
+              <div className="absolute inset-0 bg-black translate-x-[2px] translate-y-[2px] group-hover:translate-x-[1px] group-hover:translate-y-[1px] transition-all" />
+              <Select value={dateRange} onValueChange={setDateRange}>
+                <SelectTrigger className="relative w-full bg-white border-2 border-black rounded-none h-11 font-bebas tracking-widest text-lg">
+                  <SelectValue placeholder="RANGE" />
+                </SelectTrigger>
+                <SelectContent className="border-2 border-black rounded-none">
+                  <SelectItem value="today">TODAY</SelectItem>
+                  <SelectItem value="yesterday">YESTERDAY</SelectItem>
+                  <SelectItem value="week">THIS WEEK</SelectItem>
+                  <SelectItem value="month">THIS MONTH</SelectItem>
+                  <SelectItem value="quarter">THIS QUARTER</SelectItem>
+                  <SelectItem value="year">THIS YEAR</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button 
+                onClick={() => handleExport('excel')} 
+                className="flex-1 sm:flex-none h-11 bg-black text-[#FFD200] border-2 border-black rounded-none font-bebas tracking-widest hover:bg-[#FFD200] hover:text-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2" /> EXCEL
               </Button>
-              <Button variant="outline" onClick={() => handleExport('pdf')} size="sm" className="h-8 sm:h-9">
-                <FileText className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">PDF</span>
+              <Button 
+                onClick={() => handleExport('pdf')} 
+                className="flex-1 sm:flex-none h-11 bg-[#ED1C24] text-white border-2 border-black rounded-none font-bebas tracking-widest hover:bg-black hover:text-[#ED1C24] transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+              >
+                <Printer className="h-4 w-4 mr-2" /> PDF
               </Button>
             </div>
           </div>

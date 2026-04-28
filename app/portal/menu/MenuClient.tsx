@@ -218,9 +218,9 @@ function MenuItemCard({
       className={cn(isSelectMode && 'cursor-pointer')}
     >
       <Card className={cn(
-        'overflow-hidden transition-all duration-200 hover:shadow-lg group',
-        !item.is_available && 'opacity-60',
-        isSelected && 'ring-2 ring-primary ring-offset-2'
+        'rounded-none border-4 border-black overflow-hidden transition-all duration-200 hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] group bg-white',
+        !item.is_available && 'opacity-60 grayscale',
+        isSelected && 'ring-4 ring-[#FFD200]'
       )}>
         {/* ── Image area ───────────────────────────────── */}
         <div className="relative bg-zinc-100 dark:bg-zinc-800" style={{ aspectRatio: '4/3' }}>
@@ -289,20 +289,20 @@ function MenuItemCard({
               </div>
             </div>
           ) : (
-            <div className="absolute top-1.5 left-1.5 flex flex-wrap gap-1">
+            <div className="absolute top-2 left-2 flex flex-wrap gap-1">
               {item.is_featured && (
-                <Badge className="bg-amber-500 text-white text-[10px] h-5 px-1.5 shadow">
-                  <Star className="h-2.5 w-2.5 mr-0.5 fill-white" /> Featured
+                <Badge className="bg-[#FFD200] text-black border-2 border-black text-[10px] h-6 px-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <Star className="h-3 w-3 mr-1 fill-black" /> FEATURED
                 </Badge>
               )}
               {item.is_spicy && (
-                <Badge variant="destructive" className="text-[10px] h-5 px-1.5 shadow">
-                  <Flame className="h-2.5 w-2.5 mr-0.5" /> Spicy
+                <Badge className="bg-[#ED1C24] text-white border-2 border-black text-[10px] h-6 px-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <Flame className="h-3 w-3 mr-1" /> SPICY
                 </Badge>
               )}
               {item.is_vegetarian && (
-                <Badge className="bg-green-600 text-white text-[10px] h-5 px-1.5 shadow">
-                  <Leaf className="h-2.5 w-2.5 mr-0.5" /> Veg
+                <Badge className="bg-[#008A45] text-white border-2 border-black text-[10px] h-6 px-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <Leaf className="h-3 w-3 mr-1" /> VEG
                 </Badge>
               )}
             </div>
@@ -359,13 +359,13 @@ function MenuItemCard({
         <CardContent className="p-3 pt-2.5 space-y-2">
           {/* Category chip */}
           {item.category && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <span className="inline-flex items-center gap-1 text-[10px] font-source-sans font-black uppercase tracking-widest text-black/40">
               <Tag className="h-2.5 w-2.5" />{item.category}
             </span>
           )}
 
           {/* Name */}
-          <h3 className="font-semibold text-sm sm:text-[15px] leading-tight truncate">{item.name}</h3>
+          <h3 className="font-bebas text-2xl text-black leading-none uppercase truncate">{item.name}</h3>
 
           {/* Description */}
           {item.description && (
@@ -375,27 +375,22 @@ function MenuItemCard({
           )}
 
           {/* Price row */}
-          <div className="flex items-center justify-between pt-0.5">
-            <div className="flex items-baseline gap-1.5">
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-baseline gap-2">
               {item.has_variants && item.size_variants && item.size_variants.length > 0 ? (
                 <>
-                  <span className="text-base font-bold text-primary">
+                  <span className="text-xl font-bebas text-black">
                     Rs. {Math.min(...item.size_variants.map(v => v.price)).toLocaleString()}
                   </span>
-                  <span className="text-xs text-muted-foreground">–{Math.max(...item.size_variants.map(v => v.price)).toLocaleString()}</span>
+                  <span className="text-xs font-source-sans font-black text-black/40">–{Math.max(...item.size_variants.map(v => v.price)).toLocaleString()}</span>
                 </>
               ) : item.sale_price ? (
                 <>
-                  <span className="text-base font-bold text-primary">Rs. {item.sale_price.toLocaleString()}</span>
-                  <span className="text-xs text-muted-foreground line-through">Rs. {item.price.toLocaleString()}</span>
-                  {savePct && (
-                    <span className="flex items-center gap-0.5 text-[10px] font-semibold text-green-600 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 rounded-full">
-                      <TrendingDown className="h-2.5 w-2.5" />-{savePct}%
-                    </span>
-                  )}
+                  <span className="text-xl font-bebas text-[#ED1C24]">Rs. {item.sale_price.toLocaleString()}</span>
+                  <span className="text-xs font-source-sans font-black text-black/40 line-through">Rs. {item.price.toLocaleString()}</span>
                 </>
               ) : (
-                <span className="text-base font-bold text-primary">Rs. {item.price.toLocaleString()}</span>
+                <span className="text-xl font-bebas text-black">Rs. {item.price.toLocaleString()}</span>
               )}
             </div>
 
@@ -1713,7 +1708,7 @@ export default function MenuClient({ initialData }: MenuClientProps) {
           title: `🍽️ ${item.name} is available!`,
           body: item.description
             ? `${item.description.slice(0, 100)}${item.description.length > 100 ? '…' : ''}`
-            : `Order ${item.name} now at Zoiro Broast!`,
+            : `Order ${item.name} now at Fifth Avenue!`,
           notificationType: 'menu_item',
           referenceId: item.id,
           image: item.images?.[0] || undefined,

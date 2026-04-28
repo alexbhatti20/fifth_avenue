@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Truck,
@@ -115,58 +115,37 @@ function PremiumStatsCard({
   title,
   value,
   icon,
-  gradient = 'from-primary via-orange-500 to-primary',
   subValue,
   trend,
+  gradient,
 }: {
   title: string;
-  value: number | string;
-  icon: React.ReactNode;
-  gradient?: string;
+  value: string | number;
+  icon: ReactNode;
   subValue?: string;
-  trend?: 'up' | 'down' | null;
+  trend?: 'up' | 'down';
+  gradient?: string;
 }) {
   return (
-    <div
-      className="relative rounded-2xl overflow-hidden"
-      style={{
-        padding: '2px',
-        background: 'linear-gradient(90deg, #ff6b35, #f72585)',
-      }}
-    >
-      <div className="relative rounded-[14px] bg-white dark:bg-zinc-950 p-3 sm:p-4 h-full">
-        <div className="flex items-start justify-between">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">
-              {title}
+    <div className="bg-white border-4 border-black p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+      <div className="flex items-start justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bebas tracking-widest text-black/40 uppercase mb-1">
+            {title}
+          </p>
+          <p className="text-3xl sm:text-4xl font-bebas text-black leading-none">
+            {typeof value === 'number' ? value.toLocaleString() : value}
+          </p>
+          {subValue && (
+            <p className="text-[10px] sm:text-xs font-source-sans font-black uppercase tracking-tighter mt-2 flex items-center gap-1">
+              {trend === 'up' && <TrendingUp className="h-3 w-3 text-[#008A45]" />}
+              {trend === 'down' && <TrendingUp className="h-3 w-3 text-[#ED1C24] rotate-180" />}
+              {subValue}
             </p>
-            <p
-              className="text-xl sm:text-2xl md:text-3xl font-bold mt-0.5 sm:mt-1"
-              style={{
-                background: 'linear-gradient(135deg, #ff6b35, #f72585)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              {typeof value === 'number' ? value.toLocaleString() : value}
-            </p>
-            {subValue && (
-              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 flex items-center gap-1">
-                {trend === 'up' && <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-green-500" />}
-                {trend === 'down' && <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-500 rotate-180" />}
-                {subValue}
-              </p>
-            )}
-          </div>
-          <div
-            className="p-2 sm:p-2.5 rounded-xl flex-shrink-0"
-            style={{
-              background: 'linear-gradient(135deg, rgba(255,107,53,0.15), rgba(247,37,133,0.15))',
-            }}
-          >
-            {icon}
-          </div>
+          )}
+        </div>
+        <div className="p-3 bg-black text-[#FFD200] shadow-[4px_4px_0px_0px_rgba(237,28,36,1)]">
+          {icon}
         </div>
       </div>
     </div>
@@ -187,15 +166,15 @@ function DeliveryTimer({ createdAt }: { createdAt: string }) {
     <Badge
       variant="outline"
       className={cn(
-        'font-mono text-sm px-3 py-1 rounded-xl',
-        isLate ? 'bg-red-500/10 text-red-500 border-red-500/30 animate-pulse' :
-        isUrgent ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/30' :
-        'bg-green-500/10 text-green-600 border-green-500/30'
+        'font-bebas text-lg px-3 py-1 rounded-none border-2 border-black',
+        isLate ? 'bg-[#ED1C24] text-white animate-pulse' :
+        isUrgent ? 'bg-[#FFD200] text-black' :
+        'bg-black text-[#FFD200]'
       )}
     >
-      <Timer className="h-3.5 w-3.5 mr-1.5" />
-      {elapsed} min
-      {isLate && <Flame className="h-3 w-3 ml-1 text-red-500" />}
+      <Timer className="h-4 w-4 mr-1.5" />
+      {elapsed} MIN
+      {isLate && <Flame className="h-4 w-4 ml-1 text-white" />}
     </Badge>
   );
 }
@@ -203,12 +182,12 @@ function DeliveryTimer({ createdAt }: { createdAt: string }) {
 // Premium Live indicator dot
 function LiveIndicator() {
   return (
-    <span className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20">
-      <span className="relative flex h-2.5 w-2.5">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+    <span className="flex items-center gap-2 font-bebas text-sm tracking-widest px-4 py-2 border-2 border-black bg-black text-[#FFD200] shadow-[2px_2px_0px_0px_rgba(255,210,0,1)]">
+      <span className="relative flex h-3 w-3">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#008A45] opacity-75" />
+        <span className="relative inline-flex rounded-full h-3 w-3 bg-[#008A45]" />
       </span>
-      Live Updates
+      LIVE DISPATCH
     </span>
   );
 }
@@ -225,57 +204,35 @@ function NotificationBanner({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      className="relative mb-6 rounded-2xl overflow-hidden"
-      style={{
-        padding: '1.5px',
-        background: status === 'denied'
-          ? 'linear-gradient(90deg, #ef4444, #f97316, #ef4444)'
-          : 'linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6)',
-        backgroundSize: '200% 200%',
-        animation: 'gradientShift 3s ease infinite',
-      }}
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative mb-6 border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
     >
-      <div className={cn(
-        "relative rounded-[14px] p-4 backdrop-blur-xl flex flex-wrap items-center justify-between gap-4",
-        status === 'denied'
-          ? 'bg-gradient-to-r from-red-50 via-orange-50 to-red-50 dark:from-red-950/80 dark:via-orange-950/80 dark:to-red-950/80'
-          : 'bg-gradient-to-r from-blue-50 via-purple-50 to-blue-50 dark:from-blue-950/80 dark:via-purple-950/80 dark:to-blue-950/80'
-      )}>
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
+        <div className="flex items-center gap-5">
           <div className={cn(
-            "p-2.5 rounded-xl shadow-lg",
-            status === 'denied'
-              ? 'bg-gradient-to-br from-red-500 to-orange-600 shadow-red-500/25'
-              : 'bg-gradient-to-br from-blue-500 to-purple-600 shadow-purple-500/25'
+            "p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+            status === 'denied' ? "bg-[#ED1C24] text-white" : "bg-[#FFD200] text-black"
           )}>
-            {status === 'denied' ? (
-              <BellOff className="h-5 w-5 text-white" />
-            ) : (
-              <Bell className="h-5 w-5 text-white animate-bounce" />
-            )}
+            <Bell className="h-8 w-8" />
           </div>
-          <div>
-            <p className="font-semibold text-foreground">
+          <div className="text-center sm:text-left">
+            <h3 className="text-2xl font-bebas tracking-wider text-black">
+              {status === 'denied' ? 'NOTIFICATIONS BLOCKED' : 'STAY UPDATED'}
+            </h3>
+            <p className="text-sm font-medium text-black/60 max-w-sm">
               {status === 'denied'
-                ? 'Notifications are blocked'
-                : 'Enable notifications'}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {status === 'denied'
-                ? 'Please enable in browser settings'
-                : 'Get instant alerts for new orders'}
+                ? 'Your browser is blocking dispatch alerts. Enable them in site settings to receive order updates.'
+                : 'Enable system notifications to receive real-time delivery alerts and dispatch updates.'}
             </p>
           </div>
         </div>
         {status !== 'denied' && (
           <Button
             onClick={onEnable}
-            className="gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 border-0 shadow-lg shadow-purple-500/25"
+            className="w-full sm:w-auto h-14 px-8 border-4 border-black bg-black text-[#FFD200] font-bebas text-xl tracking-widest hover:bg-[#FFD200] hover:text-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
           >
-            <Bell className="h-4 w-4" />
-            Enable Notifications
+            ENABLE ALERTS
           </Button>
         )}
       </div>
@@ -319,50 +276,33 @@ function MyDeliveryCard({
       initial={{ opacity: 0, scale: 0.95, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9, y: -10 }}
-      className="relative rounded-2xl overflow-hidden"
-      style={{
-        padding: '2px',
-        background: `linear-gradient(90deg, ${isDelivering ? '#f97316, #ef4444, #f97316' : '#3b82f6, #8b5cf6, #3b82f6'})`,
-        backgroundSize: '200% 200%',
-        animation: 'gradientShift 3s ease infinite',
-      }}
+      className="relative border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
     >
-      <Card className={cn(
-        'border-0 rounded-[14px] transition-all',
-        isDelivering
-          ? 'bg-gradient-to-br from-orange-50/90 via-white to-red-50/90 dark:from-orange-950/90 dark:via-zinc-950 dark:to-red-950/90'
-          : 'bg-gradient-to-br from-blue-50/90 via-white to-purple-50/90 dark:from-blue-950/90 dark:via-zinc-950 dark:to-purple-950/90'
-      )}>
+      <Card className="border-0 rounded-none bg-white">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-2.5 min-w-0 flex-1">
               <div className={cn(
-                'relative w-11 h-11 sm:w-14 sm:h-14 rounded-xl flex-shrink-0 flex items-center justify-center shadow-lg',
+                'relative w-11 h-11 sm:w-14 sm:h-14 border-2 border-black flex-shrink-0 flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
                 isDelivering
-                  ? 'bg-gradient-to-br from-orange-500 to-red-500 shadow-orange-500/30'
-                  : 'bg-gradient-to-br from-blue-500 to-purple-500 shadow-blue-500/30'
+                  ? 'bg-[#ED1C24] text-white'
+                  : 'bg-[#FFD200] text-black'
               )}>
-                {isDelivering && (
-                  <span
-                    className="absolute inset-0 rounded-xl bg-orange-400"
-                    style={{ animation: 'pulse-ring 1.5s ease-out infinite' }}
-                  />
-                )}
                 {isDelivering ? (
-                  <Bike className="h-5 w-5 sm:h-7 sm:w-7 text-white relative z-10" />
+                  <Bike className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                 ) : (
-                  <Package className="h-5 w-5 sm:h-7 sm:w-7 text-white relative z-10" />
+                  <Package className="h-6 w-6 sm:h-8 sm:w-8 text-black" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <CardTitle className="text-base sm:text-xl flex flex-wrap items-center gap-1.5">
+                <CardTitle className="text-base sm:text-2xl font-bebas tracking-tight uppercase flex flex-wrap items-center gap-2">
                   #{order.order_number}
-                  <Badge variant={isDelivering ? 'default' : 'secondary'} className="text-[10px] sm:text-xs">
-                    {isDelivering ? 'On the Way' : 'Ready'}
+                  <Badge variant={isDelivering ? 'destructive' : 'secondary'} className="text-[10px] sm:text-xs rounded-none border-2 border-black font-source-sans font-black">
+                    {isDelivering ? 'ON THE WAY' : 'READY'}
                   </Badge>
                 </CardTitle>
-                <CardDescription className="flex flex-wrap items-center gap-1.5 mt-0.5 text-xs">
-                  {order.items.length} items • Rs. {order.total.toLocaleString()}
+                <CardDescription className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[10px] font-source-sans font-black uppercase tracking-widest text-black/40">
+                  {order.items.length} ITEMS • RS. {order.total.toLocaleString()}
                   <DeliveryTimer createdAt={order.created_at} />
                 </CardDescription>
               </div>
@@ -379,18 +319,18 @@ function MyDeliveryCard({
 
         <CardContent className="pb-3">
           {/* Customer Quick Info */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-background/50 mb-3">
+          <div className="flex items-center justify-between p-3 border-2 border-black bg-black/5 mb-3">
             <div className="flex items-center gap-3">
-              <User className="h-4 w-4 text-muted-foreground" />
+              <User className="h-4 w-4 text-black" />
               <div>
-                <p className="font-medium">{order.customer_name}</p>
-                <p className="text-sm text-muted-foreground">{order.customer_phone}</p>
+                <p className="font-bebas text-lg leading-none">{order.customer_name}</p>
+                <p className="text-xs font-source-sans font-black text-black/60 uppercase tracking-tighter">{order.customer_phone}</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
-              className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
+              className="text-[#008A45] hover:bg-[#008A45]/10 h-10 w-10 border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
               onClick={() => window.open(`tel:${order.customer_phone}`, '_blank')}
             >
               <Phone className="h-5 w-5" />
@@ -398,17 +338,17 @@ function MyDeliveryCard({
           </div>
 
           {/* Address */}
-          <div className="p-3 rounded-lg bg-background/50 mb-3">
+          <div className="p-3 border-2 border-black bg-[#FFD200]/5 mb-3">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-start gap-2 flex-1">
-                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <p className="text-sm">{order.customer_address || 'No address provided'}</p>
+                <MapPin className="h-4 w-4 text-[#ED1C24] mt-0.5 flex-shrink-0" />
+                <p className="text-sm font-source-sans font-bold uppercase tracking-tight leading-tight">{order.customer_address || 'No address provided'}</p>
               </div>
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 hover:bg-black/10"
                   onClick={() => copyToClipboard(order.customer_address || '', 'Address')}
                 >
                   <Copy className="h-3.5 w-3.5" />
@@ -416,7 +356,7 @@ function MyDeliveryCard({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-blue-500"
+                  className="h-8 w-8 text-[#ED1C24] hover:bg-[#ED1C24]/10"
                   onClick={() =>
                     window.open(
                       `https://maps.google.com/?q=${encodeURIComponent(order.customer_address || '')}`,
@@ -504,13 +444,13 @@ function MyDeliveryCard({
             <>
               <Button
                 variant="outline"
-                className="flex-1 rounded-xl"
+                className="flex-1 rounded-none border-2 border-black font-bebas tracking-widest uppercase hover:bg-black hover:text-white"
                 onClick={() => onViewDetails(order)}
               >
                 Full Details
               </Button>
               <Button
-                className="flex-1 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg shadow-blue-500/25 border-0"
+                className="flex-1 rounded-none border-2 border-black bg-[#FFD200] text-black font-bebas tracking-widest uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
                 onClick={() => onDeliver(order.id)}
               >
                 <Truck className="h-4 w-4 mr-2" />
@@ -522,7 +462,7 @@ function MyDeliveryCard({
             <>
               <Button
                 variant="outline"
-                className="flex-1 rounded-xl"
+                className="flex-1 rounded-none border-2 border-black font-bebas tracking-widest uppercase hover:bg-black hover:text-white"
                 onClick={() =>
                   window.open(
                     `https://maps.google.com/?q=${encodeURIComponent(order.customer_address || '')}`,
@@ -534,7 +474,7 @@ function MyDeliveryCard({
                 Navigate
               </Button>
               <Button
-                className="flex-1 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/25 border-0"
+                className="flex-1 rounded-none border-2 border-black bg-[#008A45] text-white font-bebas tracking-widest uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
                 onClick={() => onDeliver(order.id)}
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
@@ -564,34 +504,19 @@ function AvailableOrderCard({
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      whileHover={{ y: -4 }}
-      className="relative rounded-2xl overflow-hidden"
-      style={{
-        padding: '2px',
-        background: 'linear-gradient(90deg, #64748b, #94a3b8, #64748b)',
-        backgroundSize: '200% 200%',
-        transition: 'all 0.3s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'linear-gradient(90deg, #ff6b35, #f72585, #ff6b35)';
-        e.currentTarget.style.animation = 'gradientShift 2s ease infinite';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'linear-gradient(90deg, #64748b, #94a3b8, #64748b)';
-        e.currentTarget.style.animation = 'none';
-      }}
+      className="relative border-4 border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
     >
-      <Card className="border-0 rounded-[14px] transition-all bg-white dark:bg-zinc-950">
+      <Card className="border-0 rounded-none bg-white">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-zinc-800 dark:to-zinc-700 flex items-center justify-center flex-shrink-0 shadow-inner">
-                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-slate-500 dark:text-slate-400" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-black bg-black flex items-center justify-center flex-shrink-0">
+                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-[#FFD200]" />
               </div>
               <div>
-                <CardTitle className="text-base sm:text-lg font-bold">#{order.order_number}</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  {order.items.length} items • Rs. {order.total.toLocaleString()}
+                <CardTitle className="text-base sm:text-2xl font-bebas tracking-tight">#{order.order_number}</CardTitle>
+                <CardDescription className="text-[10px] sm:text-xs font-source-sans font-black uppercase tracking-widest text-black/40">
+                  {order.items.length} ITEMS • RS. {order.total.toLocaleString()}
                 </CardDescription>
               </div>
             </div>
@@ -627,14 +552,14 @@ function AvailableOrderCard({
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 rounded-xl"
+            className="flex-1 rounded-none border-2 border-black font-bebas tracking-widest uppercase hover:bg-black hover:text-white"
             onClick={() => onViewDetails(order)}
           >
             Details
           </Button>
           <Button
             size="sm"
-            className="flex-1 rounded-xl bg-gradient-to-r from-primary via-orange-500 to-primary hover:opacity-90 shadow-lg shadow-orange-500/25 border-0"
+            className="flex-1 rounded-none border-2 border-black bg-[#FFD200] text-black font-bebas tracking-widest uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
             onClick={() => onAccept(order.id)}
           >
             <Truck className="h-4 w-4 mr-2" />
@@ -1372,6 +1297,7 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
   // Cast through unknown to avoid type mismatch (server type is subset of client type)
   const [orders, setOrders] = useState<DeliveryOrder[]>(initialOrders as unknown as DeliveryOrder[]);
   const [isLoading, setIsLoading] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<DeliveryOrder | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -1649,6 +1575,8 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
     (o) => !o.delivery_rider_id && o.status === 'ready'
   );
   const allDeliveries = orders.filter((o) => o.status === 'delivering');
+  const filteredOrders = orders.filter((o) => ['ready', 'delivering'].includes(o.status));
+  const ridersCount = new Set(filteredOrders.map((o) => o.delivery_rider_id).filter(Boolean)).size;
 
   const stats = {
     myActive: myAssignedOrders.length,
@@ -1658,54 +1586,33 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
 
   return (
     <>
-      {/* Premium Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-5 sm:mb-8"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex-shrink-0 flex items-center justify-center shadow-xl"
-              style={{
-                background: 'linear-gradient(135deg, #ff6b35, #f72585)',
-                boxShadow: '0 8px 32px rgba(247, 37, 133, 0.3)',
-              }}
+      {/* Header */}
+      <SectionHeader
+        title={isRider ? 'My Deliveries' : 'Delivery Management'}
+        description={`${filteredOrders.length} active deliveries • ${ridersCount} riders online`}
+        action={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={cn(
+                'h-10 w-10 rounded-none border-2 border-black transition-all',
+                soundEnabled ? 'bg-[#FFD200] text-black' : 'bg-black text-[#FFD200]'
+              )}
             >
-              <Truck className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-3xl font-bold"
-                  style={{
-                    background: 'linear-gradient(135deg, #ff6b35, #f72585)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                  }}
-                >
-                  {isRider ? 'My Deliveries' : 'Delivery Mgmt'}
-                </h1>
-                <LiveIndicator />
-              </div>
-              <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 truncate">
-                Updated: {lastUpdate.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true })}
-              </p>
-            </div>
+              {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+            </Button>
+            <Button 
+              onClick={fetchOrders} 
+              className="h-10 rounded-none border-2 border-black bg-black text-[#FFD200] font-bebas tracking-widest hover:bg-zinc-800"
+            >
+              <RefreshCw className={cn('h-4 w-4 sm:mr-2', isLoading && 'animate-spin')} />
+              REFRESH
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            onClick={fetchOrders}
-            disabled={isLoading}
-            size="sm"
-            className="rounded-xl px-3 sm:px-5 flex-shrink-0"
-          >
-            <RefreshCw className={cn('h-4 w-4 sm:mr-2', isLoading && 'animate-spin')} />
-            <span className="hidden sm:inline">Refresh</span>
-          </Button>
-        </div>
-      </motion.div>
+        }
+      />
 
       {/* Notification Permission Banner */}
       {isRider && (
@@ -1764,23 +1671,17 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
 
       <Tabs defaultValue={isRider ? 'my-orders' : 'all'} className="space-y-6">
         {/* Premium Tabs */}
-        <div
-          className="inline-flex p-1 rounded-2xl w-full sm:w-auto"
-          style={{
-            background: 'linear-gradient(135deg, rgba(255,107,53,0.1), rgba(247,37,133,0.1))',
-            border: '1px solid rgba(255,107,53,0.2)',
-          }}
-        >
-          <TabsList className="grid grid-cols-3 w-full sm:max-w-md bg-transparent p-0">
+        <div className="w-full sm:w-auto">
+          <TabsList className="grid grid-cols-3 w-full sm:max-w-md bg-black/5 p-1 rounded-none border-2 border-black">
             {isRider && (
               <TabsTrigger
                 value="my-orders"
-                className="gap-1.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-lg transition-all duration-300 text-xs sm:text-sm"
+                className="gap-1.5 rounded-none data-[state=active]:bg-[#FFD200] data-[state=active]:text-black data-[state=active]:border-2 data-[state=active]:border-black font-bebas tracking-widest transition-all duration-200 text-xs sm:text-sm uppercase"
               >
                 <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                 <span>Mine</span>
                 {stats.myActive > 0 && (
-                  <Badge className="ml-0.5 h-4 sm:h-5 px-1 sm:px-1.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 text-[9px] sm:text-xs">
+                  <Badge className="ml-1 h-5 px-1.5 bg-black text-white rounded-none border-black font-black text-[10px]">
                     {stats.myActive}
                   </Badge>
                 )}
@@ -1788,19 +1689,19 @@ export default function DeliveryClient({ initialOrders }: DeliveryClientProps) {
             )}
             <TabsTrigger
               value="all"
-              className="gap-1.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-lg transition-all duration-300 text-xs sm:text-sm"
+              className="gap-1.5 rounded-none data-[state=active]:bg-[#FFD200] data-[state=active]:text-black data-[state=active]:border-2 data-[state=active]:border-black font-bebas tracking-widest transition-all duration-200 text-xs sm:text-sm uppercase"
             >
               <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
               <span>Available</span>
               {stats.available > 0 && (
-                <Badge className="ml-0.5 h-4 sm:h-5 px-1 sm:px-1.5 bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 text-[9px] sm:text-xs">
+                <Badge className="ml-1 h-5 px-1.5 bg-[#ED1C24] text-white rounded-none border-black font-black text-[10px]">
                   {stats.available}
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger
               value="history"
-              className="gap-1.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:shadow-lg transition-all duration-300 text-xs sm:text-sm"
+              className="gap-1.5 rounded-none data-[state=active]:bg-[#FFD200] data-[state=active]:text-black data-[state=active]:border-2 data-[state=active]:border-black font-bebas tracking-widest transition-all duration-200 text-xs sm:text-sm uppercase"
             >
               <History className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
               <span>History</span>

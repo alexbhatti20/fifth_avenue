@@ -281,7 +281,7 @@ function EditableItemRow({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 10, height: 0 }}
       transition={{ delay: index * 0.03 }}
-      className="flex items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900"
+      className="flex items-center gap-2 p-4 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-3"
     >
       {/* Name + meta */}
       <div className="flex-1 min-w-0">
@@ -627,19 +627,19 @@ export default function GenerateInvoiceClient({
   if (showPrintView && generatedInvoice) {
     return (
       <div className="space-y-6 pb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between border-b-8 border-black pb-6">
           <SectionHeader
             title="Invoice Generated"
             description={`Invoice #${generatedInvoice.invoice_number} created successfully`}
           />
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push('/portal/billing')}>
+          <div className="flex gap-4">
+            <Button variant="outline" className="font-bebas text-lg tracking-widest rounded-none border-2 border-black" onClick={() => router.push('/portal/billing')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Billing
+              BACK TO BILLING
             </Button>
-            <Button onClick={() => window.print()} className="bg-red-500 hover:bg-red-600">
+            <Button onClick={() => window.print()} className="bg-black text-[#FFD200] font-bebas text-lg tracking-widest rounded-none border-2 border-black shadow-[4px_4px_0px_0px_rgba(237,28,36,1)]">
               <Printer className="h-4 w-4 mr-2" />
-              Print Invoice
+              PRINT INVOICE
             </Button>
           </div>
         </div>
@@ -721,12 +721,12 @@ export default function GenerateInvoiceClient({
         {/* ── Left Column ── */}
         <div className="lg:col-span-2 space-y-6">
           {/* Order Info Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="border-4 border-black rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
+            <CardHeader className="border-b-4 border-black bg-black text-[#FFD200]">
+              <CardTitle className="flex items-center gap-2 font-bebas text-2xl tracking-widest uppercase">
                 {getOrderTypeIcon(order.order_type)}
                 Order Details
-                <Badge variant="outline" className="ml-auto capitalize">
+                <Badge className="ml-auto bg-[#FFD200] text-black border-2 border-black rounded-none font-bebas tracking-wider uppercase">
                   {order.order_type}
                 </Badge>
               </CardTitle>
@@ -1062,7 +1062,7 @@ export default function GenerateInvoiceClient({
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1 text-sm">
                     <Gift className="h-3 w-3" />
-                    Service
+                    Service Charge
                   </Label>
                   <Input
                     type="number"
@@ -1075,198 +1075,182 @@ export default function GenerateInvoiceClient({
                 </div>
               </div>
 
-              {/* Tip */}
-              <div className="space-y-2">
-                <Label>Tip</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[0, 50, 100, 200].map((amount) => (
-                    <Button
-                      key={amount}
-                      variant={tip === amount ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTip(amount)}
-                      disabled={hasExistingInvoice}
-                      className={cn('text-xs', tip === amount && 'bg-red-500 hover:bg-red-600')}
-                    >
-                      {amount === 0 ? 'None' : `${amount}`}
-                    </Button>
-                  ))}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1 text-sm">
+                    <Gift className="h-3 w-3" />
+                    Tip
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={tip}
+                    onChange={(e) => setTip(Number(e.target.value) || 0)}
+                    disabled={hasExistingInvoice}
+                    placeholder="0"
+                  />
                 </div>
-              </div>
-
-              {/* Payment Method */}
-              <div className="space-y-2">
-                <Label>Payment Method</Label>
-                <Select
-                  value={paymentMethod}
-                  onValueChange={setPaymentMethod}
-                  disabled={hasExistingInvoice}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">
-                      <span className="flex items-center gap-2">
-                        <Banknote className="h-4 w-4" /> Cash
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="card">
-                      <span className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4" /> Card
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="online">
-                      <span className="flex items-center gap-2">
-                        <QrCode className="h-4 w-4" /> Online
-                      </span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1 text-sm">
+                    <Banknote className="h-3 w-3" />
+                    Payment Method
+                  </Label>
+                  <Select
+                    value={paymentMethod}
+                    onValueChange={setPaymentMethod}
+                    disabled={hasExistingInvoice}
+                  >
+                    <SelectTrigger className="rounded-none border-2 border-black">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">
+                        <span className="flex items-center gap-2 font-source-sans font-black uppercase tracking-widest">
+                          <Banknote className="h-4 w-4" /> CASH
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="card">
+                        <span className="flex items-center gap-2 font-source-sans font-black uppercase tracking-widest">
+                          <CreditCard className="h-4 w-4" /> CARD
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="online">
+                        <span className="flex items-center gap-2 font-source-sans font-black uppercase tracking-widest">
+                          <QrCode className="h-4 w-4" /> ONLINE
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Notes */}
               <div className="space-y-2">
-                <Label>Notes</Label>
+                <Label className="font-bebas text-lg tracking-widest uppercase">NOTES</Label>
                 <Textarea
                   placeholder="Optional notes..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   disabled={hasExistingInvoice}
                   rows={2}
+                  className="rounded-none border-2 border-black"
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* ── Bill Summary ── */}
-          <Card className="border-red-200 dark:border-red-900">
-            <CardHeader className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30">
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5 text-red-500" />
-                Bill Summary
+          <Card className="border-4 border-black rounded-none shadow-[8px_8px_0px_0px_rgba(237,28,36,1)] bg-white overflow-hidden">
+            <CardHeader className="bg-black text-[#FFD200] border-b-4 border-black">
+              <CardTitle className="flex items-center gap-2 font-bebas text-2xl tracking-widest uppercase">
+                <Calculator className="h-5 w-5 text-[#ED1C24]" />
+                BILL SUMMARY
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <motion.span key={subtotal} initial={{ scale: 1.08 }} animate={{ scale: 1 }}>
-                  Rs. {subtotal.toLocaleString()}
-                </motion.span>
+            <CardContent className="pt-6 space-y-4">
+              <div className="flex justify-between text-sm font-source-sans font-black uppercase tracking-widest text-black/60">
+                <span>Subtotal</span>
+                <span className="text-black">RS. {subtotal.toLocaleString()}</span>
               </div>
 
               {totalDiscount > 0 && (
-                <>
+                <div className="space-y-2 border-y-2 border-black/10 py-2">
                   {manualDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600">
+                    <div className="flex justify-between text-sm font-source-sans font-black uppercase tracking-widest text-[#008A45]">
                       <span>Manual Discount</span>
-                      <span>- Rs. {manualDiscount.toLocaleString()}</span>
+                      <span>- RS. {manualDiscount.toLocaleString()}</span>
                     </div>
                   )}
                   {promoDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600">
+                    <div className="flex justify-between text-sm font-source-sans font-black uppercase tracking-widest text-[#008A45]">
                       <span>Promo ({promoCode})</span>
-                      <span>- Rs. {promoDiscount.toLocaleString()}</span>
+                      <span>- RS. {promoDiscount.toLocaleString()}</span>
                     </div>
                   )}
                   {pointsDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-amber-600">
+                    <div className="flex justify-between text-sm font-source-sans font-black uppercase tracking-widest text-black">
                       <span>Loyalty Points</span>
-                      <span>- Rs. {pointsDiscount.toFixed(2)}</span>
+                      <span>- RS. {pointsDiscount.toFixed(2)}</span>
                     </div>
                   )}
-                </>
+                </div>
               )}
 
               {taxEnabled && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{taxLabel} ({taxRate}%)</span>
-                  <span>Rs. {tax.toLocaleString()}</span>
+                <div className="flex justify-between text-sm font-source-sans font-black uppercase tracking-widest text-black/60">
+                  <span>{taxLabel} ({taxRate}%)</span>
+                  <span className="text-black">RS. {tax.toLocaleString()}</span>
                 </div>
               )}
               {serviceCharge > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Service Charge</span>
-                  <span>Rs. {serviceCharge.toLocaleString()}</span>
+                <div className="flex justify-between text-sm font-source-sans font-black uppercase tracking-widest text-black/60">
+                  <span>Service Charge</span>
+                  <span className="text-black">RS. {serviceCharge.toLocaleString()}</span>
                 </div>
               )}
               {deliveryFee > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Delivery Fee</span>
-                  <span>Rs. {deliveryFee.toLocaleString()}</span>
+                <div className="flex justify-between text-sm font-source-sans font-black uppercase tracking-widest text-black/60">
+                  <span>Delivery Fee</span>
+                  <span className="text-black">RS. {deliveryFee.toLocaleString()}</span>
                 </div>
               )}
               {tip > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Tip</span>
-                  <span>Rs. {tip.toLocaleString()}</span>
+                <div className="flex justify-between text-sm font-source-sans font-black uppercase tracking-widest text-black/60">
+                  <span>Tip</span>
+                  <span className="text-black">RS. {tip.toLocaleString()}</span>
                 </div>
               )}
 
-              <Separator />
-
-              <div className="flex justify-between text-xl font-bold">
-                <span>Total</span>
-                <motion.span
-                  key={finalTotal}
-                  initial={{ scale: 1.08, color: '#ef4444' }}
-                  animate={{ scale: 1, color: '#dc2626' }}
-                  transition={{ duration: 0.25 }}
-                  className="text-red-600"
-                >
-                  Rs. {finalTotal.toLocaleString()}
-                </motion.span>
-              </div>
-
-              {/* Generate buttons */}
-              <div className="flex flex-col gap-2 mt-4">
-                <Button
-                  onClick={() => handleGenerateInvoice(false)}
-                  disabled={isSubmitting || isSendingEmail || hasExistingInvoice}
-                  variant="outline"
-                  className="w-full h-12 text-lg border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
-                >
-                  {isSubmitting && !isSendingEmail ? (
-                    <>
-                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : hasExistingInvoice ? (
-                    <>
-                      <AlertCircle className="h-5 w-5 mr-2" />
-                      Invoice Already Exists
-                    </>
-                  ) : (
-                    <>
-                      <Receipt className="h-5 w-5 mr-2" />
-                      Generate Bill
-                    </>
-                  )}
-                </Button>
-
-                {billingData?.customer?.email && (
+              <div className="p-6 border-4 border-black bg-black text-[#FFD200] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-6 mt-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-bebas text-xl tracking-widest uppercase">TOTAL PAYABLE</span>
+                  <span className="font-bebas text-5xl tracking-tighter">
+                    RS. {finalTotal.toLocaleString()}
+                  </span>
+                </div>
+                
+                <div className="flex flex-col gap-4">
+                  <Button
+                    onClick={() => handleGenerateInvoice(false)}
+                    disabled={isSubmitting || hasExistingInvoice}
+                    className={cn(
+                      "h-14 font-bebas text-2xl tracking-widest rounded-none border-2 transition-all",
+                      hasExistingInvoice 
+                        ? "bg-zinc-800 text-zinc-500 border-zinc-700 cursor-not-allowed"
+                        : "bg-white text-black border-white hover:bg-[#FFD200] hover:border-black"
+                    )}
+                  >
+                    {isSubmitting && !isSendingEmail ? (
+                      <Loader2 className="h-6 w-6 animate-spin mr-3" />
+                    ) : hasExistingInvoice ? (
+                      <AlertCircle className="h-6 w-6 mr-3" />
+                    ) : (
+                      <Receipt className="h-6 w-6 mr-3" />
+                    )}
+                    {hasExistingInvoice ? 'INVOICE EXISTS' : 'GENERATE BILL'}
+                  </Button>
                   <Button
                     onClick={() => handleGenerateInvoice(true)}
-                    disabled={isSubmitting || isSendingEmail || hasExistingInvoice}
-                    className="w-full h-12 text-lg bg-red-500 hover:bg-red-600"
-                  >
-                    {isSubmitting || isSendingEmail ? (
-                      <>
-                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        {isSendingEmail ? 'Sending Email...' : 'Generating...'}
-                      </>
-                    ) : hasExistingInvoice ? (
-                      <>
-                        <AlertCircle className="h-5 w-5 mr-2" />
-                        Invoice Already Exists
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="h-5 w-5 mr-2" />
-                        Generate & Send Email
-                      </>
+                    disabled={isSubmitting || hasExistingInvoice}
+                    className={cn(
+                      "h-14 font-bebas text-2xl tracking-widest rounded-none border-2 transition-all",
+                      hasExistingInvoice 
+                        ? "bg-zinc-800 text-zinc-500 border-zinc-700 cursor-not-allowed"
+                        : "bg-[#FFD200] text-black border-black hover:bg-white hover:border-white"
                     )}
+                  >
+                    {isSendingEmail ? (
+                      <Loader2 className="h-6 w-6 animate-spin mr-3" />
+                    ) : (
+                      <Mail className="h-6 w-6 mr-3" />
+                    )}
+                    BILL & EMAIL
                   </Button>
+                </div>
+                {hasExistingInvoice && (
+                  <p className="text-[10px] font-source-sans font-black uppercase tracking-widest text-[#FFD200]/60 text-center">
+                    This order already has an invoice generated
+                  </p>
                 )}
               </div>
             </CardContent>

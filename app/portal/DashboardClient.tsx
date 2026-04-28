@@ -296,25 +296,24 @@ function SalesChart({
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border border-green-500/20 rounded-xl p-3 sm:p-4"
+                className="relative overflow-hidden bg-white border-4 border-black p-4 shadow-[6px_6px_0px_0px_rgba(0,138,69,1)]"
               >
-                <div className="absolute top-0 right-0 w-16 h-16 bg-green-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-                <DollarSign className="h-4 w-4 text-green-500 mb-1" />
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Total Sales</p>
-                <p className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">
+                <DollarSign className="h-5 w-5 text-[#008A45] mb-2" />
+                <p className="text-sm font-bebas tracking-widest text-black/40 uppercase">Total Sales</p>
+                <p className="text-3xl font-bebas text-black leading-none">
                   Rs. {summary.total_sales?.toLocaleString() || 0}
                 </p>
                 {comparison && comparison.growth_vs_yesterday !== 0 && (
                   <div className={cn(
-                    'flex items-center gap-1 mt-1 text-xs font-medium',
-                    comparison.growth_vs_yesterday > 0 ? 'text-green-500' : 'text-red-500'
+                    'flex items-center gap-1 mt-2 font-source-sans font-black text-xs uppercase tracking-tighter',
+                    comparison.growth_vs_yesterday > 0 ? 'text-[#008A45]' : 'text-[#ED1C24]'
                   )}>
                     {comparison.growth_vs_yesterday > 0 ? (
                       <ArrowUpRight className="h-3 w-3" />
                     ) : (
                       <ArrowDownRight className="h-3 w-3" />
                     )}
-                    {Math.abs(comparison.growth_vs_yesterday).toFixed(1)}%
+                    {Math.abs(comparison.growth_vs_yesterday).toFixed(1)}% VS YEST
                   </div>
                 )}
               </motion.div>
@@ -324,14 +323,13 @@ function SalesChart({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="relative overflow-hidden bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent border border-blue-500/20 rounded-xl p-3 sm:p-4"
+                className="relative overflow-hidden bg-white border-4 border-black p-4 shadow-[6px_6px_0px_0px_rgba(237,28,36,1)]"
               >
-                <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-                <ShoppingBag className="h-4 w-4 text-blue-500 mb-1" />
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Total Orders</p>
-                <p className="text-lg sm:text-2xl font-bold">{summary.total_orders || 0}</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                  Avg: Rs. {summary.avg_order_value?.toLocaleString() || 0}
+                <ShoppingBag className="h-5 w-5 text-[#ED1C24] mb-2" />
+                <p className="text-sm font-bebas tracking-widest text-black/40 uppercase">Total Orders</p>
+                <p className="text-3xl font-bebas text-black leading-none">{summary.total_orders || 0}</p>
+                <p className="text-xs font-source-sans font-black text-black/40 mt-2 uppercase tracking-tighter">
+                  AVG: Rs. {summary.avg_order_value?.toLocaleString() || 0}
                 </p>
               </motion.div>
               
@@ -340,23 +338,22 @@ function SalesChart({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="relative overflow-hidden bg-gradient-to-br from-orange-500/10 via-orange-500/5 to-transparent border border-orange-500/20 rounded-xl p-3 sm:p-4"
+                className="relative overflow-hidden bg-white border-4 border-black p-4 shadow-[6px_6px_0px_0px_rgba(255,210,0,1)]"
               >
-                <div className="absolute top-0 right-0 w-16 h-16 bg-orange-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-                <Flame className="h-4 w-4 text-orange-500 mb-1" />
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">
+                <Flame className="h-5 w-5 text-[#FFD200] mb-2" />
+                <p className="text-sm font-bebas tracking-widest text-black/40 uppercase">
                   {isDaily ? 'Best Day' : 'Peak Hour'}
                 </p>
-                <p className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
+                <p className="text-3xl font-bebas text-black leading-none">
                   {isDaily 
                     ? (summary.best_day ? formatDateLabel(summary.best_day, true) : 'N/A')
                     : (summary.peak_hour_label || 'N/A')
                   }
                 </p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                <p className="text-xs font-source-sans font-black text-black/40 mt-2 uppercase tracking-tighter">
                   {isDaily 
-                    ? `Best: Rs. ${data[bestDayIndex]?.sales?.toLocaleString() || 0}`
-                    : `Rs. ${summary.peak_sales?.toLocaleString() || 0}`
+                    ? `BEST: Rs. ${data[bestDayIndex]?.sales?.toLocaleString() || 0}`
+                    : `PEAK: Rs. ${summary.peak_sales?.toLocaleString() || 0}`
                   }
                 </p>
               </motion.div>
@@ -366,20 +363,19 @@ function SalesChart({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="relative overflow-hidden bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-purple-500/20 rounded-xl p-3 sm:p-4"
+                className="relative overflow-hidden bg-white border-4 border-black p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
               >
-                <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-                <Zap className="h-4 w-4 text-purple-500 mb-1" />
-                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">
+                <Zap className="h-5 w-5 text-black mb-2" />
+                <p className="text-sm font-bebas tracking-widest text-black/40 uppercase">
                   {isDaily ? 'Days in Period' : 'Busiest Period'}
                 </p>
-                <p className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {isDaily ? `${data.length} days` : (summary.busiest_period || 'N/A')}
+                <p className="text-3xl font-bebas text-black leading-none">
+                  {isDaily ? `${data.length} DAYS` : (summary.busiest_period || 'N/A')}
                 </p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                <p className="text-xs font-source-sans font-black text-black/40 mt-2 uppercase tracking-tighter">
                   {isDaily 
-                    ? `Avg/day: Rs. ${Math.round((summary.total_sales || 0) / (data.length || 1)).toLocaleString()}`
-                    : `Now: ${summary.current_hour !== undefined ? 
+                    ? `AVG/DAY: Rs. ${Math.round((summary.total_sales || 0) / (data.length || 1)).toLocaleString()}`
+                    : `NOW: ${summary.current_hour !== undefined ? 
                         (summary.current_hour === 0 ? '12 AM' : 
                          summary.current_hour < 12 ? `${summary.current_hour} AM` : 
                          summary.current_hour === 12 ? '12 PM' : 
@@ -795,31 +791,31 @@ function RecentOrders({ orders }: { orders: PortalOrder[] }) {
   };
 
   return (
-    <ScrollArea className="h-[400px]">
-      <div className="space-y-3">
+    <ScrollArea className="h-[400px] pr-4">
+      <div className="space-y-4">
         {orders.map((order) => (
           <motion.div
             key={order.id}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex items-center justify-between p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="flex items-center justify-between p-4 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <ShoppingBag className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-black text-[#FFD200] flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(237,28,36,1)]">
+                <ShoppingBag className="h-6 w-6" />
               </div>
               <div>
-                <p className="font-medium text-sm">#{order.order_number}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="font-bebas text-xl text-black leading-none uppercase">#{order.order_number}</p>
+                <p className="text-xs font-source-sans font-black text-black/40 uppercase tracking-widest mt-1">
                   {order.customer_name} • {order.items.length} items
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <Badge className={cn('capitalize', statusColors[order.status])}>
+              <Badge className={cn('rounded-none font-bebas tracking-widest border-2 border-black uppercase px-2 py-0', statusColors[order.status])}>
                 {order.status}
               </Badge>
-              <p className="text-sm font-semibold mt-1">
+              <p className="text-xl font-bebas text-black mt-1">
                 Rs. {order.total.toLocaleString()}
               </p>
             </div>
@@ -841,21 +837,23 @@ function TablesOverview({ tables }: { tables: RestaurantTable[] }) {
   };
 
   return (
-    <div className="grid grid-cols-3 xs:grid-cols-4 gap-1.5 sm:gap-2">
-      {tables.slice(0, 8).map((table) => (
+    <div className="grid grid-cols-3 xs:grid-cols-4 gap-2 sm:gap-3">
+      {tables.slice(0, 12).map((table) => (
         <motion.div
           key={table.id}
           whileHover={{ scale: 1.05 }}
           className={cn(
-            'aspect-square rounded-lg flex flex-col items-center justify-center relative p-1',
-            'bg-zinc-100 dark:bg-zinc-800 border-2 border-transparent',
-            table.status === 'occupied' && 'border-red-500/50',
-            table.status === 'reserved' && 'border-yellow-500/50'
+            'aspect-square flex flex-col items-center justify-center relative p-1 border-4 border-black transition-all',
+            table.status === 'available' ? 'bg-[#FFD200] text-black shadow-[4px_4px_0px_0px_rgba(0,138,69,1)]' : 
+            table.status === 'occupied' ? 'bg-black text-white shadow-[4px_4px_0px_0px_rgba(237,28,36,1)]' :
+            'bg-zinc-200 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
           )}
         >
-          <span className="text-base sm:text-lg font-bold">{table.table_number}</span>
-          <span className="text-[10px] sm:text-xs text-muted-foreground">{table.capacity} seats</span>
-          <div className={cn('absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full', statusColors[table.status])} />
+          <span className="text-2xl sm:text-3xl font-bebas leading-none">{table.table_number}</span>
+          <span className="text-[10px] font-source-sans font-black uppercase tracking-tighter mt-1 opacity-60">
+            {table.capacity} SEATS
+          </span>
+          <div className={cn('absolute top-1 right-1 w-2 h-2 sm:w-3 sm:h-3 border-2 border-black', statusColors[table.status])} />
         </motion.div>
       ))}
     </div>

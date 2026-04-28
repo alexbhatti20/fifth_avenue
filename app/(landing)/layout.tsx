@@ -24,7 +24,7 @@ export default async function LandingLayout({ children }: LandingLayoutProps) {
   return (
     <div className="fa-landing-theme">
       <Navbar bookingEnabled={bookingSetting.enabled} />
-      <div className="pb-28 md:pb-0">
+      <div className="pb-28 md:pb-0 relative">
         {children}
         <Footer />
       </div>

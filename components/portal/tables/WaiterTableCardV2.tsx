@@ -57,54 +57,54 @@ interface WaiterTableCardProps {
 // Animated pulse colors for different states
 const STATUS_STYLES = {
   available: {
-    tableBg: 'bg-gradient-to-br from-emerald-100 via-green-50 to-teal-100 dark:from-emerald-900/60 dark:via-green-900/40 dark:to-teal-900/50',
-    tableRing: 'ring-emerald-400/50 dark:ring-emerald-500/40',
-    tableShadow: 'shadow-emerald-200/60 dark:shadow-emerald-900/40',
-    pulse: 'bg-emerald-400',
-    glow: '0 0 20px rgba(16, 185, 129, 0.3)',
-    numberBg: 'bg-gradient-to-br from-emerald-500 to-green-600',
-    accent: 'text-emerald-600 dark:text-emerald-400',
-    border: 'border-emerald-300/60 dark:border-emerald-600/40',
+    tableBg: 'bg-white',
+    tableRing: 'ring-black',
+    tableShadow: 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+    pulse: 'bg-[#008A45]',
+    glow: 'none',
+    numberBg: 'bg-black',
+    accent: 'text-[#008A45]',
+    border: 'border-black',
   },
   occupied: {
-    tableBg: 'bg-gradient-to-br from-rose-100 via-red-50 to-orange-100 dark:from-rose-900/60 dark:via-red-900/40 dark:to-orange-900/50',
-    tableRing: 'ring-rose-400/50 dark:ring-rose-500/40',
-    tableShadow: 'shadow-rose-200/60 dark:shadow-rose-900/40',
-    pulse: 'bg-rose-400',
-    glow: '0 0 20px rgba(239, 68, 68, 0.3)',
-    numberBg: 'bg-gradient-to-br from-rose-500 to-red-600',
-    accent: 'text-rose-600 dark:text-rose-400',
-    border: 'border-rose-300/60 dark:border-rose-600/40',
+    tableBg: 'bg-[#FFD200]',
+    tableRing: 'ring-black',
+    tableShadow: 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+    pulse: 'bg-[#ED1C24]',
+    glow: 'none',
+    numberBg: 'bg-black',
+    accent: 'text-[#ED1C24]',
+    border: 'border-black',
   },
   reserved: {
-    tableBg: 'bg-gradient-to-br from-amber-100 via-yellow-50 to-orange-100 dark:from-amber-900/60 dark:via-yellow-900/40 dark:to-orange-900/50',
-    tableRing: 'ring-amber-400/50 dark:ring-amber-500/40',
-    tableShadow: 'shadow-amber-200/60 dark:shadow-amber-900/40',
-    pulse: 'bg-amber-400',
-    glow: '0 0 20px rgba(245, 158, 11, 0.3)',
-    numberBg: 'bg-gradient-to-br from-amber-500 to-orange-600',
-    accent: 'text-amber-600 dark:text-amber-400',
-    border: 'border-amber-300/60 dark:border-amber-600/40',
+    tableBg: 'bg-[#FFD200]/20',
+    tableRing: 'ring-black',
+    tableShadow: 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+    pulse: 'bg-[#FFD200]',
+    glow: 'none',
+    numberBg: 'bg-black',
+    accent: 'text-[#FFD200]',
+    border: 'border-black',
   },
   cleaning: {
-    tableBg: 'bg-gradient-to-br from-sky-100 via-blue-50 to-cyan-100 dark:from-sky-900/60 dark:via-blue-900/40 dark:to-cyan-900/50',
-    tableRing: 'ring-sky-400/50 dark:ring-sky-500/40',
-    tableShadow: 'shadow-sky-200/60 dark:shadow-sky-900/40',
-    pulse: 'bg-sky-400',
-    glow: '0 0 20px rgba(14, 165, 233, 0.3)',
-    numberBg: 'bg-gradient-to-br from-sky-500 to-blue-600',
-    accent: 'text-sky-600 dark:text-sky-400',
-    border: 'border-sky-300/60 dark:border-sky-600/40',
+    tableBg: 'bg-black/5',
+    tableRing: 'ring-black',
+    tableShadow: 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+    pulse: 'bg-[#008A45]',
+    glow: 'none',
+    numberBg: 'bg-black',
+    accent: 'text-black',
+    border: 'border-black',
   },
   out_of_service: {
-    tableBg: 'bg-gradient-to-br from-slate-200 via-gray-100 to-zinc-200 dark:from-slate-800/60 dark:via-gray-800/40 dark:to-zinc-800/50',
-    tableRing: 'ring-slate-400/50 dark:ring-slate-500/40',
-    tableShadow: 'shadow-slate-200/60 dark:shadow-slate-900/40',
-    pulse: 'bg-slate-400',
-    glow: '0 0 10px rgba(100, 116, 139, 0.2)',
-    numberBg: 'bg-gradient-to-br from-slate-500 to-gray-600',
-    accent: 'text-slate-600 dark:text-slate-400',
-    border: 'border-slate-300/60 dark:border-slate-600/40',
+    tableBg: 'bg-black/10',
+    tableRing: 'ring-black',
+    tableShadow: 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+    pulse: 'bg-black/40',
+    glow: 'none',
+    numberBg: 'bg-black/40',
+    accent: 'text-black/40',
+    border: 'border-black',
   },
 };
 
@@ -212,12 +212,10 @@ function WaiterTableCardV2Component({
       <Card
         className={cn(
           'relative overflow-visible cursor-pointer z-10',
-          'bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl',
-          'border-2 shadow-xl',
-          style.border,
-          isMyTable && 'border-transparent'
+          'bg-white border-4 border-black rounded-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]',
+          'transition-all',
+          isMyTable && 'ring-4 ring-[#FFD200]'
         )}
-        style={{ boxShadow: isHovered ? style.glow : undefined }}
         onClick={handleCardClick}
       >
         {/* Three-Dot Menu — Available to ALL roles with role-based options */}
@@ -337,30 +335,18 @@ function WaiterTableCardV2Component({
           <div className="relative flex justify-center mb-3">
             {/* Table Surface */}
             <motion.div
-              animate={{
-                boxShadow: isOccupied 
-                  ? ['0 4px 20px rgba(239, 68, 68, 0.2)', '0 4px 30px rgba(239, 68, 68, 0.4)', '0 4px 20px rgba(239, 68, 68, 0.2)']
-                  : isAvailable
-                    ? ['0 4px 20px rgba(16, 185, 129, 0.2)', '0 4px 30px rgba(16, 185, 129, 0.4)', '0 4px 20px rgba(16, 185, 129, 0.2)']
-                    : undefined
-              }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
               className={cn(
-                'relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl sm:rounded-2xl',
-                'ring-2 shadow-lg',
+                'relative w-20 h-20 sm:w-24 sm:h-24 border-4 border-black rounded-none',
                 style.tableBg,
-                style.tableRing,
                 style.tableShadow
               )}
             >
               {/* Table Number */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <motion.div
-                  animate={isAvailable ? { scale: [1, 1.05, 1] } : {}}
-                  transition={{ duration: 1.5, repeat: Infinity }}
                   className={cn(
-                    'w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center',
-                    'text-white font-bold text-lg sm:text-xl shadow-inner',
+                    'w-10 h-10 sm:w-12 sm:h-12 border-2 border-[#FFD200] flex items-center justify-center',
+                    'text-[#FFD200] font-bebas text-2xl sm:text-3xl bg-black',
                     style.numberBg
                   )}
                 >
@@ -376,11 +362,10 @@ function WaiterTableCardV2Component({
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.1 + i * 0.05 }}
                   className={cn(
-                    'absolute w-3 h-3 sm:w-4 sm:h-4 rounded-full',
-                    'border-2 shadow-sm',
+                    'absolute w-3 h-3 sm:w-4 sm:h-4 border-2 border-black rounded-none',
                     i < (table.current_customers || 0)
-                      ? 'bg-slate-600 border-slate-700' // Occupied chair
-                      : 'bg-slate-200 border-slate-300 dark:bg-slate-700 dark:border-slate-600' // Empty chair
+                      ? 'bg-black' // Occupied chair
+                      : 'bg-white' // Empty chair
                   )}
                   style={pos as any}
                 />
@@ -425,7 +410,7 @@ function WaiterTableCardV2Component({
               transition={{ duration: 1, repeat: Infinity }}
             >
               <Badge className={cn(
-                'gap-1 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-white border-0 shadow',
+                'gap-1 px-3 py-1 font-bebas text-lg tracking-widest text-white rounded-none border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
                 style.numberBg
               )}>
                 {config.icon}
@@ -542,33 +527,31 @@ function WaiterTableCardV2Component({
                   className="mt-3"
                 >
                   <div className={cn(
-                    'rounded-xl border overflow-hidden',
-                    style.border
+                    'border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
                   )}>
                     {/* Header row */}
-                    <div className="flex items-center justify-between px-2.5 pt-2 pb-1.5 bg-white/70 dark:bg-black/30">
+                    <div className="flex items-center justify-between px-2.5 pt-2 pb-1.5 bg-black text-[#FFD200]">
                       <div className="flex items-center gap-1.5">
-                        <Zap className={cn('h-3 w-3 flex-shrink-0', style.accent)} />
-                        <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 tracking-wide">{shortRef}</span>
+                        <Zap className="h-3 w-3 flex-shrink-0" />
+                        <span className="text-sm font-bebas tracking-wider">{shortRef}</span>
                       </div>
-                      <span className={cn('text-sm font-extrabold', style.accent)}>
-                        Rs.&nbsp;{ord.total?.toLocaleString()}
+                      <span className="text-lg font-bebas tracking-tighter">
+                        RS.&nbsp;{ord.total?.toLocaleString()}
                       </span>
                     </div>
                     {/* Detail row */}
-                    <div className="flex items-center justify-between px-2.5 pb-2 bg-white/50 dark:bg-black/20 gap-2">
+                    <div className="flex items-center justify-between px-2.5 pb-2 bg-white gap-2">
                       {/* Status badge */}
-                      <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold leading-none', sc.bg, sc.text)}>
-                        <span className={cn('h-1.5 w-1.5 rounded-full inline-block', sc.dot)} />
+                      <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 border border-black font-bebas text-xs tracking-widest uppercase', sc.bg, sc.text)}>
                         {sc.label}
                       </span>
                       {/* Items */}
-                      <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
-                        <ShoppingCart className="h-3 w-3" />{ord.items_count} item{ord.items_count !== 1 ? 's' : ''}
+                      <span className="flex items-center gap-1 text-[10px] font-source-sans font-black text-black uppercase">
+                        <ShoppingCart className="h-3 w-3" />{ord.items_count} ITEMS
                       </span>
                       {/* Elapsed */}
                       {elapsed > 0 && (
-                        <span className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                        <span className="flex items-center gap-1 text-[10px] font-source-sans font-black text-black/60 uppercase">
                           <Timer className="h-3 w-3" />{elapsedLabel}
                         </span>
                       )}
@@ -598,11 +581,7 @@ function WaiterTableCardV2Component({
             >
               <Button
                 size="sm"
-                className={cn(
-                  'w-full h-9 text-xs font-semibold text-white shadow-lg',
-                  'bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500',
-                  'hover:from-emerald-600 hover:via-green-600 hover:to-teal-600'
-                )}
+                className="w-full h-10 font-bebas text-lg tracking-widest text-black bg-[#FFD200] border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
                 onClick={(e) => {
                   e.stopPropagation();
                   onClaimTable(table.id);
@@ -621,10 +600,10 @@ function WaiterTableCardV2Component({
                 <Button
                   size="sm"
                   className={cn(
-                    'w-full h-9 text-xs font-semibold text-white shadow-lg',
+                    'w-full h-10 font-bebas text-lg tracking-widest border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all',
                     table.current_order
-                      ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700'
-                      : 'bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-600 hover:via-orange-600 hover:to-red-600'
+                      ? 'bg-black text-[#FFD200]'
+                      : 'bg-[#FFD200] text-black'
                   )}
                   onClick={(e) => {
                     e.stopPropagation();

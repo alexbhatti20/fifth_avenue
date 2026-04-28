@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Wrench, Clock, RefreshCw, AlertCircle, Zap, 
   Settings2, Bug, Sparkles, Calendar, Coffee,
-  Timer, Mail, Phone, ArrowRight, CheckCircle2
+  Timer, Mail, Phone, ArrowRight, CheckCircle2, Utensils
 } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 // Maintenance reason icons and colors
 const REASON_CONFIG: Record<string, { icon: typeof Wrench; color: string; gradient: string; label: string }> = {
@@ -55,26 +56,18 @@ interface MaintenancePageProps {
   enabledAt?: string;
 }
 
-// Animated gear component
-const AnimatedGear = memo(function AnimatedGear({ 
-  size = 120, 
-  direction = 1, 
-  delay = 0,
+// Industrial Pipe component
+const IndustrialDecoration = memo(function IndustrialDecoration({ 
   className = ''
-}: { size?: number; direction?: number; delay?: number; className?: string }) {
+}: { className?: string }) {
   return (
-    <motion.div
-      className={className}
-      animate={{ rotate: direction * 360 }}
-      transition={{
-        duration: 10,
-        repeat: Infinity,
-        ease: 'linear',
-        delay,
-      }}
-    >
-      <Settings2 size={size} className="text-primary/20" />
-    </motion.div>
+    <div className={cn("opacity-10", className)}>
+      <div className="flex flex-col gap-2">
+        <div className="h-4 w-64 bg-black border-2 border-white" />
+        <div className="h-4 w-48 bg-black border-2 border-white ml-8" />
+        <div className="h-4 w-56 bg-black border-2 border-white ml-4" />
+      </div>
+    </div>
   );
 });
 
@@ -317,49 +310,47 @@ function MaintenancePage({
   const displayReason = reasonType === 'custom' && customReason ? customReason : config.label;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-3 sm:p-4 md:p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-[#FFD200] flex flex-col items-center justify-center p-3 sm:p-4 md:p-6 relative overflow-hidden font-bebas">
       {/* Floating particles background */}
       <FloatingParticles />
       
-      {/* Animated gears background */}
+      {/* Industrial decorations background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <AnimatedGear size={200} direction={1} delay={0} className="absolute -top-20 -left-20" />
-        <AnimatedGear size={150} direction={-1} delay={2} className="absolute top-1/4 -right-16" />
-        <AnimatedGear size={100} direction={1} delay={4} className="absolute bottom-1/4 -left-10" />
-        <AnimatedGear size={180} direction={-1} delay={1} className="absolute -bottom-20 right-1/4" />
+        <IndustrialDecoration className="absolute -top-10 -left-10 rotate-12" />
+        <IndustrialDecoration className="absolute top-1/4 -right-20 -rotate-45" />
+        <IndustrialDecoration className="absolute bottom-1/4 -left-20 rotate-90" />
+        <IndustrialDecoration className="absolute -bottom-10 right-1/4 -rotate-12" />
       </div>
 
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-zinc-950/80 pointer-events-none" />
+      {/* Brutalist Texture Overlay */}
+      <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] pointer-events-none" />
       
       {/* Main content */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
+        transition={{ duration: 0.6, ease: "circOut" }}
         className="relative z-10 text-center max-w-2xl mx-auto w-full px-2"
       >
         {/* Logo */}
         <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', delay: 0.2 }}
-          className="mb-6 sm:mb-8"
+          className="mb-8 sm:mb-12"
         >
-          <div className="relative inline-block">
+          <div className="relative inline-block p-4 bg-black border-4 border-white shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
             <Image
-              src="/assets/logo.png"
-              alt="ZOIRO Injected Broast"
-              width={100}
-              height={100}
-              className="mx-auto drop-shadow-2xl sm:w-[120px] sm:h-[120px]"
+              src="/assets/fifth_avenue_urban_logo_1777394607150.png"
+              alt="FIFTH AVENUE"
+              width={140}
+              height={140}
+              className="mx-auto sm:w-[160px] sm:h-[160px]"
               priority
             />
-            <motion.div
-              className="absolute -inset-4 bg-primary/20 rounded-full blur-xl"
-              animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            />
+            <div className="mt-2 text-[#FFD200] font-bebas text-xl tracking-[0.2em] uppercase">
+              URBAN STREET HUB
+            </div>
           </div>
         </motion.div>
 
@@ -380,10 +371,10 @@ function MaintenancePage({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="mb-3 sm:mb-4"
+          className="mb-4 sm:mb-6"
         >
-          <span className={`inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-zinc-800/80 border border-zinc-700 text-xs sm:text-sm font-medium ${config.color}`}>
-            <Wrench className="w-3 h-3 sm:w-4 sm:h-4" />
+          <span className="inline-flex items-center gap-2 px-6 py-2 bg-black text-[#FFD200] border-2 border-white text-sm sm:text-base font-bebas tracking-widest uppercase">
+            <Zap className="w-4 h-4 fill-[#FFD200]" />
             {displayReason}
           </span>
         </motion.div>
@@ -393,17 +384,27 @@ function MaintenancePage({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3 sm:mb-4 px-2 leading-tight"
+          className="text-4xl sm:text-6xl md:text-8xl font-bold text-black mb-4 sm:mb-6 px-2 leading-[0.85] tracking-tighter uppercase italic"
         >
           {title}
         </motion.h1>
+
+        {/* Tagline */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55 }}
+          className="font-caveat text-3xl sm:text-5xl text-[#ED1C24] mb-6 sm:mb-10 rotate-[-2deg]"
+        >
+          Chasing Flavours
+        </motion.div>
 
         {/* Message */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="text-base sm:text-lg md:text-xl text-zinc-400 mb-6 sm:mb-8 max-w-lg mx-auto px-4 leading-relaxed"
+          className="text-lg sm:text-xl md:text-2xl text-black font-source-sans font-bold mb-8 sm:mb-12 max-w-lg mx-auto px-4 leading-tight uppercase"
         >
           {message}
         </motion.p>
@@ -421,13 +422,14 @@ function MaintenancePage({
               <span>Estimated time to completion</span>
             </div>
             <div className="flex justify-center">
-              <CountdownTimer 
-                targetTime={estimatedRestoreTime} 
-                onExpired={() => {
-                  // Auto-refresh the page when timer expires (maintenance might be over)
-                  window.location.reload();
-                }}
-              />
+              <div className="p-6 bg-black border-4 border-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <CountdownTimer 
+                  targetTime={estimatedRestoreTime} 
+                  onExpired={() => {
+                    window.location.reload();
+                  }}
+                />
+              </div>
             </div>
           </motion.div>
         )}
@@ -449,20 +451,20 @@ function MaintenancePage({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9 }}
-          className="mb-6 sm:mb-8 px-2"
+          className="mb-8 sm:mb-12 px-2"
         >
-          <div className="inline-flex flex-col sm:flex-row items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-800/50 border border-zinc-700/50 backdrop-blur-sm max-w-full">
-            <div className="flex items-center gap-2 text-zinc-400">
-              <Coffee className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="text-xs sm:text-sm">Need to order?</span>
+          <div className="inline-flex flex-col sm:flex-row items-center gap-4 p-6 bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center gap-2 text-black font-bold uppercase tracking-widest text-sm">
+              <Utensils className="w-5 h-5" />
+              <span>Need to order?</span>
             </div>
-            <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-4">
               <a 
-                href="tel:+923046292822" 
-                className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+                href="tel:+923215550199" 
+                className="flex items-center gap-2 text-[#ED1C24] hover:scale-105 transition-transform"
               >
-                <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="font-medium text-xs sm:text-base">+92 304 629 2822</span>
+                <Phone className="w-5 h-5 fill-[#ED1C24]" />
+                <span className="font-bold text-xl sm:text-2xl tracking-tighter">0321-5550199</span>
               </a>
             </div>
           </div>
@@ -476,12 +478,10 @@ function MaintenancePage({
         >
           <Button
             onClick={() => window.location.reload()}
-            variant="outline"
-            size="sm"
-            className="rounded-lg sm:rounded-xl border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600 transition-all text-xs sm:text-sm px-4 sm:px-6 py-2 sm:py-3 h-auto"
+            className="h-14 px-10 bg-black text-white rounded-none font-bebas text-xl tracking-[0.2em] border-4 border-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
           >
-            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-            Refresh Page
+            <RefreshCw className="w-5 h-5 mr-3 animate-spin-slow" />
+            RE-CHECK STATUS
           </Button>
         </motion.div>
       </motion.div>
@@ -526,7 +526,7 @@ function MaintenancePage({
         transition={{ delay: 1.2 }}
         className="absolute bottom-4 sm:bottom-6 text-center px-4"
       >
-        <p className="text-zinc-600 text-xs sm:text-sm">© {new Date().getFullYear()} ZOIRO Injected Broast. All rights reserved.</p>
+        <p className="text-black font-bold text-xs sm:text-sm tracking-widest uppercase opacity-40">© {new Date().getFullYear()} FIFTH AVENUE URBAN HUB. CHASING FLAVOURS.</p>
       </motion.div>
 
       <style jsx global>{`

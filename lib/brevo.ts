@@ -1,14 +1,15 @@
 const BREVO_API_KEY = process.env.BREVO_API_KEY!;
-const SENDER_EMAIL = process.env.SENDER_EMAIL || 'noreply@zoirobroast.com';
-const SENDER_NAME = 'Zoiro Injected Broast';
+const SENDER_EMAIL = process.env.SENDER_EMAIL || 'hub@fifthavenue.com';
+const SENDER_NAME = 'FIFTH AVENUE URBAN HUB';
 const COMPANY_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-const LOGO_URL = 'https://eqfeeiryzslccyivkphf.supabase.co/storage/v1/object/public/images/website/images.png';
+const LOGO_URL = `${COMPANY_URL}/assets/fifth_avenue_urban_logo_1777394607150.png`;
 
 // Brand Colors
-const BRAND_RED = '#C8102E';
-const BRAND_DARK = '#1a1a1a';
+const BRAND_RED = '#ED1C24';
+const BRAND_DARK = '#000000';
 const BRAND_WHITE = '#ffffff';
-const BRAND_LIGHT_BG = '#f9f9f9';
+const BRAND_LIGHT_BG = '#f5f5f5';
+const BRAND_YELLOW = '#FFD200';
 
 // Shared email header component
 const getEmailHeader = (title: string, subtitle?: string) => `
@@ -22,11 +23,11 @@ const getEmailHeader = (title: string, subtitle?: string) => `
 // Shared email footer component
 const getEmailFooter = () => `
   <div style="background: ${BRAND_DARK}; color: ${BRAND_WHITE}; padding: 30px; text-align: center;">
-    <img src="${LOGO_URL}" alt="ZOIRO Injected Broast" style="height: 40px; margin-bottom: 15px;" />
-    <p style="margin: 5px 0; font-size: 14px;"><strong>ZOIRO Injected Broast</strong></p>
-    <p style="margin: 5px 0; font-size: 12px; color: #aaa;">Injected Broast - Saucy. Juicy. Crispy.</p>
+    <img src="${LOGO_URL}" alt="FIFTH AVENUE" style="height: 40px; margin-bottom: 15px;" />
+    <p style="margin: 5px 0; font-size: 14px;"><strong>FIFTH AVENUE URBAN HUB</strong></p>
+    <p style="margin: 5px 0; font-size: 12px; color: #aaa;">Urban Street Hub - Chasing Flavours</p>
     <p style="margin: 15px 0 5px; font-size: 12px; color: #888;">
-      📞 +92 300 1234567 | 📧 info@zoiro.com
+      📞 0321-5550199 | 📧 hub@fifthavenue.com
     </p>
     <div style="margin: 15px 0;">
       <a href="#" style="color: ${BRAND_RED}; text-decoration: none; margin: 0 10px;">Facebook</a>
@@ -34,7 +35,7 @@ const getEmailFooter = () => `
       <a href="${COMPANY_URL}" style="color: ${BRAND_RED}; text-decoration: none; margin: 0 10px;">Website</a>
     </div>
     <p style="font-size: 11px; color: #666; margin-top: 20px;">
-      © ${new Date().getFullYear()} Zoiro Injected Broast. All rights reserved.<br>
+      © ${new Date().getFullYear()} FIFTH AVENUE URBAN HUB. All rights reserved.<br>
       This is an automated email. Please do not reply directly.
     </p>
   </div>
@@ -142,7 +143,7 @@ export async function sendPasswordResetOTP(email: string, name: string, otp: str
 
   return sendEmail({
     to: email,
-    subject: `${otp} - Reset Your ZOIRO Injected Broast Password`,
+    subject: `${otp} - Reset Your FIFTH AVENUE Password`,
     htmlContent,
   });
 }
@@ -159,11 +160,11 @@ export async function sendRegistrationOTP(email: string, name: string, otp: stri
     </head>
     <body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f5;">
       <div style="max-width: 600px; margin: 0 auto; background: ${BRAND_WHITE};">
-        ${getEmailHeader('Welcome to ZOIRO Injected Broast!', 'Complete your registration')}
+        ${getEmailHeader('Welcome to FIFTH AVENUE!', 'Complete your registration')}
         
         <div style="padding: 30px;">
           <h2 style="color: ${BRAND_DARK}; margin-top: 0;">Hello ${name}! 👋</h2>
-          <p>Thank you for joining the ZOIRO Injected Broast family. To complete your registration, please verify your email with the OTP below:</p>
+          <p>Thank you for joining the FIFTH AVENUE family. To complete your registration, please verify your email with the OTP below:</p>
           
           <div style="background: ${BRAND_LIGHT_BG}; border: 2px dashed ${BRAND_RED}; border-radius: 10px; padding: 25px; text-align: center; margin: 25px 0;">
             <p style="margin: 0 0 10px; font-size: 14px; color: #666;">Your Verification Code</p>
@@ -201,7 +202,7 @@ export async function sendRegistrationOTP(email: string, name: string, otp: stri
 
   return sendEmail({
     to: email,
-    subject: `${otp} is your ZOIRO Injected Broast verification code`,
+    subject: `${otp} is your FIFTH AVENUE verification code`,
     htmlContent,
   });
 }
@@ -237,7 +238,7 @@ export async function sendLoginOTP(email: string, name: string, otp: string) {
           <p>For your security:</p>
           <ul style="color: #444;">
             <li>Never share this OTP with anyone</li>
-            <li>ZOIRO Injected Broast staff will never ask for your OTP</li>
+            <li>FIFTH AVENUE staff will never ask for your OTP</li>
             <li>This code expires in 10 minutes</li>
           </ul>
         </div>
@@ -250,7 +251,7 @@ export async function sendLoginOTP(email: string, name: string, otp: string) {
 
   return sendEmail({
     to: email,
-    subject: `${otp} is your ZOIRO Injected Broast login code`,
+    subject: `${otp} is your FIFTH AVENUE login code`,
     htmlContent,
   });
 }
@@ -319,7 +320,7 @@ export async function sendEmployeeActivation(
 
   return sendEmail({
     to: email,
-    subject: `Welcome to ZOIRO Injected Broast - Activate Your Employee Account`,
+    subject: `Welcome to FIFTH AVENUE - Activate Your Employee Account`,
     htmlContent,
   });
 }
@@ -480,14 +481,14 @@ export async function sendOTPEmail(
           <ul>
             <li>This OTP expires in 2 minutes</li>
             <li>Never share this code with anyone</li>
-            <li>ZOIRO Injected Broast will never ask for your OTP</li>
+            <li>FIFTH AVENUE will never ask for your OTP</li>
             <li>If you didn't request this, please ignore this email</li>
           </ul>
           
           <p>Best regards,<br>The ZOIRO Injected Broast Team</p>
         </div>
         <div class="footer">
-          <p>© ${new Date().getFullYear()} ZOIRO Injected Broast. All rights reserved.</p>
+          <p>© ${new Date().getFullYear()} FIFTH AVENUE URBAN HUB. All rights reserved.</p>
         </div>
       </div>
     </body>
@@ -681,7 +682,7 @@ export async function sendPromoCodeEmail({
           </div>
           ` : ''}
           
-          <p>As a valued member of the ZOIRO Injected Broast family, you've unlocked an exclusive promo code just for you!</p>
+          <p>As a valued member of the FIFTH AVENUE family, you've unlocked an exclusive promo code just for you!</p>
           
           <div class="promo-box">
             <div class="promo-label">Your Exclusive Promo Code</div>
@@ -728,9 +729,9 @@ export async function sendPromoCodeEmail({
             <a href="#">Instagram</a> |
             <a href="${COMPANY_URL}">Website</a>
           </div>
-          <p>© ${new Date().getFullYear()} ZOIRO Injected Broast. All rights reserved.</p>
+          <p>© ${new Date().getFullYear()} FIFTH AVENUE URBAN HUB. All rights reserved.</p>
           <p style="font-size: 10px; color: #999;">
-            You received this email because you are a registered customer of ZOIRO Injected Broast.
+            You received this email because you are a registered customer of FIFTH AVENUE URBAN HUB.
           </p>
         </div>
       </div>

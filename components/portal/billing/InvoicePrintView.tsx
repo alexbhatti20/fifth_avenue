@@ -14,20 +14,20 @@ import type { InvoiceDetails, BrandInfo } from './types';
 // ==========================================
 
 const DEFAULT_BRAND: BrandInfo = {
-  name: 'ZOIRO Injected Broast',
-  logo_url: '/assets/logo.png',
-  address: 'Main GT Road, Near City Center, Rawalpindi, Pakistan',
-  phone: '+92 300 1234567',
-  email: 'info@zoirobroast.com',
-  website: 'www.zoirobroast.com',
-  tagline: 'Injected Broast - Saucy. Juicy. Crispy.',
-  ntn: '1234567-8',
-  strn: '12-34-5678-901-23',
-  gstn: 'PK123456789',
-  footer_text: 'Thank you for choosing ZOIRO Injected Broast! We hope to see you again soon.',
+  name: 'FIFTH AVENUE',
+  logo_url: '/assets/fifth_avenue_urban_logo_1777394607150.png',
+  address: 'Main Boulevard, Phase 6, DHA, Lahore, Pakistan',
+  phone: '+92 321 5550199',
+  email: 'hub@fifthavenue.com',
+  website: 'www.fifthavenue.com',
+  tagline: 'URBAN STREET HUB - BOLD. INDUSTRIAL. TACTILE.',
+  ntn: '7654321-0',
+  strn: '98-76-5432-109-87',
+  gstn: 'PK987654321',
+  footer_text: 'THANK YOU FOR VISITING FIFTH AVENUE. STAY BOLD.',
   social: {
-    facebook: 'ZoiroBroast',
-    instagram: 'zoiro_broast',
+    facebook: 'FifthAvenueUrban',
+    instagram: 'fifth_avenue_hub',
   },
 };
 

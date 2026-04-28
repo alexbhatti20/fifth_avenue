@@ -11,41 +11,17 @@ export const SITE_DESCRIPTION = 'FIFTH AVENUE - Chasing Flavours with bold stree
 
 // Brand Keywords (High Priority - Exact match top search queries first)
 export const BRAND_KEYWORDS = [
-  // Top Google Search Console queries (exact match priority)
-  'zoiro broast',
-  'zoiro broast vehari',
-  'zoiro vehari menu',
-  'zoiro broast menu',
-  'zoiro menu',
-  'zoiro',
-  'zoiro broast vehari menu',
-  // Common misspellings users type
-  'zoro broast',
-  'zoro broast menu',
-  'zoro broast vehari',
-  'zoro menu',
-  'zoro vehari menu',
-  'zoiro injected broast',
-  'zoiro injected broast vehari',
-  'ZOIRO Injected Broast',
-  'ZOIRO Injected Broast vehari',
-  'zoro injected broast',
-  'zoiro chicken',
-  'zoiro chicken vehari',
-  'zoiro restaurant',
-  'zoiro restaurant vehari',
-  'zoiro delivery',
-  'zoiro food',
-  'zoiro food vehari',
-  'zoiro faisal town',
-  'zoiro broast faisal town',
-  'injected broast vehari',
-  'injected chicken vehari',
-  'zoiro online order',
-  'zoiro broast delivery',
-  'zoiro broast online',
-  'zoiro price list',
-  'zoiro deals',
+  'fifth avenue',
+  'fifth avenue vehari',
+  'fifth avenue menu',
+  'fifth avenue pizza',
+  'fifth avenue broast',
+  'fifth avenue restaurant',
+  'fifth avenue delivery',
+  'fifth avenue food',
+  'fifth avenue urban hub',
+  'urban street hub',
+  'urban street hub vehari',
 ];
 
 // Primary Keywords (High Search Volume)
@@ -156,14 +132,6 @@ export const QUESTION_KEYWORDS = [
   'what is broast chicken',
   'what is injected broast',
   'how to order food in vehari',
-  'how to order zoiro broast online',
-  'is zoiro broast halal',
-  'is ZOIRO Injected Broast halal',
-  'does zoiro deliver',
-  'does zoiro broast deliver in vehari',
-  'zoiro broast menu price',
-  'zoiro broast menu with prices',
-  'ZOIRO Injected Broast menu price',
   'zoiro broast contact number',
   'ZOIRO Injected Broast contact number',
   'zoiro broast location',
@@ -198,15 +166,15 @@ export const ALL_KEYWORDS = [
 // BUSINESS INFORMATION (Local SEO)
 // =============================================
 export const BUSINESS_INFO = {
-  name: 'ZOIRO Injected Broast',
-  legalName: 'ZOIRO Injected Broast Restaurant',
-  alternateName: ['Zoiro Broast', 'ZOIRO Injected Broast', 'Zoiro Broast Vehari', 'Zoro Broast', 'Zoro Broast Vehari', 'Zoro Injected Broast', 'Zoiro Restaurant', 'Zoiro Vehari'],
+  name: 'FIFTH AVENUE',
+  legalName: 'FIFTH AVENUE URBAN HUB',
+  alternateName: ['Fifth Avenue', 'Fifth Avenue Vehari', 'Urban Street Hub', 'Fifth Avenue Restaurant'],
   type: 'Restaurant',
-  cuisine: ['Pakistani', 'Fast Food', 'Fried Chicken', 'Broast'],
-  phone: '+92 304 629 2822',
-  phoneFormatted: '0304-6292822',
-  whatsapp: '+923046292822',
-  email: 'zorobroast@gmail.com',
+  cuisine: ['Pakistani', 'Fast Food', 'Fried Chicken', 'Pizza', 'Urban Street Food'],
+  phone: '+92 321 5550199',
+  phoneFormatted: '0321-5550199',
+  whatsapp: '+923215550199',
+  email: 'hub@fifthavenue.com',
   foundingDate: '2023',
   address: {
     street: 'Near Baba G Kulfi, Faisal Town',
@@ -252,19 +220,19 @@ export const BUSINESS_INFO = {
 
 // Social Media Links
 export const SOCIAL_LINKS = {
-  facebook: 'https://facebook.com/zoirobroast',
-  instagram: 'https://instagram.com/zoirobroast',
+  facebook: 'https://facebook.com/fifthavenue',
+  instagram: 'https://instagram.com/fifthavenue',
   whatsapp: `https://wa.me/${BUSINESS_INFO.whatsapp}`,
-  tiktok: 'https://tiktok.com/@zoirobroast',
-  youtube: 'https://youtube.com/@zoirobroast',
+  tiktok: 'https://tiktok.com/@fifthavenue',
+  youtube: 'https://youtube.com/@fifthavenue',
 };
 
 // Default OpenGraph Image
 export const DEFAULT_OG_IMAGE = {
-  url: '/assets/zoiro-og-image.jpg',
+  url: '/assets/fifth-avenue-og-image.jpg',
   width: 1200,
   height: 630,
-  alt: 'ZOIRO Injected Broast - Best Broast Chicken in Vehari, Pakistan',
+  alt: 'FIFTH AVENUE - Best Street Food in Vehari, Pakistan',
   type: 'image/jpeg',
 };
 
@@ -273,56 +241,16 @@ export const DEFAULT_OG_IMAGE = {
 // =============================================
 export const FAQ_DATA = [
   {
-    question: 'What is Zoiro Broast?',
-    answer: 'Zoiro Broast (ZOIRO Injected Broast) is a premium fast food restaurant in Vehari, Punjab, Pakistan. We specialize in crispy injected broast chicken, zinger burgers, spicy wings, and family meals. Known as the best broast in Vehari for our fresh ingredients and authentic taste.',
+    question: 'What is Fifth Avenue?',
+    answer: 'Fifth Avenue (Urban Street Hub) is a premium fast food restaurant in Vehari, Punjab, Pakistan. We specialize in artisan pizzas, crispy broast chicken, gourmet burgers, and signature street food. Known as the top dining destination in Vehari for our high-energy atmosphere and premium quality.',
   },
   {
-    question: 'Where is Zoiro Broast located in Vehari?',
-    answer: 'Zoiro Broast is located near Baba G Kulfi, Faisal Town, Vehari, Punjab, Pakistan (postal code 61100). We are easily accessible from all major areas of Vehari city including Model Town, Civil Lines, and College Road.',
+    question: 'Where is Fifth Avenue located in Vehari?',
+    answer: 'Fifth Avenue is located in Faisal Town, Vehari, Punjab, Pakistan (postal code 61100). We are the central hub for street food enthusiasts in the city.',
   },
   {
-    question: 'What is on the Zoiro Broast menu?',
-    answer: 'The Zoiro Broast menu includes crispy injected broast chicken (pieces, buckets, family packs), zinger burgers, chicken burgers, spicy wings, hot wings, chicken nuggets, french fries, masala fries, loaded fries, coleslaw, soft drinks, combo meals, and daily deals. View our full menu with prices at zoirobroast.me/menu.',
-  },
-  {
-    question: 'What are Zoiro Broast Vehari opening hours?',
-    answer: 'Zoiro Broast Vehari is open daily from 11:00 AM to 11:00 PM (23:00), seven days a week including weekends and most holidays.',
-  },
-  {
-    question: 'Does Zoiro Broast deliver food in Vehari?',
-    answer: 'Yes! Zoiro Broast offers fast home delivery throughout Vehari city within a 15km radius. Order online at zoirobroast.me or call +92 304 629 2822. Delivery typically takes 30-45 minutes.',
-  },
-  {
-    question: 'How can I order from Zoiro Broast online?',
-    answer: 'You can order from Zoiro Broast online through our website zoirobroast.me. Browse the menu, add items to cart, and checkout. You can also call us at +92 304 629 2822 or WhatsApp for quick orders.',
-  },
-  {
-    question: 'What are Zoiro Broast menu prices?',
-    answer: 'Zoiro Broast offers affordable prices with meals ranging from PKR 500 to PKR 2000. We have daily deals, combo meals, and family buckets at great prices. Check our full menu with updated prices at zoirobroast.me/menu.',
-  },
-  {
-    question: 'What payment methods does Zoiro Broast accept?',
-    answer: 'Zoiro Broast accepts Cash on Delivery (COD), Bank Transfer, JazzCash, and EasyPaisa. Pay using your preferred method when placing your order.',
-  },
-  {
-    question: 'Is Zoiro Broast food halal?',
-    answer: 'Yes, all food at Zoiro Broast is 100% halal. We use only fresh, halal-certified chicken and ingredients in all our dishes.',
-  },
-  {
-    question: 'Does Zoiro Broast have deals and discounts?',
-    answer: 'Yes! Zoiro Broast offers daily deals, family combo meals, student discounts, and special seasonal offers. Join our loyalty program to earn points on every order and unlock exclusive deals.',
-  },
-  {
-    question: 'What is the Zoiro Broast contact number?',
-    answer: 'You can reach Zoiro Broast Vehari at +92 304 629 2822. Call for orders, inquiries, or party bookings. We are also available on WhatsApp at the same number.',
-  },
-  {
-    question: 'What makes Zoiro Broast chicken special?',
-    answer: 'Zoiro Broast uses a special injection technique - our chicken is marinated for 24 hours with secret spices, then pressure-cooked to perfection. This makes it crispy outside and juicy inside. We use only fresh, never frozen chicken.',
-  },
-  {
-    question: 'Can I order Zoiro Broast for parties and events?',
-    answer: 'Absolutely! Zoiro Broast caters to birthday parties, corporate events, and family gatherings in Vehari. Contact us at +92 304 629 2822 for bulk orders and special party packages.',
+    question: 'What is on the Fifth Avenue menu?',
+    answer: 'The Fifth Avenue menu includes artisan pizzas, crispy broast chicken, zinger burgers, spicy wings, loaded fries, and exclusive urban meal deals. View our full menu with prices at fifthavenue.pk/menu.',
   },
 ];
 
@@ -602,7 +530,7 @@ export function generateWebsiteSchema() {
     '@id': `${SITE_URL}/#website`,
     url: SITE_URL,
     name: SITE_NAME,
-    alternateName: ['Zoiro Broast', 'Zoiro Broast Vehari', 'ZOIRO Injected Broast', 'Zoro Broast', 'Zoro Broast Vehari', 'Zoro Broast Menu', 'Zoro Injected Broast', 'ZOIRO', 'Zoiro Restaurant', 'Zoiro Vehari', 'Zoiro Menu', 'Injected Broast Vehari'],
+    alternateName: ['Fifth Avenue', 'Fifth Avenue Urban Hub', 'Fifth Avenue Vehari', 'Fifth Avenue Hub Vehari', 'Fifth Avenue Menu', 'Fifth Avenue Street Food', '5th Avenue Vehari', 'Fifth Avenue Hub', 'Fifth Avenue Restaurant'],
     description: SITE_DESCRIPTION,
     publisher: {
       '@id': `${SITE_URL}/#organization`,
@@ -641,18 +569,18 @@ export function generateOrganizationSchema() {
     url: SITE_URL,
     logo: {
       '@type': 'ImageObject',
-      url: `${SITE_URL}/assets/zoiro-logo.png`,
+      url: `${SITE_URL}/assets/fifth_avenue_urban_logo_1777394607150.png`,
       width: 512,
       height: 512,
-      caption: 'ZOIRO Injected Broast Logo',
+      caption: 'FIFTH AVENUE URBAN HUB Logo',
     },
-    image: `${SITE_URL}/assets/zoiro-og-image.jpg`,
+    image: `${SITE_URL}/assets/fifth_avenue_urban_logo_1777394607150.png`,
     description: SITE_DESCRIPTION,
     foundingDate: BUSINESS_INFO.foundingDate,
     founders: [
       {
         '@type': 'Person',
-        name: 'ZOIRO Injected Broast Team',
+        name: 'FIFTH AVENUE URBAN HUB Team',
       },
     ],
     address: {
@@ -695,7 +623,7 @@ export function generateLocalBusinessSchema() {
     '@type': 'FoodEstablishment',
     '@id': `${SITE_URL}/#localbusiness`,
     name: BUSINESS_INFO.name,
-    image: `${SITE_URL}/assets/zoiro-logo.png`,
+    image: `${SITE_URL}/assets/fifth_avenue_urban_logo_1777394607150.png`,
     telephone: BUSINESS_INFO.phone,
     email: BUSINESS_INFO.email,
     url: SITE_URL,
@@ -737,7 +665,7 @@ export function generateLocalBusinessSchema() {
     ],
     hasOfferCatalog: {
       '@type': 'OfferCatalog',
-      name: 'ZOIRO Injected Broast Menu',
+      name: 'FIFTH AVENUE URBAN HUB Menu',
       itemListElement: [
         {
           '@type': 'Offer',
@@ -854,7 +782,7 @@ export function generateProductSchema(product: {
     name: product.name,
     description: product.description,
     image: product.image,
-    sku: product.sku || `ZOIRO-${product.name.replace(/\s+/g, '-').toUpperCase()}`,
+    sku: product.sku || `FIFTH-AVENUE-${product.name.replace(/\s+/g, '-').toUpperCase()}`,
     brand: {
       '@type': 'Brand',
       name: SITE_NAME,
@@ -883,8 +811,8 @@ export function generateServiceSchema() {
   return {
     '@context': 'https://schema.org',
     '@type': 'FoodService',
-    name: 'Zoiro Broast Food Delivery Vehari',
-    description: 'Zoiro Broast fast food delivery service in Vehari. Order broast chicken, burgers, wings and more delivered to your doorstep. Best broast delivery in Vehari city.',
+    name: 'Fifth Avenue Food Delivery Vehari',
+    description: 'Fifth Avenue fast food delivery service in Vehari. Order premium street food, burgers, wings and more delivered to your doorstep. Best delivery in Vehari city.',
     provider: {
       '@id': `${SITE_URL}/#restaurant`,
     },

@@ -19,7 +19,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/60",
+      "fixed inset-0 z-[1000] bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     {...props}
@@ -40,14 +40,9 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        // Base styles - no animations
-        "fixed z-50 grid w-full gap-4 border-8 border-black bg-white shadow-[20px_20px_0px_0px_rgba(0,0,0,1)]",
-        // Mobile: Bottom sheet style
-        "inset-x-0 bottom-0 rounded-none p-6 pb-8",
-        "max-h-[95vh] overflow-y-auto",
-        // Desktop: Centered modal
-        "sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]",
-        "sm:rounded-none sm:p-8 sm:max-w-xl",
+        "fixed z-[1001] grid w-full gap-4 border-8 border-black bg-white shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-none",
+        "inset-x-0 bottom-0 sm:bottom-auto sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]",
+        "p-6 sm:p-8 sm:max-w-xl max-h-[95vh] overflow-y-auto",
         className,
       )}
       {...props}
@@ -57,7 +52,7 @@ const DialogContent = React.forwardRef<
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close className="absolute right-4 top-4 h-10 w-10 bg-black text-white border-2 border-white flex items-center justify-center opacity-70 transition-all hover:opacity-100 hover:bg-[#ED1C24] focus:outline-none">
-          <X className="h-6 h-6" />
+          <X className="h-6 w-6" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
       )}

@@ -67,6 +67,7 @@ import { toast } from 'sonner';
 // FIX #18: Import shared timer for performance
 import { useSharedTimer } from '@/lib/shared-timer';
 import type { KitchenOrder, KitchenStats } from '@/lib/server-queries';
+import { SectionHeader } from '@/components/portal/PortalProvider';
 
 // ── Authenticated API helpers (go through /api/portal/kitchen, never anon) ──
 async function kitchenGET() {
@@ -119,13 +120,13 @@ interface TableDetails {
 
 // Animated Order Timer Component
 // FIX #18: Using shared timer to reduce setInterval instances
-function OrderTimer({ 
-  createdAt, 
+function OrderTimer({
+  createdAt,
   kitchenStartedAt,
   maxMinutes = 25,
-  compact = false 
-}: { 
-  createdAt: string; 
+  compact = false
+}: {
+  createdAt: string;
   kitchenStartedAt?: string;
   maxMinutes?: number;
   compact?: boolean;
@@ -142,8 +143,8 @@ function OrderTimer({
   if (compact) {
     return (
       <div className={cn(
-        'font-mono text-sm font-bold px-2 py-1 rounded-md',
-        isOverdue ? 'bg-red-500/20 text-red-500' : isWarning ? 'bg-yellow-500/20 text-yellow-600' : 'bg-green-500/20 text-green-600'
+        'font-bebas text-lg px-3 py-1 border-2 border-black',
+        isOverdue ? 'bg-[#ED1C24] text-white' : isWarning ? 'bg-[#FFD200] text-black' : 'bg-black text-[#FFD200]'
       )}>
         {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
       </div>
@@ -152,7 +153,7 @@ function OrderTimer({
 
   return (
     <div className="flex items-center gap-3">
-      <motion.div 
+      <motion.div
         className={cn(
           'font-mono text-xl font-bold tabular-nums',
           isOverdue ? 'text-red-500' : isWarning ? 'text-yellow-500' : 'text-green-500'
@@ -179,27 +180,27 @@ function OrderTimer({
 // Order Type Badge
 function OrderTypeBadge({ type, tableNumber }: { type: string; tableNumber?: number }) {
   const config: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
-    'dine-in': { 
-      icon: <Coffee className="h-3 w-3" />, 
+    'dine-in': {
+      icon: <Coffee className="h-3 w-3" />,
       color: 'bg-purple-500/10 text-purple-600 border-purple-500/30',
       label: tableNumber ? `Table ${tableNumber}` : 'Dine-in'
     },
-    'online': { 
-      icon: <Bike className="h-3 w-3" />, 
+    'online': {
+      icon: <Bike className="h-3 w-3" />,
       color: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
       label: 'Delivery'
     },
-    'walk-in': { 
-      icon: <Package className="h-3 w-3" />, 
+    'walk-in': {
+      icon: <Package className="h-3 w-3" />,
       color: 'bg-orange-500/10 text-orange-600 border-orange-500/30',
       label: 'Takeaway'
     },
   };
-  
+
   const c = config[type] || config['walk-in'];
-  
+
   return (
-    <Badge variant="outline" className={cn('gap-1 font-medium', c.color)}>
+    <Badge variant="outline" className={cn('gap-1 font-source-sans font-black uppercase tracking-tighter rounded-none border-2 border-black', c.color)}>
       {c.icon}
       {c.label}
     </Badge>
@@ -227,35 +228,30 @@ function KitchenOrderCard({
 
   return (
     <div className="group relative">
-      {/* Static Gradient Background */}
-      <div
-        className="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-500 via-rose-500 to-orange-500 opacity-90"
-      />
-      
-      {/* White Card Content */}
-      <Card className="relative overflow-hidden bg-white dark:bg-zinc-900 m-1 rounded-xl shadow-lg">
+      {/* Urban Card Content */}
+      <Card className="relative overflow-hidden bg-white border-4 border-black rounded-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
         {/* Header - Clean White with Red Accents */}
-        <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border-b">
+        <div className="px-3 sm:px-4 py-2 sm:py-3 bg-black text-white border-b-4 border-black">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <div 
-                className="min-w-[48px] sm:min-w-[56px] h-10 sm:h-12 px-2 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex flex-col items-center justify-center text-white shadow-lg shadow-red-500/30"
+              <div
+                className="min-w-[48px] sm:min-w-[56px] h-10 sm:h-12 px-2 border-2 border-[#FFD200] bg-black flex flex-col items-center justify-center text-[#FFD200]"
               >
-                <span className="text-[8px] sm:text-[9px] text-white/80 font-medium">ORD</span>
-                <span className="text-[10px] sm:text-xs font-bold truncate max-w-full">#{order.order_number}</span>
+                <span className="text-[8px] sm:text-[9px] font-bebas tracking-widest opacity-70">ORD</span>
+                <span className="text-sm sm:text-base font-bebas font-bold leading-none">#{order.order_number}</span>
               </div>
               <div>
-                <div className={cn('flex items-center gap-2', status.color)}>
+                <div className={cn('flex items-center gap-2 font-bebas text-lg tracking-wider uppercase', status.color)}>
                   {status.icon}
-                  <span className="font-semibold">{status.label}</span>
+                  <span>{status.label}</span>
                 </div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                <p className="text-[10px] font-source-sans font-black text-white/60 uppercase tracking-widest flex items-center gap-1 mt-0.5">
                   <Package className="h-3 w-3" />
-                  {order.total_items || order.items?.length || 0} items
+                  {order.total_items || order.items?.length || 0} ITEMS
                 </p>
               </div>
             </div>
-            
+
             {/* Timer - Live */}
             <div className="text-right">
               <LiveTimer createdAt={order.created_at} />
@@ -281,17 +277,17 @@ function KitchenOrderCard({
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-zinc-800/50 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors group/item"
+                className="flex items-center gap-3 p-2.5 bg-black/[0.03] border-2 border-black hover:border-[#ED1C24] hover:bg-black/[0.06] transition-colors group/item"
               >
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm text-white shadow-sm bg-gradient-to-br from-red-500 to-orange-500">
-                  {item.quantity}x
+                <div className="w-9 h-9 border-2 border-black flex items-center justify-center font-bebas text-lg bg-[#FFD200] text-black">
+                  {item.quantity}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate group-hover/item:text-red-600 transition-colors">
+                  <p className="font-bebas text-xl text-black leading-none uppercase truncate group-hover/item:text-[#ED1C24] transition-colors">
                     {item.name}
                   </p>
                   {item.notes && (
-                    <p className="text-xs text-orange-600 flex items-center gap-1 truncate mt-0.5">
+                    <p className="text-[10px] font-source-sans font-black text-[#ED1C24] uppercase tracking-widest flex items-center gap-1 mt-1">
                       <AlertTriangle className="h-3 w-3 flex-shrink-0" />
                       {item.notes}
                     </p>
@@ -300,51 +296,51 @@ function KitchenOrderCard({
               </motion.div>
             ))}
             {order.items?.length > 4 && (
-              <motion.p 
-                className="text-xs text-muted-foreground text-center py-1.5 bg-gray-50 dark:bg-zinc-800/50 rounded-lg"
+              <motion.p
+                className="text-[10px] font-source-sans font-black text-black/40 uppercase tracking-widest text-center py-2 bg-black/[0.03] border-2 border-black"
                 whileHover={{ scale: 1.02 }}
               >
-                +{order.items.length - 4} more items
+                +{order.items.length - 4} MORE ITEMS
               </motion.p>
             )}
           </div>
 
           {/* Special Instructions */}
           {order.notes && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="p-3 rounded-xl bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30"
+              className="p-3 border-2 border-black bg-[#FFD200]/10"
             >
-              <p className="text-xs font-bold text-orange-600 flex items-center gap-1.5 mb-1">
+              <p className="text-[10px] font-source-sans font-black text-black/60 uppercase tracking-widest flex items-center gap-1.5 mb-1">
                 <AlertTriangle className="h-3.5 w-3.5" /> SPECIAL INSTRUCTIONS
               </p>
-              <p className="text-sm font-medium">{order.notes}</p>
+              <p className="text-sm font-bold">{order.notes}</p>
             </motion.div>
           )}
 
           {/* Table Details for Dine-in */}
           {order.order_type === 'dine-in' && order.table_details && (
-            <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/30">
+            <div className="p-3 border-2 border-black bg-[#ED1C24]/5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center">
-                    <Coffee className="h-4 w-4 text-white" />
+                  <div className="w-8 h-8 border-2 border-black bg-black flex items-center justify-center">
+                    <Coffee className="h-4 w-4 text-[#FFD200]" />
                   </div>
                   <div>
-                    <span className="font-bold text-purple-700 dark:text-purple-400">Table {order.table_number}</span>
+                    <span className="font-bebas text-lg tracking-wider text-black">Table {order.table_number}</span>
                     {order.table_details.section && (
-                      <p className="text-xs text-muted-foreground">{order.table_details.section}</p>
+                      <p className="text-[10px] font-source-sans font-black text-black/40 uppercase tracking-tighter leading-none">{order.table_details.section}</p>
                     )}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="flex items-center gap-1 text-sm font-medium">
-                    <Users className="h-3.5 w-3.5 text-purple-500" />
+                  <div className="flex items-center gap-1 text-sm font-bebas tracking-widest">
+                    <Users className="h-3.5 w-3.5 text-[#ED1C24]" />
                     {order.table_details.current_customers}/{order.table_details.capacity}
                   </div>
                   {order.table_details.assigned_waiter && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[10px] font-source-sans font-black text-black/40 uppercase tracking-tighter">
                       {order.table_details.assigned_waiter.name}
                     </p>
                   )}
@@ -364,43 +360,43 @@ function KitchenOrderCard({
               <Eye className="h-4 w-4" />
               Details
             </Button>
-            
+
             <div className="flex-1">
               {order.status === 'pending' && (
                 <Button
-                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 shadow-lg shadow-blue-500/25"
+                  className="w-full bg-black text-[#FFD200] border-2 border-black rounded-none font-bebas tracking-widest hover:bg-[#FFD200] hover:text-black transition-all"
                   onClick={() => onStatusChange(order.id, 'confirmed')}
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Confirm Order
+                  CONFIRM
                 </Button>
               )}
               {order.status === 'confirmed' && (
                 <Button
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-lg shadow-orange-500/25"
+                  className="w-full bg-[#FFD200] text-black border-2 border-black rounded-none font-bebas tracking-widest hover:bg-black hover:text-[#FFD200] transition-all"
                   onClick={() => onStatusChange(order.id, 'preparing')}
                 >
                   <Flame className="h-4 w-4 mr-2" />
-                  Start Cooking
+                  START COOKING
                 </Button>
               )}
               {order.status === 'preparing' && (
                 <Button
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg shadow-green-500/25"
+                  className="w-full bg-[#ED1C24] text-white border-2 border-black rounded-none font-bebas tracking-widest hover:bg-black hover:text-[#ED1C24] transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                   onClick={() => onStatusChange(order.id, 'ready')}
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Mark Ready
+                  MARK READY
                 </Button>
               )}
               {order.status === 'ready' && (
                 <Button
                   variant="outline"
-                  className="w-full text-green-600 border-green-500 bg-green-500/10"
+                  className="w-full text-white border-2 border-black bg-black font-bebas tracking-widest"
                   disabled
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Ready!
+                  COMPLETED
                 </Button>
               )}
             </div>
@@ -427,9 +423,9 @@ function LiveTimer({ createdAt, compact = false }: { createdAt: string; compact?
       <motion.span
         className={cn(
           'px-2.5 py-1 rounded-lg font-mono text-sm font-bold tabular-nums',
-          isUrgent 
-            ? 'bg-red-500 text-white' 
-            : isWarning 
+          isUrgent
+            ? 'bg-red-500 text-white'
+            : isWarning
               ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-400'
               : 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400'
         )}
@@ -445,9 +441,9 @@ function LiveTimer({ createdAt, compact = false }: { createdAt: string; compact?
     <motion.div
       className={cn(
         'px-3 py-1.5 rounded-lg font-mono text-lg font-bold tabular-nums',
-        isUrgent 
-          ? 'bg-red-500 text-white animate-pulse' 
-          : isWarning 
+        isUrgent
+          ? 'bg-red-500 text-white animate-pulse'
+          : isWarning
             ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-400'
             : 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400'
       )}
@@ -460,43 +456,43 @@ function LiveTimer({ createdAt, compact = false }: { createdAt: string; compact?
 }
 
 // KDS Column View - Kanban Style with Animated Gradients
-function KDSColumnView({ 
-  orders, 
+function KDSColumnView({
+  orders,
   onStatusChange,
   onViewDetails,
-}: { 
+}: {
   orders: KitchenOrder[];
   onStatusChange: (orderId: string, status: string) => void;
   onViewDetails: (order: KitchenOrder) => void;
 }) {
   const columns = [
-    { 
-      status: 'confirmed', 
-      title: 'New Orders', 
+    {
+      status: 'confirmed',
+      title: 'New Orders',
       icon: <Bell className="h-5 w-5" />,
-      headerGradient: 'from-blue-500 via-indigo-500 to-blue-600',
-      cardBorderGradient: ['#3b82f6', '#6366f1', '#4f46e5', '#3b82f6'],
-      accentColor: 'bg-blue-500',
+      headerGradient: 'bg-black',
+      cardBorderGradient: ['#000', '#000', '#000'],
+      accentColor: 'bg-[#FFD200] text-black',
       nextStatus: 'preparing',
       nextAction: 'Start Cooking'
     },
-    { 
-      status: 'preparing', 
-      title: 'Cooking', 
+    {
+      status: 'preparing',
+      title: 'Cooking',
       icon: <Flame className="h-5 w-5" />,
-      headerGradient: 'from-orange-500 via-red-500 to-orange-600',
-      cardBorderGradient: ['#f97316', '#ef4444', '#ea580c', '#f97316'],
-      accentColor: 'bg-orange-500',
+      headerGradient: 'bg-black',
+      cardBorderGradient: ['#000', '#000', '#000'],
+      accentColor: 'bg-[#ED1C24] text-white',
       nextStatus: 'ready',
       nextAction: 'Mark Ready'
     },
-    { 
-      status: 'ready', 
-      title: 'Ready', 
+    {
+      status: 'ready',
+      title: 'Ready',
       icon: <CheckCircle className="h-5 w-5" />,
-      headerGradient: 'from-green-500 via-emerald-500 to-green-600',
-      cardBorderGradient: ['#22c55e', '#10b981', '#059669', '#22c55e'],
-      accentColor: 'bg-green-500',
+      headerGradient: 'bg-black',
+      cardBorderGradient: ['#000', '#000', '#000'],
+      accentColor: 'bg-[#008A45] text-white',
       nextStatus: null,
       nextAction: null
     },
@@ -515,214 +511,192 @@ function KDSColumnView({
               key={col.status}
               onClick={() => setMobileTab(col.status as any)}
               className={cn(
-                'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all',
+                'flex-1 flex items-center justify-center gap-1.5 py-3 border-2 border-black font-bebas text-sm tracking-widest transition-all uppercase',
                 mobileTab === col.status
-                  ? `bg-gradient-to-r ${col.headerGradient} text-white shadow-md`
-                  : 'text-muted-foreground'
+                  ? 'bg-[#FFD200] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                  : 'bg-white text-black/40'
               )}
             >
               {col.icon}
               <span>{col.title}</span>
               {count > 0 && (
-                <span className={cn(
-                  'min-w-[18px] h-[18px] rounded-full text-[10px] font-bold flex items-center justify-center px-1',
-                  mobileTab === col.status ? 'bg-white/30 text-white' : 'bg-primary/10 text-primary'
-                )}>{count}</span>
+                <span className="min-w-[20px] h-[20px] bg-black text-[#FFD200] text-[10px] font-bold flex items-center justify-center px-1 ml-1">
+                  {count}
+                </span>
               )}
             </button>
           );
         })}
       </div>
 
-    <div className="hidden sm:grid grid-cols-3 gap-4 h-[calc(100vh-300px)]">
-      {columns.map((col) => {
-        const columnOrders = orders.filter((o) => o.status === col.status);
-        
-        return (
-          <motion.div 
-            key={col.status} 
-            className="flex flex-col rounded-2xl overflow-hidden border-0 shadow-lg"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {/* Animated Column Header */}
-            <motion.div 
-              className={cn('px-4 py-4 flex items-center justify-between text-white bg-gradient-to-r', col.headerGradient)}
-              animate={{
-                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-              }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-              style={{ backgroundSize: '200% 200%' }}
+      <div className="hidden sm:grid grid-cols-3 gap-4 h-[calc(100vh-300px)]">
+        {columns.map((col) => {
+          const columnOrders = orders.filter((o) => o.status === col.status);
+
+          return (
+            <motion.div
+              key={col.status}
+              className="flex flex-col border-4 border-black bg-white"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
             >
-              <div className="flex items-center gap-2">
-                <motion.div
-                  animate={{ rotate: col.status === 'preparing' ? [0, 10, -10, 0] : 0 }}
-                  transition={{ repeat: Infinity, duration: 0.5 }}
-                >
-                  {col.icon}
-                </motion.div>
-                <span className="font-bold text-lg">{col.title}</span>
-              </div>
-              <motion.div
-                key={columnOrders.length}
-                initial={{ scale: 1.5 }}
-                animate={{ scale: 1 }}
-                className="bg-white/25 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-bold"
-              >
-                {columnOrders.length}
-              </motion.div>
-            </motion.div>
-
-            {/* Orders Container */}
-            <ScrollArea className="flex-1 p-3 bg-gray-50 dark:bg-zinc-900/50">
-              <div className="space-y-3">
-                <AnimatePresence mode="popLayout">
-                  {columnOrders.map((order) => {
-                    return (
-                      <motion.div
-                        key={order.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, x: 100 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        className="relative group rounded-2xl p-[3px] overflow-hidden"
-                        style={{
-                          background: `linear-gradient(135deg, ${col.cardBorderGradient[0]}, ${col.cardBorderGradient[1]}, ${col.cardBorderGradient[2]})`,
-                          backgroundSize: '200% 200%',
-                          animation: 'gradientShift 3s ease infinite',
-                        }}
-                      >
-                        {/* White Card Content */}
-                        <div className="relative p-4 rounded-xl bg-white dark:bg-zinc-900 shadow-sm">
-                          {/* Header */}
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <motion.div 
-                                className={cn(
-                                  'min-w-[48px] h-10 px-2 rounded-xl flex items-center justify-center font-bold text-white text-xs shadow-md',
-                                  col.accentColor
-                                )}
-                                whileHover={{ scale: 1.05 }}
-                              >
-                                <span className="truncate">#{order.order_number}</span>
-                              </motion.div>
-                              <OrderTypeBadge type={order.order_type} tableNumber={order.table_number} />
-                            </div>
-                            <LiveTimer createdAt={order.created_at} compact />
-                          </div>
-
-                          {/* Customer */}
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
-                            <User className="h-3 w-3" />
-                            <span className="truncate">{order.customer_name}</span>
-                            <span className="ml-auto flex items-center gap-1">
-                              <Package className="h-3 w-3" />
-                              {order.total_items || order.items?.length || 0}
-                            </span>
-                          </div>
-
-                          {/* Items */}
-                          <div className="space-y-1.5 mb-3">
-                            {order.items?.slice(0, 3).map((item, i) => (
-                              <div key={i} className="flex items-center gap-2 text-sm p-2 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                                <span className={cn(
-                                  'w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs text-white',
-                                  col.accentColor
-                                )}>
-                                  {item.quantity}
-                                </span>
-                                <span className="truncate flex-1 font-medium">{item.name}</span>
-                                {item.notes && (
-                                  <AlertTriangle className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
-                                )}
-                              </div>
-                            ))}
-                            {order.items?.length > 3 && (
-                              <p className="text-xs text-muted-foreground text-center py-1 bg-gray-50 dark:bg-zinc-800/30 rounded-lg">
-                                +{order.items.length - 3} more items
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Special notes indicator */}
-                          {order.notes && (
-                            <div className="mb-3 p-2.5 rounded-xl bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30">
-                              <p className="text-orange-600 dark:text-orange-400 text-xs font-bold flex items-center gap-1">
-                                <AlertTriangle className="h-3 w-3" />
-                                <span className="truncate">{order.notes}</span>
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Table info for dine-in */}
-                          {order.order_type === 'dine-in' && order.table_number && (
-                            <div className="mb-3 p-2.5 rounded-xl bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/30">
-                              <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-md bg-purple-500 flex items-center justify-center">
-                                  <Coffee className="h-3 w-3 text-white" />
-                                </div>
-                                <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
-                                  Table {order.table_number}
-                                </span>
-                                {order.waiter && (
-                                  <span className="text-xs text-muted-foreground ml-auto">
-                                    {order.waiter.name}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Actions */}
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-shrink-0 hover:bg-gray-100 dark:hover:bg-zinc-800"
-                              onClick={() => onViewDetails(order)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            {col.nextStatus && (
-                              <Button
-                                size="sm"
-                                className={cn(
-                                  'flex-1 text-white shadow-lg transition-all',
-                                  col.accentColor,
-                                  'hover:opacity-90 hover:shadow-xl hover:scale-105'
-                                )}
-                                onClick={() => onStatusChange(order.id, col.nextStatus!)}
-                              >
-                                <ArrowRight className="h-4 w-4 mr-1.5" />
-                                {col.nextAction}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
-
-                {columnOrders.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                    <motion.div
-                      animate={{ y: [0, -5, 0] }}
-                      transition={{ repeat: Infinity, duration: 2 }}
-                    >
-                      <ChefHat className="h-12 w-12 mb-3 opacity-40" />
-                    </motion.div>
-                    <p className="text-sm font-medium">No orders</p>
+              {/* Urban Column Header */}
+              <div className="px-4 py-4 flex items-center justify-between text-white bg-black border-b-4 border-black">
+                <div className="flex items-center gap-2">
+                  <div className="text-[#FFD200]">
+                    {col.icon}
                   </div>
-                )}
+                  <span className="font-bebas text-2xl tracking-widest uppercase">{col.title}</span>
+                </div>
+                <div className="bg-[#FFD200] text-black px-3 py-1 font-bebas text-xl">
+                  {columnOrders.length}
+                </div>
               </div>
-            </ScrollArea>
-          </motion.div>
-        );
-      })}
-    </div>
+
+              {/* Orders Container */}
+              <ScrollArea className="flex-1 p-3 bg-gray-50 dark:bg-zinc-900/50">
+                <div className="space-y-3">
+                  <AnimatePresence mode="popLayout">
+                    {columnOrders.map((order) => {
+                      return (
+                        <motion.div
+                          key={order.id}
+                          layout
+                          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.9, x: 100 }}
+                          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                          whileHover={{ scale: 1.02, y: -2 }}
+                          className="relative group bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                        >
+                          {/* Urban Card Content */}
+                          <div className="relative p-4 bg-white">
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div
+                                  className={cn(
+                                    'min-w-[48px] h-10 px-2 border-2 border-black flex items-center justify-center font-bebas text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
+                                    col.accentColor
+                                  )}
+                                >
+                                  <span className="truncate">#{order.order_number}</span>
+                                </div>
+                                <OrderTypeBadge type={order.order_type} tableNumber={order.table_number} />
+                              </div>
+                              <LiveTimer createdAt={order.created_at} compact />
+                            </div>
+
+                            {/* Customer */}
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+                              <User className="h-3 w-3" />
+                              <span className="truncate">{order.customer_name}</span>
+                              <span className="ml-auto flex items-center gap-1">
+                                <Package className="h-3 w-3" />
+                                {order.total_items || order.items?.length || 0}
+                              </span>
+                            </div>
+
+                            {/* Items */}
+                            <div className="space-y-1.5 mb-3">
+                              {order.items?.slice(0, 3).map((item, i) => (
+                                <div key={i} className="flex items-center gap-2 text-sm p-2 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                                  <span className={cn(
+                                    'w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs text-white',
+                                    col.accentColor
+                                  )}>
+                                    {item.quantity}
+                                  </span>
+                                  <span className="truncate flex-1 font-medium">{item.name}</span>
+                                  {item.notes && (
+                                    <AlertTriangle className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
+                                  )}
+                                </div>
+                              ))}
+                              {order.items?.length > 3 && (
+                                <p className="text-xs text-muted-foreground text-center py-1 bg-gray-50 dark:bg-zinc-800/30 rounded-lg">
+                                  +{order.items.length - 3} more items
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Special notes indicator */}
+                            {order.notes && (
+                              <div className="mb-3 p-2.5 border-2 border-black bg-[#FFD200]/10">
+                                <p className="text-[#ED1C24] text-[10px] font-source-sans font-black flex items-center gap-1 uppercase tracking-widest">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  <span className="truncate">{order.notes}</span>
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Table info for dine-in */}
+                            {order.order_type === 'dine-in' && order.table_number && (
+                              <div className="mb-3 p-2.5 border-2 border-black bg-[#ED1C24]/5">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 border-2 border-black bg-black flex items-center justify-center">
+                                    <Coffee className="h-3 w-3 text-[#FFD200]" />
+                                  </div>
+                                  <span className="font-bebas text-sm tracking-widest text-black">
+                                    Table {order.table_number}
+                                  </span>
+                                  {order.waiter && (
+                                    <span className="text-[10px] font-source-sans font-black text-black/40 uppercase ml-auto">
+                                      {order.waiter.name}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-shrink-0 hover:bg-gray-100 dark:hover:bg-zinc-800"
+                                onClick={() => onViewDetails(order)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              {col.nextStatus && (
+                                <Button
+                                  size="sm"
+                                  className={cn(
+                                    'flex-1 text-white shadow-lg transition-all',
+                                    col.accentColor,
+                                    'hover:opacity-90 hover:shadow-xl hover:scale-105'
+                                  )}
+                                  onClick={() => onStatusChange(order.id, col.nextStatus!)}
+                                >
+                                  <ArrowRight className="h-4 w-4 mr-1.5" />
+                                  {col.nextAction}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+
+                  {columnOrders.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                      <motion.div
+                        animate={{ y: [0, -5, 0] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                      >
+                        <ChefHat className="h-12 w-12 mb-3 opacity-40" />
+                      </motion.div>
+                      <p className="text-sm font-medium">No orders</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </motion.div>
+          );
+        })}
+      </div>
 
       {/* Mobile: single column based on selected tab */}
       <div className="sm:hidden">
@@ -741,16 +715,13 @@ function KDSColumnView({
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9, x: 80 }}
                       transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-                      className="relative rounded-2xl p-[2.5px] overflow-hidden"
-                      style={{
-                        background: `linear-gradient(135deg, ${col.cardBorderGradient[0]}, ${col.cardBorderGradient[1]}, ${col.cardBorderGradient[2]})`,
-                      }}
+                      className="relative border-4 border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
                     >
-                      <div className="p-4 rounded-[14px] bg-white dark:bg-zinc-900">
+                      <div className="p-4 bg-white">
                         {/* Header row */}
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2 min-w-0">
-                            <div className={cn('px-2.5 py-1 rounded-xl flex items-center justify-center font-bold text-white text-xs shadow-md', col.accentColor)}>
+                            <div className={cn('px-2.5 py-1 border-2 border-black flex items-center justify-center font-bebas text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]', col.accentColor)}>
                               #{order.order_number}
                             </div>
                             <OrderTypeBadge type={order.order_type} tableNumber={order.table_number} />
@@ -924,7 +895,7 @@ function OrderDetailModal({
             </CardHeader>
             <CardContent className="space-y-2">
               {order.items?.map((item, index) => (
-                <div 
+                <div
                   key={`${item.id}-${index}`}
                   className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"
                 >
@@ -1034,7 +1005,7 @@ type DateFilterType = 'today' | 'week' | 'month' | 'year' | 'custom';
 function getCompletedDateRange(preset: DateFilterType): { startDate: string; endDate: string } {
   const today = new Date();
   const formatDate = (d: Date) => d.toISOString().split('T')[0];
-  
+
   switch (preset) {
     case 'today':
       return { startDate: formatDate(today), endDate: formatDate(today) };
@@ -1174,7 +1145,7 @@ function CompletedOrdersTab() {
                   </Button>
                 ))}
               </div>
-              
+
               <div className="border-t pt-4">
                 <p className="text-sm font-medium mb-2">Custom Range</p>
                 <div className="grid grid-cols-2 gap-2">
@@ -1197,8 +1168,8 @@ function CompletedOrdersTab() {
                     />
                   </div>
                 </div>
-                <Button 
-                  className="w-full mt-3 bg-gradient-to-r from-green-500 to-emerald-500" 
+                <Button
+                  className="w-full mt-3 bg-gradient-to-r from-green-500 to-emerald-500"
                   size="sm"
                   onClick={handleCustomApply}
                 >
@@ -1210,7 +1181,7 @@ function CompletedOrdersTab() {
         </Popover>
 
         <div className="flex-1" />
-        
+
         <Button variant="outline" size="sm" onClick={fetchCompletedOrders} disabled={isLoading} className="h-9">
           <RefreshCw className={cn('h-4 w-4 mr-2', isLoading && 'animate-spin')} />
           Refresh
@@ -1220,7 +1191,7 @@ function CompletedOrdersTab() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="p-4 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20"
@@ -1232,7 +1203,7 @@ function CompletedOrdersTab() {
             <p className="text-2xl font-bold">{stats.total_completed}</p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -1245,7 +1216,7 @@ function CompletedOrdersTab() {
             <p className="text-2xl font-bold">{stats.total_items_prepared}</p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -1258,7 +1229,7 @@ function CompletedOrdersTab() {
             <p className="text-2xl font-bold">{stats.avg_prep_time_minutes || 0}<span className="text-sm font-normal ml-1">min</span></p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -1271,7 +1242,7 @@ function CompletedOrdersTab() {
             <p className="text-2xl font-bold">{stats.fastest_order_minutes || 0}<span className="text-sm font-normal ml-1">min</span></p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
@@ -1284,7 +1255,7 @@ function CompletedOrdersTab() {
             <p className="text-2xl font-bold">{stats.slowest_order_minutes || 0}<span className="text-sm font-normal ml-1">min</span></p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
@@ -1305,7 +1276,7 @@ function CompletedOrdersTab() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : orders.length === 0 ? (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex flex-col items-center justify-center py-20 text-muted-foreground"
@@ -1356,9 +1327,9 @@ function CompletedOrdersTab() {
                     {order.prep_time_minutes !== null && (
                       <div className={cn(
                         'px-3 py-1.5 rounded-lg font-medium text-sm flex items-center gap-1.5',
-                        order.prep_time_minutes <= 10 
-                          ? 'bg-green-500/10 text-green-600' 
-                          : order.prep_time_minutes <= 20 
+                        order.prep_time_minutes <= 10
+                          ? 'bg-green-500/10 text-green-600'
+                          : order.prep_time_minutes <= 20
                             ? 'bg-yellow-500/10 text-yellow-600'
                             : 'bg-red-500/10 text-red-600'
                       )}>
@@ -1386,7 +1357,7 @@ function CompletedOrdersTab() {
                 {/* Items Preview */}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {order.items?.slice(0, 4).map((item: any, i: number) => (
-                    <span 
+                    <span
                       key={i}
                       className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xs font-medium"
                     >
@@ -1409,72 +1380,45 @@ function CompletedOrdersTab() {
 }
 
 // Enhanced Stats Card Component with animated lava gradients
-function StatsCard({ 
-  title, 
-  value, 
-  icon, 
+function StatsCard({
+  title,
+  value,
+  icon,
   trend,
   subtitle,
   delay = 0,
-}: { 
-  title: string; 
-  value: number | string; 
+}: {
+  title: string;
+  value: number | string;
   icon: React.ReactNode;
   trend?: string;
   subtitle?: string;
   delay?: number;
 }) {
   return (
-    <motion.div 
-      whileHover={{ y: -4, scale: 1.02 }} 
+    <motion.div
+      whileHover={{ y: -4 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className="h-full relative rounded-2xl p-[3px] overflow-hidden"
-      style={{
-        background: 'linear-gradient(135deg, #ef4444, #f97316, #f43f5e, #ea580c)',
-        backgroundSize: '300% 300%',
-        animation: `gradientShift 4s ease infinite ${delay}s`,
-      }}
+      className="relative overflow-hidden bg-white border-4 border-black p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
     >
-      <Card className="overflow-hidden h-full border-0 shadow-lg bg-white dark:bg-zinc-900 rounded-xl">
-        <CardContent className="p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">{title}</p>
-              <motion.div 
-                key={String(value)}
-                initial={{ opacity: 0, scale: 0.5, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-                className="flex items-baseline gap-2"
-              >
-                <span className="text-4xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-red-600 bg-clip-text text-transparent tabular-nums">
-                  {value}
-                </span>
-                {trend && (
-                  <span className="text-sm font-medium text-orange-500 flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    {trend}
-                  </span>
-                )}
-              </motion.div>
-              {subtitle && (
-                <p className="text-xs text-muted-foreground">{subtitle}</p>
-              )}
-            </div>
-            <motion.div 
-              className="p-3 rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 shadow-lg shadow-orange-500/30"
-              whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
-              transition={{ duration: 0.5 }}
-              style={{
-                backgroundSize: '200% 200%',
-                animation: 'gradientShift 3s ease infinite',
-              }}
-            >
-              {icon}
-            </motion.div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <p className="text-sm font-bebas tracking-widest text-black/40 uppercase leading-none">
+            {title}
+          </p>
+          <p className="text-4xl font-bebas text-black leading-none tabular-nums">
+            {value}
+          </p>
+        </div>
+        <div className="p-2 bg-black text-[#FFD200] border-2 border-black">
+          {icon}
+        </div>
+      </div>
+      {subtitle && (
+        <p className="text-[10px] font-source-sans font-black text-black/40 mt-3 uppercase tracking-tighter">
+          {subtitle}
+        </p>
+      )}
     </motion.div>
   );
 }
@@ -1515,7 +1459,7 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
         setTimeout(() => oscillator.stop(), 200);
       });
     } catch (e) {
-      
+
     }
   };
 
@@ -1525,7 +1469,7 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
       const result = await kitchenGET();
       if (result.success) {
         if (result.orders) setOrders(result.orders);
-        if (result.stats)  setStats(result.stats);
+        if (result.stats) setStats(result.stats);
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to fetch kitchen orders');
@@ -1539,7 +1483,7 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
     const soundEnabledRef = soundEnabled; // capture for closure
     const callback = (payload?: any) => {
       fetchOrders();
-      
+
       // Play sound for new orders
       if (payload?.eventType === 'INSERT' && soundEnabledRef) {
         playNotificationSound();
@@ -1571,20 +1515,20 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     // Optimistic update - immediately update the UI
-    setOrders(prevOrders => 
-      prevOrders.map(order => 
-        order.id === orderId 
+    setOrders(prevOrders =>
+      prevOrders.map(order =>
+        order.id === orderId
           ? { ...order, status: newStatus as KitchenOrder['status'] }
           : order
       )
     );
-    
+
     // Also update stats optimistically
     setStats(prevStats => {
       if (!prevStats) return prevStats;
       const currentOrder = orders.find(o => o.id === orderId);
       if (!currentOrder) return prevStats;
-      
+
       const oldStatus = currentOrder.status;
       return {
         ...prevStats,
@@ -1592,7 +1536,7 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
         [`${newStatus}_count`]: ((prevStats as any)[`${newStatus}_count`] || 0) + 1,
       };
     });
-    
+
     try {
       const result = await kitchenPOST({ action: 'update_status', orderId, status: newStatus });
 
@@ -1601,9 +1545,9 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
       }
 
       toast.success(
-        newStatus === 'preparing' ? '🔥 Cooking started!' : 
-        newStatus === 'ready' ? '✅ Order ready!' : 
-        'Status updated!',
+        newStatus === 'preparing' ? '🔥 Cooking started!' :
+          newStatus === 'ready' ? '✅ Order ready!' :
+            'Status updated!',
         { duration: 1500 }
       );
     } catch (error: any) {
@@ -1625,36 +1569,32 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex-shrink-0">
-                <ChefHat className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
-              </div>
-              Kitchen Display
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              Real-time order queue • {orders.length} active orders
-            </p>
-          </div>
-          
+      <SectionHeader
+        title="Kitchen Display"
+        description={`Real-time order queue • ${orders.length} active orders`}
+        action={
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="icon"
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className={cn('h-8 w-8 sm:h-10 sm:w-10', !soundEnabled && 'text-muted-foreground')}
+              className={cn(
+                'h-10 w-10 rounded-none border-2 border-black transition-all',
+                soundEnabled ? 'bg-[#FFD200] text-black' : 'bg-black text-[#FFD200]'
+              )}
             >
-              {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
             </Button>
-            <Button variant="outline" size="sm" onClick={fetchOrders} className="h-8 sm:h-10">
-              <RefreshCw className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Refresh</span>
+            <Button
+              onClick={fetchOrders}
+              className="h-10 rounded-none border-2 border-black bg-black text-[#FFD200] font-bebas tracking-widest hover:bg-zinc-800"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              REFRESH
             </Button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Enhanced Stats Grid - Animated Lava Gradient Cards */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
@@ -1702,9 +1642,9 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
             <SelectItem value="ready">Ready</SelectItem>
           </SelectContent>
         </Select>
-        
+
         <div className="flex-1" />
-        
+
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)}>
           <TabsList>
             <TabsTrigger value="kds" className="gap-1.5 text-xs sm:text-sm">
@@ -1736,7 +1676,7 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
           </motion.div>
         </div>
       ) : filteredOrders.length === 0 ? (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex flex-col items-center justify-center h-64 text-muted-foreground"
@@ -1746,7 +1686,7 @@ export default function KitchenClient({ initialOrders, initialStats }: KitchenCl
           <p className="text-sm">New orders will appear here instantly</p>
         </motion.div>
       ) : viewMode === 'kds' ? (
-        <KDSColumnView 
+        <KDSColumnView
           orders={filteredOrders}
           onStatusChange={handleStatusChange}
           onViewDetails={handleViewDetails}

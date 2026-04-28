@@ -387,7 +387,13 @@ export default function OfferPopup({ onClose, initialOffers = [] }: OfferPopupPr
                     {/* Banner image */}
                     {offer.banner_image && (
                       <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/15">
-                        <Image src={offer.banner_image} alt={offer.name} fill className="object-cover" />
+                        <Image 
+                          src={offer.banner_image} 
+                          alt={offer.name} 
+                          fill 
+                          className="object-cover" 
+                          sizes="(max-width: 640px) 100vw, 320px"
+                        />
                       </div>
                     )}
 
@@ -419,7 +425,13 @@ export default function OfferPopup({ onClose, initialOffers = [] }: OfferPopupPr
                             <div key={item.id} className={cn('flex-shrink-0 w-16 rounded-lg p-1.5 text-center border', isLava ? 'bg-black/20 border-orange-500/20' : 'bg-white/10 border-white/20')}>
                               {item.menu_item?.images?.[0] && (
                                 <div className="relative w-full aspect-square rounded-md overflow-hidden mb-1">
-                                  <Image src={item.menu_item.images[0]} alt={item.menu_item.name} fill className="object-cover" />
+                                  <Image 
+                                    src={item.menu_item.images[0]} 
+                                    alt={item.menu_item.name} 
+                                    fill 
+                                    className="object-cover" 
+                                    sizes="64px"
+                                  />
                                 </div>
                               )}
                               <p className="text-[9px] truncate font-semibold text-white">{item.menu_item?.name}</p>

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -101,13 +101,13 @@ interface OrdersClientProps {
 // Previously injected gradientShift animation is now in app/globals.css
 
 const STATUS_CONFIG: Record<OrderStatus, { color: string; bgColor: string; label: string; icon: React.ReactNode }> = {
-  pending: { color: 'text-yellow-500', bgColor: 'bg-yellow-500/10', label: 'Pending', icon: <Clock className="h-4 w-4" /> },
-  confirmed: { color: 'text-blue-500', bgColor: 'bg-blue-500/10', label: 'In Kitchen', icon: <CheckCircle className="h-4 w-4" /> },
-  preparing: { color: 'text-orange-500', bgColor: 'bg-orange-500/10', label: 'Preparing', icon: <Utensils className="h-4 w-4" /> },
-  ready: { color: 'text-green-500', bgColor: 'bg-green-500/10', label: 'Ready', icon: <Package className="h-4 w-4" /> },
-  delivering: { color: 'text-purple-500', bgColor: 'bg-purple-500/10', label: 'Out for Delivery', icon: <Truck className="h-4 w-4" /> },
-  delivered: { color: 'text-green-600', bgColor: 'bg-green-600/10', label: 'Completed', icon: <CheckCircle className="h-4 w-4" /> },
-  cancelled: { color: 'text-red-500', bgColor: 'bg-red-500/10', label: 'Cancelled', icon: <XCircle className="h-4 w-4" /> },
+  pending: { color: 'text-black', bgColor: 'bg-[#FFD200]', label: 'PENDING', icon: <Clock className="h-4 w-4" /> },
+  confirmed: { color: 'text-white', bgColor: 'bg-black', label: 'IN KITCHEN', icon: <CheckCircle className="h-4 w-4" /> },
+  preparing: { color: 'text-white', bgColor: 'bg-[#ED1C24]', label: 'PREPARING', icon: <Utensils className="h-4 w-4" /> },
+  ready: { color: 'text-black', bgColor: 'bg-[#FFD200]', label: 'READY', icon: <Package className="h-4 w-4" /> },
+  delivering: { color: 'text-white', bgColor: 'bg-black', label: 'OUT FOR DELIVERY', icon: <Truck className="h-4 w-4" /> },
+  delivered: { color: 'text-white', bgColor: 'bg-[#008A45]', label: 'COMPLETED', icon: <CheckCircle className="h-4 w-4" /> },
+  cancelled: { color: 'text-white', bgColor: 'bg-[#ED1C24]', label: 'CANCELLED', icon: <XCircle className="h-4 w-4" /> },
 };
 
 // Get status label based on order type (for context-aware display)
@@ -134,10 +134,10 @@ const getStatusDisplay = (status: OrderStatus, orderType: string) => {
 };
 
 const ORDER_TYPE_CONFIG: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
-  'dine-in': { color: 'bg-blue-500/10 text-blue-500', icon: <Utensils className="h-3 w-3" />, label: 'Dine In' },
-  'dine_in': { color: 'bg-blue-500/10 text-blue-500', icon: <Utensils className="h-3 w-3" />, label: 'Dine In' },
-  'online': { color: 'bg-purple-500/10 text-purple-500', icon: <ShoppingBag className="h-3 w-3" />, label: 'Online' },
-  'walk-in': { color: 'bg-amber-500/10 text-amber-500', icon: <User className="h-3 w-3" />, label: 'Walk-in' },
+  'dine-in': { color: 'bg-black text-[#FFD200] border-black', icon: <Utensils className="h-3 w-3" />, label: 'DINE IN' },
+  'dine_in': { color: 'bg-black text-[#FFD200] border-black', icon: <Utensils className="h-3 w-3" />, label: 'DINE IN' },
+  'online': { color: 'bg-[#ED1C24] text-white border-black', icon: <ShoppingBag className="h-3 w-3" />, label: 'ONLINE' },
+  'walk-in': { color: 'bg-[#FFD200] text-black border-black', icon: <User className="h-3 w-3" />, label: 'WALK-IN' },
 };
 
 // =============================================
@@ -147,7 +147,6 @@ function AnimatedStatsCard({
   title,
   value,
   icon,
-  delay = 0,
   subValue,
   trend,
 }: {
@@ -159,44 +158,23 @@ function AnimatedStatsCard({
   trend?: 'up' | 'down' | null;
 }) {
   return (
-    <div
-      className="relative rounded-xl overflow-hidden"
-      style={{
-        padding: '2px',
-        background: 'linear-gradient(90deg, #ff6b35, #f72585)',
-      }}
-    >
-      <div className="relative rounded-[10px] bg-white dark:bg-zinc-950 p-2.5 sm:p-4 h-full">
-        <div className="flex items-start justify-between">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{title}</p>
-            <p
-              className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1 truncate"
-              style={{
-                background: 'linear-gradient(135deg, #ff6b35, #f72585)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              {typeof value === 'number' ? value.toLocaleString() : value}
+    <div className="bg-white border-4 border-black p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all">
+      <div className="flex items-start justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bebas tracking-widest text-black/40 uppercase truncate">{title}</p>
+          <p className="text-3xl font-bebas text-black leading-none mt-1 truncate">
+            {typeof value === 'number' ? value.toLocaleString() : value}
+          </p>
+          {subValue && (
+            <p className="text-[10px] font-source-sans font-black text-black/60 mt-2 flex items-center gap-1 uppercase tracking-tighter">
+              {trend === 'up' && <TrendingUp className="h-2.5 w-2.5 text-[#008A45]" />}
+              {trend === 'down' && <TrendingUp className="h-2.5 w-2.5 text-[#ED1C24] rotate-180" />}
+              {subValue}
             </p>
-            {subValue && (
-              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                {trend === 'up' && <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-green-500" />}
-                {trend === 'down' && <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-500 rotate-180" />}
-                {subValue}
-              </p>
-            )}
-          </div>
-          <div
-            className="p-1.5 sm:p-2 rounded-lg flex-shrink-0 ml-1"
-            style={{
-              background: 'linear-gradient(135deg, rgba(255,107,53,0.15), rgba(247,37,133,0.15))',
-            }}
-          >
-            {icon}
-          </div>
+          )}
+        </div>
+        <div className="p-3 bg-black text-[#FFD200] shadow-[2px_2px_0px_0px_rgba(237,28,36,1)] flex-shrink-0 ml-2">
+          {icon}
         </div>
       </div>
     </div>
@@ -232,17 +210,13 @@ function LiveTimer({ createdAt }: { createdAt: string }) {
 
   return (
     <span className={cn(
-      'font-mono text-xs flex items-center gap-1',
-      isCritical ? 'text-red-500 font-semibold' : 
-      isWarning ? 'text-orange-500' : 
-      'text-muted-foreground'
+      'font-bebas text-lg flex items-center gap-1.5 px-2 py-1 border-2 border-black',
+      isCritical ? 'bg-[#ED1C24] text-white animate-pulse' : 
+      isWarning ? 'bg-[#FFD200] text-black' : 
+      'bg-black text-[#FFD200]'
     )}>
-      <Timer className={cn(
-        "h-3 w-3",
-        isCritical && "animate-pulse"
-      )} />
+      <Timer className="h-4 w-4" />
       {formatTime()}
-      {isCritical && <span className="text-[10px]">⚠️</span>}
     </span>
   );
 }
@@ -337,7 +311,6 @@ function OrderDetailsDialog({
   // Show assign rider option when: order is ready, order type is online, no rider assigned yet
   const canAssignRider = order.status === 'ready' && order.order_type === 'online' && !order.delivery_rider;
 
-  // Collapsible Section Component for mobile
   const CollapsibleSection = ({ 
     title, 
     icon: Icon, 
@@ -355,24 +328,24 @@ function OrderDetailsDialog({
   }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
     return (
-      <div className={cn("rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 overflow-hidden", className)}>
+      <div className={cn("border-2 border-black bg-white overflow-hidden", className)}>
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between p-3.5 sm:p-4 text-left active:bg-zinc-100 dark:active:bg-zinc-700/50 transition-colors"
+          className="w-full flex items-center justify-between p-3.5 sm:p-4 text-left hover:bg-black/5 active:bg-black/10 transition-colors"
         >
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-white dark:bg-zinc-700 shadow-sm">
-              <Icon className="h-4 w-4 text-primary" />
+            <div className="p-2 border-2 border-black bg-black text-[#FFD200]">
+              <Icon className="h-4 w-4" />
             </div>
-            <span className="font-semibold text-sm">{title}</span>
+            <span className="font-bebas text-lg tracking-widest uppercase">{title}</span>
             {badge}
           </div>
           <motion.div
             animate={{ rotate: isOpen ? 180 : 0 }}
             transition={{ duration: 0.2 }}
           >
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            <ChevronDown className="h-4 w-4 text-black" />
           </motion.div>
         </button>
         <AnimatePresence>
@@ -396,37 +369,23 @@ function OrderDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[92vh] sm:max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 rounded-t-3xl sm:rounded-2xl">
-        {/* Fixed Header - Premium Design */}
-        <div className="sticky top-0 z-10 bg-gradient-to-b from-white via-white to-white/95 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-900/95 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 px-4 py-3.5 sm:p-5">
-          {/* Mobile Pull Indicator */}
-          <div className="w-10 h-1 bg-zinc-300 dark:bg-zinc-600 rounded-full mx-auto mb-3 sm:hidden" />
+      <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[92vh] sm:max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0 rounded-none border-4 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] bg-white">
+        {/* Fixed Header - Urban Design */}
+        <div className="sticky top-0 z-10 bg-black text-white border-b-4 border-black px-4 py-4 sm:p-6">
           
           <DialogHeader className="space-y-0">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <DialogTitle className="text-lg sm:text-xl flex items-center gap-2 flex-wrap">
-                  <span
-                    style={{
-                      background: 'linear-gradient(90deg, #ef4444, #f97316, #ef4444, #f97316)',
-                      backgroundSize: '200% auto',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
-                      animation: 'gradientShift 3s ease infinite',
-                      fontWeight: 500,
-                    }}
-                  >
-                    Order #{order.order_number}
-                  </span>
-                  <Badge className={cn('text-xs px-2 py-0.5', typeConfig?.color)}>
+                <DialogTitle className="text-3xl sm:text-5xl font-bebas text-[#FFD200] leading-none uppercase tracking-widest">
+                  ORDER #{order.order_number}
+                  <Badge className={cn('ml-4 text-lg px-3 py-0 border-2 border-white rounded-none font-bebas tracking-widest', typeConfig?.color)}>
                     {typeConfig?.label}
                   </Badge>
                 </DialogTitle>
-                <DialogDescription className="flex items-center gap-2 mt-1.5 flex-wrap text-xs sm:text-sm">
+                <DialogDescription className="flex items-center gap-2 mt-2 flex-wrap text-xs sm:text-sm font-source-sans font-black uppercase tracking-widest text-black/40">
                   <LiveTimer createdAt={order.created_at} />
-                  <span className="text-zinc-300 dark:text-zinc-600">•</span>
-                  <span className="text-muted-foreground">
+                  <span>•</span>
+                  <span>
                     {new Date(order.created_at).toLocaleDateString('en-US', { 
                       month: 'short', 
                       day: 'numeric',
@@ -439,7 +398,7 @@ function OrderDetailsDialog({
               
               {/* Status Badge - Larger on Mobile */}
               <Badge className={cn(
-                'gap-1.5 text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 rounded-xl shrink-0',
+                'gap-2 text-sm sm:text-lg px-3 sm:px-4 py-1 shrink-0 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
                 statusConfig.bgColor, 
                 statusConfig.color
               )}>

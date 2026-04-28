@@ -10,49 +10,49 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/assets/zoiro-logo.png",
+      "src": "/assets/fifth_avenue_urban_logo_1777394607150.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/zoiro-logo.png",
+      "src": "/assets/fifth_avenue_urban_logo_1777394607150.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/zoiro-logo.png",
+      "src": "/assets/fifth_avenue_urban_logo_1777394607150.png",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/zoiro-logo.png",
+      "src": "/assets/fifth_avenue_urban_logo_1777394607150.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/zoiro-logo.png",
+      "src": "/assets/fifth_avenue_urban_logo_1777394607150.png",
       "sizes": "152x152",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/zoiro-logo.png",
+      "src": "/assets/fifth_avenue_urban_logo_1777394607150.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/assets/zoiro-logo.png",
+      "src": "/assets/fifth_avenue_urban_logo_1777394607150.png",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/zoiro-logo.png",
+      "src": "/assets/fifth_avenue_urban_logo_1777394607150.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -82,21 +82,21 @@
       "short_name": "Menu",
       "description": "View our full menu",
       "url": "/menu",
-      "icons": [{ "src": "/assets/zoiro-logo.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/assets/fifth_avenue_urban_logo_1777394607150.png", "sizes": "96x96" }]
     },
     {
       "name": "Cart",
       "short_name": "Cart",
       "description": "View your cart",
       "url": "/cart",
-      "icons": [{ "src": "/assets/zoiro-logo.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/assets/fifth_avenue_urban_logo_1777394607150.png", "sizes": "96x96" }]
     },
     {
       "name": "Contact",
       "short_name": "Contact",
       "description": "Contact us",
       "url": "/contact",
-      "icons": [{ "src": "/assets/zoiro-logo.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/assets/fifth_avenue_urban_logo_1777394607150.png", "sizes": "96x96" }]
     }
   ]
 }

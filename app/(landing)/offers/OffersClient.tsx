@@ -144,7 +144,13 @@ function OfferCard({ offer, index }: { offer: SpecialOffer; index: number }) {
       {/* Banner Image */}
       {offer.banner_image && (
         <div className="relative w-full aspect-[16/9] border-b-8 border-black overflow-hidden">
-          <Image src={offer.banner_image} alt={offer.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+          <Image 
+            src={offer.banner_image} 
+            alt={offer.name} 
+            fill 
+            className="object-cover group-hover:scale-110 transition-transform duration-500" 
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
+          />
         </div>
       )}
 

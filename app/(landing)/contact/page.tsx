@@ -106,6 +106,7 @@ export default function ContactPage() {
                   style={{ border: 0 }}
                   allowFullScreen
                   loading="lazy"
+                  referrerPolicy="no-referrer"
                   title="Fifth Avenue Location"
                 />
               </div>

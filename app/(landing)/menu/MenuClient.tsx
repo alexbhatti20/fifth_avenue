@@ -111,7 +111,7 @@ function MenuItemCard({
     <motion.div
       variants={cardVariants}
       layout
-      className="group relative"
+      className="group relative cursor-pointer"
       onClick={onOpen}
     >
       <div className="bg-white border-4 border-black p-0 overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] group-hover:shadow-none group-hover:translate-x-[4px] group-hover:translate-y-[4px] transition-all duration-300 h-full flex flex-col">
@@ -121,6 +121,7 @@ function MenuItemCard({
             src={image}
             alt={item.name}
             fill
+            priority={priority}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
             className="object-cover transition-transform duration-500 group-hover:scale-110"
           />
@@ -848,7 +849,7 @@ export default function MenuClient({
                         isToggling={isToggling}
                         isMobileDevice={isMobileDevice}
                         categoryName={categoryName}
-                        priority={index === 0}
+                        priority={index < 4}
                         onOpen={() => openItemDetail(item)}
                         onToggleFavorite={(e) => handleToggleFavorite(e, item.id, 'menu_item', item.name)}
                         onAddToCart={() => handleAddToCart(item)}

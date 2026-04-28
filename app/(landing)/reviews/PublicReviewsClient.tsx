@@ -534,7 +534,7 @@ export default function PublicReviewsClient({ initialData }: PublicReviewsClient
       </section>
 
       {/* Grid */}
-      <section className="py-20 bg-gray-50/50" ref={containerRef}>
+      <section className="py-20 bg-gray-50/50 relative" ref={containerRef}>
         <div className="max-w-7xl mx-auto px-6">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-40">
